@@ -4,7 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import '../global.css';
-import './tasks/backgroundTasks';
+import '../tasks/backgroundTasks';
 
 import { useColorScheme } from '@/components/useColorScheme';
 
