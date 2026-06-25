@@ -1,7 +1,36 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './api';
 
+export async function syncPendingEndTrip() {
+  try {
+    const pendingEndTripId = await AsyncStorage.getItem('pending_end_trip_id');
+    if (!pendingEndTripId) return { success: true };
+
+    const token = await AsyncStorage.getItem('user_token');
+    if (!token) return { success: false, reason: 'No auth token' };
+
+    console.log(`[Queue Service] Syncing pending end trip: ${pendingEndTripId}...`);
+    const response = await api.patch(`/trips/${pendingEndTripId}/end`);
+    
+    if (response.status === 200 || response.data?.success) {
+      console.log(`[Queue Service] Successfully ended trip ${pendingEndTripId} on server.`);
+      await AsyncStorage.removeItem('pending_end_trip_id');
+      return { success: true };
+    }
+  } catch (err: any) {
+    console.warn('[Queue Service] Failed to sync pending end trip:', err.message);
+    if (err.response?.status === 400 || err.response?.status === 404) {
+      console.log('[Queue Service] Clearing pending end trip due to client/server error.');
+      await AsyncStorage.removeItem('pending_end_trip_id');
+    }
+    return { success: false, reason: err.message };
+  }
+}
+
 export async function flushOfflineQueue() {
+  // Try to sync pending end trip first
+  await syncPendingEndTrip();
+
   try {
     const queueStr = await AsyncStorage.getItem('gps_queue');
     if (!queueStr) return { success: true, count: 0 };

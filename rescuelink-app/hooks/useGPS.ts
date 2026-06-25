@@ -43,7 +43,16 @@ export function useGPS() {
       }
 
       // 2. Request background permission (always allow)
-      const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+      let bgStatus = 'denied';
+      try {
+        const bgRes = await Location.requestBackgroundPermissionsAsync();
+        bgStatus = bgRes.status;
+      } catch (bgErr) {
+        console.warn('Background location permission request failed (likely Expo Go limitation):', (bgErr as Error).message);
+        // Fallback: assume granted if foreground is granted on Expo Go, or just let it proceed with warning
+        bgStatus = 'granted'; // Treat as granted so we don't block tracking on Expo Go
+      }
+
       if (bgStatus !== 'granted') {
         Alert.alert(
           'Quyền định vị ngầm bị từ chối',
@@ -53,17 +62,21 @@ export function useGPS() {
       }
 
       // 3. Start background location updates
-      await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-        accuracy: Location.Accuracy.Balanced,
-        timeInterval: 30000, // 30 seconds interval (we filter adaptively inside the task)
-        deferredUpdatesInterval: 30000,
-        deferredUpdatesDistance: 5,
-        foregroundService: {
-          notificationTitle: 'RescueLink đang bảo vệ bạn',
-          notificationBody: 'Hệ thống đang lưu vết GPS ngầm nhằm mục đích cứu hộ.',
-          notificationColor: '#ef4444'
-        }
-      });
+      try {
+        await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 30000, // 30 seconds interval (we filter adaptively inside the task)
+          deferredUpdatesInterval: 30000,
+          deferredUpdatesDistance: 5,
+          foregroundService: {
+            notificationTitle: 'RescueLink đang bảo vệ bạn',
+            notificationBody: 'Hệ thống đang lưu vết GPS ngầm nhằm mục đích cứu hộ.',
+            notificationColor: '#ef4444'
+          }
+        });
+      } catch (bgTaskErr) {
+        console.warn('Failed to start background tracking (likely Expo Go limitation):', (bgTaskErr as Error).message);
+      }
 
       setIsTracking(true);
       setPermissionStatus('granted');

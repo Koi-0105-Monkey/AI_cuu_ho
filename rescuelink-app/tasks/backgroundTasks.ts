@@ -321,11 +321,8 @@ const checkPassiveCheckin = async (speed: number, lat: number, lng: number, acti
               await axios.post(`${API_URL}/incidents`, {
                 type: 'LOST',
                 severity: 2,
-                source: 'auto',
-                location: {
-                  type: 'Point',
-                  coordinates: [lng, lat]
-                },
+                lat,
+                lng,
                 message: `Auto check-in failed. Member stationary for ${Math.round(stoppedDurationMinutes)} mins without response.`
               }, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -403,8 +400,8 @@ const detectRouteAnomaly = async (currentPt: any, activeTrip: any) => {
               await axios.post(`${API_URL}/incidents`, {
                 type: 'LOST',
                 severity: 3,
-                source: 'auto',
-                location: { type: 'Point', coordinates: [newestPt.lng, newestPt.lat] },
+                lat: newestPt.lat,
+                lng: newestPt.lng,
                 message: `AI Anomaly Detection: Member walking in circles. Displacement: ${Math.round(displacement)}m, Total distance: ${Math.round(totalDistance)}m in 30 mins.`
               }, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -439,8 +436,8 @@ const detectRouteAnomaly = async (currentPt: any, activeTrip: any) => {
             await axios.post(`${API_URL}/incidents`, {
               type: 'LOST',
               severity: 3,
-              source: 'auto',
-              location: { type: 'Point', coordinates: [currentPt.lng, currentPt.lat] },
+              lat: currentPt.lat,
+              lng: currentPt.lng,
               message: `AI Anomaly Detection: Member deviated from route by ${Math.round(devDistance)}m.`
             }, {
               headers: { 'Authorization': `Bearer ${token}` }

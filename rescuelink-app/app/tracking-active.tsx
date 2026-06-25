@@ -46,7 +46,8 @@ export default function TrackingActiveScreen() {
   const [routePoints, setRoutePoints] = useState<Array<{ latitude: number; longitude: number }>>([]);
   const [walkedPath, setWalkedPath] = useState<Array<{ latitude: number; longitude: number }>>([]);
   const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null);
-  const [batteryLevel, setBatteryLevel] = useState<number>(100);
+  const rawBattery = Battery.useBatteryLevel();
+  const batteryLevel = rawBattery !== null && rawBattery >= 0 ? Math.round(rawBattery * 100) : 100;
   const [elapsedTime, setElapsedTime] = useState<string>('00:00:00');
   
   // Offline sync & warning states
@@ -56,6 +57,65 @@ export default function TrackingActiveScreen() {
   const [pendingSms, setPendingSms] = useState<any>(null);
   const [checkinWarning, setCheckinWarning] = useState<boolean>(false);
   const [ending, setEnding] = useState<boolean>(false);
+
+  const processForegroundLocation = async (loc: Location.LocationObject) => {
+    try {
+      const tripStr = await AsyncStorage.getItem('active_trip');
+      if (!tripStr) return; // No active trip
+
+      // Get current battery level
+      let battery = 100;
+      try {
+        const level = await Battery.getBatteryLevelAsync();
+        battery = level >= 0 ? Math.round(level * 100) : 100;
+      } catch (err) {
+        console.warn('Failed to get battery level', err);
+      }
+
+      const { latitude, longitude, altitude, speed, heading } = loc.coords;
+      const timestamp = loc.timestamp;
+
+      // Check if enough time has passed since last saved point to avoid spamming the database
+      const lastTimestampStr = await AsyncStorage.getItem('last_gps_timestamp_foreground');
+      const lastTimestamp = lastTimestampStr ? parseInt(lastTimestampStr) : 0;
+      const elapsedSeconds = (timestamp - lastTimestamp) / 1000;
+
+      // Save every 30 seconds
+      if (lastTimestamp === 0 || elapsedSeconds >= 30) {
+        const newPoint = {
+          lat: latitude,
+          lng: longitude,
+          altitude: altitude || 0,
+          speed: (speed !== null && speed >= 0) ? speed : 0,
+          heading: (heading !== null && heading >= 0) ? heading : 0,
+          battery,
+          recordedAt: new Date(timestamp).toISOString()
+        };
+
+        // 1. Save to walked path local state & active_trip_path
+        const tripPathStr = await AsyncStorage.getItem('active_trip_path');
+        const tripPath = tripPathStr ? JSON.parse(tripPathStr) : [];
+        tripPath.push(newPoint);
+        await AsyncStorage.setItem('active_trip_path', JSON.stringify(tripPath));
+
+        setWalkedPath(tripPath.map((p: any) => ({
+          latitude: p.lat,
+          longitude: p.lng
+        })));
+
+        // 2. Append to gps_queue in AsyncStorage for syncing
+        const queueStr = await AsyncStorage.getItem('gps_queue');
+        const queue = queueStr ? JSON.parse(queueStr) : [];
+        queue.push(newPoint);
+        await AsyncStorage.setItem('gps_queue', JSON.stringify(queue));
+        await AsyncStorage.setItem('last_gps_timestamp_foreground', timestamp.toString());
+
+        console.log(`[Foreground GPS Saved] Coords: ${latitude},${longitude} | Queue size: ${queue.length}`);
+      }
+    } catch (e) {
+      console.error('Error processing foreground location fallback:', e);
+    }
+  };
 
   // Subscribe to location updates in the foreground to keep the map UI smooth
   useEffect(() => {
@@ -71,8 +131,9 @@ export default function TrackingActiveScreen() {
           timeInterval: 5000,
           distanceInterval: 2,
         },
-        (loc) => {
+        async (loc) => {
           setCurrentLocation(loc);
+          await processForegroundLocation(loc);
         }
       );
     };
@@ -85,6 +146,8 @@ export default function TrackingActiveScreen() {
       }
     };
   }, []);
+
+
 
   // Sync data from AsyncStorage & check notifications periodically
   useEffect(() => {
@@ -131,25 +194,40 @@ export default function TrackingActiveScreen() {
         })));
       }
 
-      // 4. Center map on current location initially
-      try {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        setCurrentLocation(loc);
-        if (mapRef.current) {
-          mapRef.current.animateToRegion({
-            latitude: loc.coords.latitude,
-            longitude: loc.coords.longitude,
-            latitudeDelta: 0.015,
-            longitudeDelta: 0.015,
-          }, 1000);
-        }
-      } catch (e) {
-        console.warn('Failed to get initial coordinates');
-      }
+      // 4. Center map on current location initially (non-blocking IIFE)
+      (async () => {
+        try {
+          // Try to get last known location first (faster)
+          const lastLoc = await Location.getLastKnownPositionAsync();
+          if (lastLoc) {
+            setCurrentLocation(lastLoc);
+            if (mapRef.current) {
+              mapRef.current.animateToRegion({
+                latitude: lastLoc.coords.latitude,
+                longitude: lastLoc.coords.longitude,
+                latitudeDelta: 0.015,
+                longitudeDelta: 0.015,
+              }, 500);
+            }
+          }
 
-      // 5. Get battery level
-      const level = await Battery.getBatteryLevelAsync();
-      setBatteryLevel(level >= 0 ? Math.round(level * 100) : 100);
+          // Then query fresh location
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          setCurrentLocation(loc);
+          if (mapRef.current) {
+            mapRef.current.animateToRegion({
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude,
+              latitudeDelta: 0.015,
+              longitudeDelta: 0.015,
+            }, 800);
+          }
+        } catch (e) {
+          console.warn('Failed to get initial coordinates:', e);
+        }
+      })();
+
+
 
     } catch (err) {
       console.error(err);
@@ -204,9 +282,7 @@ export default function TrackingActiveScreen() {
         setPendingSms(null);
       }
 
-      // 6. Refresh battery level
-      const level = await Battery.getBatteryLevelAsync();
-      setBatteryLevel(level >= 0 ? Math.round(level * 100) : 100);
+
 
     } catch (e) {
       console.error('Failed to refresh local tracking data:', e);
@@ -310,13 +386,10 @@ export default function TrackingActiveScreen() {
             let onlineIncidentSuccess = false;
             try {
               const res = await api.post('/incidents', {
-                type: 'ACCIDENT',
+                type: 'MANUAL',
                 severity: 5,
-                source: 'user',
-                location: {
-                  type: 'Point',
-                  coordinates: [lng, lat]
-                },
+                lat,
+                lng,
                 message: 'PANIC SOS triggered manually by member.'
               });
               if (res.data.success) {
@@ -373,10 +446,13 @@ export default function TrackingActiveScreen() {
             try {
               if (activeTrip?.id) {
                 // Try sending end trip payload to backend
-                await api.post(`/trips/end`, { tripId: activeTrip.id });
+                await api.patch(`/trips/${activeTrip.id}/end`);
               }
             } catch (err) {
               console.warn('Backend connection failed when ending trip, executing local cleanup anyway.');
+              if (activeTrip?.id) {
+                await AsyncStorage.setItem('pending_end_trip_id', activeTrip.id);
+              }
             } finally {
               // Local cleanups inside hook
               await stopTracking();
@@ -439,7 +515,7 @@ export default function TrackingActiveScreen() {
       {/* 1. Map Canvas */}
       <MapView
         ref={mapRef}
-        className="flex-1 w-full"
+        style={StyleSheet.absoluteFillObject}
         provider={PROVIDER_DEFAULT}
         customMapStyle={darkMapStyle}
         showsUserLocation={false}
@@ -544,7 +620,7 @@ export default function TrackingActiveScreen() {
           <View className="bg-amber-600/90 border border-amber-500/40 p-3 rounded-xl gap-2">
             <Text className="text-white text-xs font-bold uppercase">CẢNH BÁO DỪNG CHUYỂN ĐỘNG</Text>
             <Text className="text-white text-[10px] leading-relaxed">
-              Bạn đứng yên >20 phút. Vui lòng xác nhận an toàn để hủy đếm ngược cứu hộ.
+              Bạn đứng yên &gt; 20 phút. Vui lòng xác nhận an toàn để hủy đếm ngược cứu hộ.
             </Text>
             <Pressable
               className="bg-emerald-600 active:bg-emerald-700 py-1.5 rounded-lg items-center"

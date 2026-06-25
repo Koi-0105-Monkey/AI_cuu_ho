@@ -8,7 +8,12 @@
     "scheme": "rescuelinkapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "RescueLink cần vị trí của bạn để gửi tín hiệu cứu hộ khẩn cấp và theo dõi hành trình trekking.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "RescueLink cần theo dõi vị trí khi bạn trekking để tự động phát hiện sự cố và gửi tín hiệu cứu hộ khi cần.",
+        "NSLocationAlwaysUsageDescription": "RescueLink cần theo dõi vị trí liên tục trong hành trình trekking để đảm bảo an toàn cho bạn."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +22,12 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -33,7 +43,19 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "RescueLink cần theo dõi vị trí khi bạn trekking để tự động phát hiện sự cố và gửi cứu hộ.",
+          "locationAlwaysPermission": "RescueLink cần theo dõi vị trí liên tục trong hành trình để đảm bảo an toàn.",
+          "locationWhenInUsePermission": "RescueLink cần vị trí để gửi tín hiệu cứu hộ khẩn cấp.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

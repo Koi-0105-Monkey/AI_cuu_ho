@@ -6,6 +6,7 @@ import api from '@/services/api';
 import { Alert, ActivityIndicator } from 'react-native';
 import { useGPS } from '@/hooks/useGPS';
 import * as Location from 'expo-location';
+import * as Battery from 'expo-battery';
 
 const DURATIONS = [
   { label: '4 tiếng', value: 4 },
@@ -47,10 +48,33 @@ export default function TrekkingSetupScreen() {
     setSubmitting(true);
 
     try {
+      // Get current location and fallback if it fails
+      let lat = 21.0285;
+      let lng = 105.8542;
+      let battery = 100;
+
+      try {
+        const userLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        lat = userLoc.coords.latitude;
+        lng = userLoc.coords.longitude;
+      } catch (locErr) {
+        console.warn('Could not get initial position for starting trip, using fallback:', locErr);
+      }
+
+      try {
+        const battLevel = await Battery.getBatteryLevelAsync();
+        battery = battLevel >= 0 ? Math.round(battLevel * 100) : 100;
+      } catch (battErr) {
+        console.warn('Could not get battery level for starting trip, using fallback 100:', battErr);
+      }
+
       // 1. Call backend API to start trip
       const payload = {
         routeName: routeName.trim(),
-        expectedReturn: expectedReturnDate.toISOString()
+        expectedReturn: expectedReturnDate.toISOString(),
+        lat,
+        lng,
+        battery
       };
       
       const res = await api.post('/trips/start', payload);
@@ -61,20 +85,17 @@ export default function TrekkingSetupScreen() {
         // Generate mock route points starting from user's current location
         // This simulates a "registered trail" path for route deviation checking.
         try {
-          const userLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          const startLat = userLoc.coords.latitude;
-          const startLng = userLoc.coords.longitude;
           const mockRoutePoints = [];
           for (let i = 0; i <= 20; i++) {
             // Generate a line heading North-East (simulating a path)
             mockRoutePoints.push({
-              lat: startLat + i * 0.001,
-              lng: startLng + i * 0.0008
+              lat: lat + i * 0.001,
+              lng: lng + i * 0.0008
             });
           }
           await AsyncStorage.setItem('route_points', JSON.stringify(mockRoutePoints));
         } catch (e) {
-          console.warn('Could not get initial position for route generation, using standard mock coordinates.');
+          console.warn('Could not generate mock route points, using fallback coordinates.');
           const mockRoutePoints = [
             { lat: 21.0285, lng: 105.8542 },
             { lat: 21.0385, lng: 105.8642 }

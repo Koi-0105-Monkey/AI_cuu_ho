@@ -2,6 +2,8 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Alert, Platform } from 'react-native';
+import * as Location from 'expo-location';
 import 'react-native-reanimated';
 import '../global.css';
 import '../tasks/backgroundTasks';
@@ -34,6 +36,26 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  // Request location permissions on app startup
+  useEffect(() => {
+    (async () => {
+      try {
+        // 1. Request Foreground Location
+        const { status: fgStatus } = await Location.requestForegroundPermissionsAsync();
+        if (fgStatus !== 'granted') {
+          Alert.alert(
+            'Cần quyền Định vị',
+            'RescueLink cần truy cập vị trí của bạn để hoạt động. Vui lòng cấp quyền trong Cài đặt.',
+          );
+          return;
+        }
+      } catch (err) {
+        // Foreground permission request failed — likely Expo Go Info.plist issue
+        console.warn('Foreground location permission error (may be Expo Go limitation):', (err as Error).message);
+      }
+    })();
+  }, []);
 
   if (!loaded) {
     return null;

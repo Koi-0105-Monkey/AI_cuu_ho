@@ -52,10 +52,10 @@ export default function IncidentsScreen() {
   // ─── 1. General Incident Reporter ────────────────────────
   const handleQuickReport = async (type: string, severity: number) => {
     setReportingType(type);
+    // Declare coordinates at function scope so catch block can access them
+    let lat = 21.0285; // Fallback Hanoi lat
+    let lng = 105.8542; // Fallback Hanoi lng
     try {
-      // Get current location coordinates
-      let lat = 21.0285; // Fallback Hanoi lat
-      let lng = 105.8542; // Fallback Hanoi lng
       
       try {
         const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -78,14 +78,10 @@ export default function IncidentsScreen() {
       const payload = {
         type,
         severity,
-        location: {
-          type: 'Point',
-          coordinates: [lng, lat]
-        },
+        lat,
+        lng,
         message: `Báo cáo thủ công khẩn cấp loại ${type} từ thiết bị di động`,
         batteryAtTime: batteryLevel,
-        source: 'app',
-        tripId: activeTrip ? activeTrip.id : undefined
       };
 
       // Call API
@@ -108,7 +104,7 @@ export default function IncidentsScreen() {
       // Store fallback SMS alert in local storage queue
       const pendingSms = {
         phone,
-        message: `[SOS KHAN CAP: ${type}] Cần cứu trợ gấp tại vị trí: https://maps.google.com/?q=${payload.location.coordinates[1]},${payload.location.coordinates[0]}`
+        message: `[SOS KHAN CAP: ${type}] Cần cứu trợ gấp tại vị trí: https://maps.google.com/?q=${lat},${lng}`
       };
       await AsyncStorage.setItem('pending_sms_alert', JSON.stringify(pendingSms));
 
@@ -202,27 +198,26 @@ export default function IncidentsScreen() {
   if (showCamera) {
     return (
       <View className="flex-1 bg-black relative">
-        <CameraView style={StyleSheet.absoluteFillObject} ref={cameraRef}>
-          <View className="flex-1 justify-end p-8 gap-6">
-            <View className="flex-row justify-between items-center bg-black/40 p-4 rounded-xl">
-              <Pressable 
-                className="bg-surface-3 border border-surface-4 px-4 py-2.5 rounded-lg"
-                onPress={() => setShowCamera(false)}
-              >
-                <Text className="text-white text-xs font-semibold">HỦY</Text>
-              </Pressable>
-              
-              <Pressable 
-                className="w-16 h-16 bg-red-600 rounded-full border-4 border-white justify-center items-center active:scale-95 transition-all"
-                onPress={capturePhoto}
-              >
-                <View className="w-12 h-12 bg-red-600 rounded-full" />
-              </Pressable>
-              
-              <View className="w-12" /> {/* Spacer */}
-            </View>
+        <CameraView style={StyleSheet.absoluteFillObject} ref={cameraRef} />
+        <View className="absolute inset-x-0 bottom-0 p-8 gap-6 justify-end">
+          <View className="flex-row justify-between items-center bg-black/40 p-4 rounded-xl">
+            <Pressable 
+              className="bg-surface-3 border border-surface-4 px-4 py-2.5 rounded-lg"
+              onPress={() => setShowCamera(false)}
+            >
+              <Text className="text-white text-xs font-semibold">HỦY</Text>
+            </Pressable>
+            
+            <Pressable 
+              className="w-16 h-16 bg-red-600 rounded-full border-4 border-white justify-center items-center active:scale-95"
+              onPress={capturePhoto}
+            >
+              <View className="w-12 h-12 bg-red-600 rounded-full" />
+            </Pressable>
+            
+            <View className="w-12" />
           </View>
-        </CameraView>
+        </View>
       </View>
     );
   }

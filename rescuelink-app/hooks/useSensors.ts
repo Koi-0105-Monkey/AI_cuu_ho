@@ -170,11 +170,8 @@ export function useSensors(isActiveTrip: boolean) {
         await api.post('/incidents', {
           type: 'CRASH',
           severity: 4,
-          source: 'auto',
-          location: {
-            type: 'Point',
-            coordinates: [lng, lat]
-          },
+          lat,
+          lng,
           message: `Auto Crash Detection: Impact force ${impactForce.toFixed(2)}G. User failed to cancel countdown.`
         });
         console.log('[Crash SOS] Server incident created.');

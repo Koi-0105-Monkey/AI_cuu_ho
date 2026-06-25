@@ -12,6 +12,7 @@ export default defineConfig({
     globals: true,
     testTimeout: 15000,
     css: false,
+    exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
     server: {
       deps: {
         inline: ['leaflet', 'react-leaflet', '@phosphor-icons/react'],
