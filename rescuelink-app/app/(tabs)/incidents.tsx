@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import api from '@/services/api';
 import { Alert, ActivityIndicator, Image, StyleSheet, Dimensions } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -25,6 +26,28 @@ export default function IncidentsScreen() {
   const [reportingType, setReportingType] = useState<string | null>(null);
 
   const cameraRef = useRef<any>(null);
+
+  // Authentication State
+  const router = useRouter();
+  const [token, setToken] = useState<string | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      checkToken();
+    }, [])
+  );
+
+  const checkToken = async () => {
+    try {
+      const storedToken = await AsyncStorage.getItem('user_token');
+      setToken(storedToken);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCheckingAuth(false);
+    }
+  };
 
   // ─── 1. General Incident Reporter ────────────────────────
   const handleQuickReport = async (type: string, severity: number) => {
@@ -200,6 +223,31 @@ export default function IncidentsScreen() {
             </View>
           </View>
         </CameraView>
+      </View>
+    );
+  }
+
+  if (checkingAuth) {
+    return (
+      <View className="flex-1 bg-surface justify-center items-center">
+        <ActivityIndicator size="large" color="#ef4444" />
+      </View>
+    );
+  }
+
+  if (!token) {
+    return (
+      <View className="flex-1 bg-surface justify-center items-center p-6 gap-4">
+        <Text className="text-xl font-bold text-red-500 text-center">🚨 BẠN CHƯA ĐĂNG NHẬP</Text>
+        <Text className="text-xs text-muted-light text-center leading-normal max-w-xs">
+          Vui lòng quay lại tab **Trekking** đăng ký/đăng nhập tài khoản để có thể sử dụng các chức năng khẩn cấp và cứu hộ.
+        </Text>
+        <Pressable
+          className="bg-emergency-600 active:bg-emergency-700 px-6 py-2.5 rounded-xl shadow-lg mt-2"
+          onPress={() => router.replace('/(tabs)')}
+        >
+          <Text className="text-xs font-bold text-white uppercase tracking-wider">Đi tới Đăng Nhập</Text>
+        </Pressable>
       </View>
     );
   }
