@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // NOTE: Change this URL to your local machine IP (e.g. 192.168.x.x) or 10.0.2.2 if testing on Android
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://rescuelink-backend-5wwo.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_URL,
