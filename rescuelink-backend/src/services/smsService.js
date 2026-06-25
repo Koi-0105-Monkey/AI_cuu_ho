@@ -4,7 +4,7 @@ const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const fromPhone = process.env.TWILIO_PHONE_NUMBER;
 // Số nhận alert khẩn cấp — admin/rescue team (set qua env RESCUE_ALERT_PHONE)
-const rescueAlertPhone = process.env.RESCUE_ALERT_PHONE || '+840896494752';
+const rescueAlertPhone = process.env.RESCUE_ALERT_PHONE || '+84349113452';
 
 const isTwilioConfigured = accountSid &&
   authToken &&
