@@ -25,7 +25,7 @@ Notifications.setNotificationHandler({
 // NOTE: Hardcoded backend URL for background thread context (matching api.ts)
 const API_URL = 'https://rescuelink-backend-5wwo.onrender.com/api';
 
-TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
+TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: any) => {
   if (error) {
     console.error('Background location task error:', error);
     return;
