@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment variables — KHÔNG commit .env thật
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Build output
+dist/
+build/
+.next/
+out/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/
+playwright/.cache/
+
+# Uploads (local only)
+rescuelink-backend/uploads/*
+!rescuelink-backend/uploads/.gitkeep
+
+# Expo
+rescuelink-app/.expo/
+rescuelink-app/android/
+rescuelink-app/ios/
+
+# Skills folder: COMMIT để AI trên máy khác cũng có sẵn
+# .agents/ ← KHÔNG thêm dòng này

@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base resets ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-surface text-white font-sans antialiased;
+  min-height: 100vh;
+}
+
+/* ─── Scrollbars ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { @apply bg-surface-1; }
+::-webkit-scrollbar-thumb { @apply bg-surface-4 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-muted; }
+
+/* ─── Leaflet map overrides ───────────────────────────── */
+.leaflet-container {
+  @apply bg-surface-2;
+  border-radius: 12px;
+}
+.leaflet-control-attribution { display: none !important; }
+.leaflet-control-zoom a {
+  @apply bg-surface-3 text-white border-surface-4;
+}
+.leaflet-control-zoom a:hover {
+  @apply bg-surface-4;
+}
+/* Fix Leaflet marker icons in Vite */
+.leaflet-default-icon-path { display: none; }
+
+/* ─── Custom components ───────────────────────────────── */
+@layer components {
+  .card {
+    @apply bg-surface-2 border border-surface-4 rounded-xl p-5 shadow-card;
+  }
+
+  .card-hover {
+    @apply card transition-all duration-200 hover:border-surface-3 hover:shadow-surface cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply bg-emergency-600 hover:bg-emergency-700 text-white font-medium px-4 py-2 rounded-lg
+           transition-all duration-150 flex items-center gap-2 cursor-pointer;
+  }
+
+  .btn-ghost {
+    @apply text-muted-light hover:text-white hover:bg-surface-3 px-3 py-2 rounded-lg
+           transition-all duration-150 flex items-center gap-2 cursor-pointer;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-low  { @apply badge bg-green-500/15 text-green-400; }
+  .badge-med  { @apply badge bg-amber-500/15 text-amber-400; }
+  .badge-high { @apply badge bg-emergency-600/20 text-emergency-400; }
+
+  .badge-open     { @apply badge bg-blue-500/15 text-blue-400; }
+  .badge-assigned { @apply badge bg-amber-500/15 text-amber-400; }
+  .badge-resolved { @apply badge bg-green-500/15 text-green-400; }
+
+  .input {
+    @apply bg-surface-3 border border-surface-4 rounded-lg px-3 py-2 text-sm text-white
+           placeholder:text-muted focus:outline-none focus:border-muted focus:ring-1 focus:ring-muted
+           transition-all duration-150 w-full;
+  }
+
+  .select {
+    @apply input cursor-pointer appearance-none;
+  }
+
+  .stat-card {
+    @apply card flex flex-col gap-2;
+  }
+
+  /* Pulsing live indicator */
+  .live-dot::before {
+    content: '';
+    @apply inline-block w-2 h-2 bg-emergency-500 rounded-full mr-2;
+    animation: pulse-red 2s infinite;
+  }
+}
+
+/* ─── Severity helper classes ─────────────────────────── */
+.severity-1, .severity-2 { @apply badge-low; }
+.severity-3               { @apply badge-med; }
+.severity-4, .severity-5  { @apply badge-high; }
+
+.border-severity-1, .border-severity-2 { border-color: #22c55e; }
+.border-severity-3 { border-color: #f59e0b; }
+.border-severity-4, .border-severity-5 { border-color: #ef4444; }

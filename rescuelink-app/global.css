@@ -1,0 +1,49 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+
+/* Platform-specific font families */
+@media android {
+  :root {
+    --font-mono: monospace;
+    --font-rounded: normal;
+    --font-serif: serif;
+    --font-sans: normal;
+  }
+}
+
+@media ios {
+  :root {
+    --font-mono: ui-monospace;
+    --font-serif: ui-serif;
+    --font-sans: system-ui;
+    --font-rounded: ui-rounded;
+  }
+}
+
+@layer theme {
+  @theme {
+    /* Emergency custom color palette */
+    --color-emergency-50: #fef2f2;
+    --color-emergency-100: #fee2e2;
+    --color-emergency-200: #fecaca;
+    --color-emergency-300: #fca5a5;
+    --color-emergency-400: #f87171;
+    --color-emergency-500: #ef4444;
+    --color-emergency-600: #dc2626;
+    --color-emergency-700: #b91c1c;
+    --color-emergency-800: #991b1b;
+    --color-emergency-900: #7f1d1d;
+    --color-emergency-950: #450a0a;
+
+    --color-surface: #0a0a0a;
+    --color-surface-1: #121212;
+    --color-surface-2: #1a1a1a;
+    --color-surface-3: #262626;
+    --color-surface-4: #333333;
+    
+    --color-safe-400: #34d399;
+    --color-safe-500: #10b981;
+    --color-safe-600: #059669;
+  }
+}
