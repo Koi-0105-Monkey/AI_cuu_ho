@@ -44,7 +44,17 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   return (
-    <Stack>
+    <Stack
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#09090b', // Nền header tối (zinc-950)
+        },
+        headerTintColor: '#f4f4f5', // Màu chữ sáng (zinc-100)
+        contentStyle: {
+          backgroundColor: '#09090b', // Nền màn hình tối
+        },
+      }}
+    >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="trekking-setup" options={{ headerShown: false }} />
       <Stack.Screen name="tracking-active" options={{ headerShown: false }} />
