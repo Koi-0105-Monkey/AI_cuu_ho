@@ -159,8 +159,11 @@ const attemptBatchUpload = async (queue: any[]) => {
       await AsyncStorage.setItem('last_upload_time', Date.now().toString());
     }
   } catch (err: any) {
-    console.warn('[GPS Upload] Failed (offline fallback active). Error:', err.message);
-    // Keep the queue in storage. We will retry on the next trigger.
+    console.warn('[GPS Upload] Failed. Error:', err.message);
+    if (err.response?.status === 400) {
+      console.log('[GPS Upload] Clearing invalid queue to prevent infinite retries.');
+      await AsyncStorage.setItem('gps_queue', JSON.stringify([]));
+    }
   }
 };
 

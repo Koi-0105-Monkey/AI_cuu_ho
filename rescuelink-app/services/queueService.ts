@@ -27,7 +27,11 @@ export async function flushOfflineQueue() {
       return { success: true, count: queue.length };
     }
   } catch (err: any) {
-    console.warn('[Queue Service] Synchronization failed (device still offline). Error:', err.message);
+    console.warn('[Queue Service] Synchronization failed. Error:', err.message);
+    if (err.response?.status === 400) {
+      console.log('[Queue Service] Clearing invalid queue to prevent infinite retries.');
+      await AsyncStorage.setItem('gps_queue', JSON.stringify([]));
+    }
     return { success: false, reason: err.message };
   }
 }
