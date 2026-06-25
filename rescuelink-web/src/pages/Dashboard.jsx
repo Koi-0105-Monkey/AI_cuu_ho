@@ -42,6 +42,19 @@ const tripIcon = L.divIcon({
   iconAnchor: [12, 12]
 });
 
+// Custom island labels for Hoang Sa & Truong Sa
+const islandIcon = (name) => L.divIcon({
+  html: `<div class="flex flex-col items-center justify-center">
+    <div class="w-2.5 h-2.5 bg-yellow-500 rounded-full border border-red-600 shadow-md"></div>
+    <div class="bg-slate-900/90 border border-slate-700 text-white font-bold text-[9px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap mt-1">
+      ${name} (VN)
+    </div>
+  </div>`,
+  className: 'custom-leaflet-island-icon',
+  iconSize: [100, 36],
+  iconAnchor: [50, 18]
+});
+
 // ─── Stat Card ────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, color = 'text-muted-light', loading }) {
   return (
@@ -301,6 +314,22 @@ export default function Dashboard() {
                   </Popup>
                 </Marker>
               ))}
+
+              {/* Quần đảo Hoàng Sa & Trường Sa thuộc chủ quyền Việt Nam */}
+              <Marker position={[16.5, 112.0]} icon={islandIcon('Quần đảo Hoàng Sa')}>
+                <Popup>
+                  <div className="text-xs font-bold text-slate-800 text-center p-1">
+                     Quần đảo Hoàng Sa<br/>(Việt Nam)
+                  </div>
+                </Popup>
+              </Marker>
+              <Marker position={[9.5, 112.5]} icon={islandIcon('Quần đảo Trường Sa')}>
+                <Popup>
+                  <div className="text-xs font-bold text-slate-800 text-center p-1">
+                     Quần đảo Trường Sa<br/>(Việt Nam)
+                  </div>
+                </Popup>
+              </Marker>
             </MapContainer>
           </div>
           
