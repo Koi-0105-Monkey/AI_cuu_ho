@@ -1,3 +1,11 @@
+jest.mock('expo-file-system', () => ({
+  documentDirectory: 'file:///mock-dir/',
+  getInfoAsync: jest.fn(),
+  makeDirectoryAsync: jest.fn(),
+  downloadAsync: jest.fn(),
+  deleteAsync: jest.fn()
+}));
+
 import { haversineDistance, distanceToRoute, LatLng } from '../utils/geo';
 import {
   buildBatterySosMessage,
@@ -76,3 +84,44 @@ describe('RescueLink SMS Helper Builders', () => {
     expect(message).toContain('https://maps.google.com/?q=21.0285,105.8542');
   });
 });
+
+describe('RescueLink Offline Map Utilities', () => {
+  const { lon2tile, lat2tile, getLocalTileUri, getTilesForRoute } = require('../utils/offlineMap');
+
+  test('lon2tile and lat2tile return correct tile coordinates', () => {
+    // Zoom 0 should always return tile 0,0 for any lat/lon
+    expect(lon2tile(0, 0)).toBe(0);
+    expect(lat2tile(0, 0)).toBe(0);
+    expect(lon2tile(105.8542, 0)).toBe(0);
+    expect(lat2tile(21.0285, 0)).toBe(0);
+
+    // Zoom 13 coordinates for Hanoi (21.0285, 105.8542)
+    // x = floor(((105.8542 + 180) / 360) * 2^13) = floor(0.7940394 * 8192) = 6504
+    expect(lon2tile(105.8542, 13)).toBe(6504);
+    // y should be 3606
+    expect(lat2tile(21.0285, 13)).toBe(3606);
+  });
+
+  test('getLocalTileUri returns correct local file path format', () => {
+    const uri = getLocalTileUri(14, 13008, 7396);
+    expect(uri).toContain('tiles/14/13008/7396.png');
+  });
+
+  test('getTilesForRoute returns unique tile coordinate sets for route points', () => {
+    const route = [
+      { lat: 21.0285, lng: 105.8542 },
+      { lat: 21.0286, lng: 105.8543 }, // Very close, should map to same tiles at low zoom
+    ];
+    
+    // Zoom 13 tiles
+    const tiles = getTilesForRoute(route, [13]);
+    // Should map to same tile and return only 1 unique tile coordinate
+    expect(tiles.length).toBe(1);
+    expect(tiles[0]).toEqual({ z: 13, x: 6504, y: 3606 });
+
+    // Multi zoom levels [13, 14]
+    const multiZoomTiles = getTilesForRoute(route, [13, 14]);
+    expect(multiZoomTiles.length).toBe(2); // 1 for zoom 13, 1 for zoom 14
+  });
+});
+

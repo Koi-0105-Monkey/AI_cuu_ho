@@ -3,10 +3,11 @@ import { View, Text, Pressable } from '@/tw';
 import { Alert, StyleSheet, ActivityIndicator, Platform, Share } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { Marker, Polyline, UrlTile, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as Battery from 'expo-battery';
 import * as SMS from 'expo-sms';
+import * as FileSystem from 'expo-file-system';
 import { useGPS } from '@/hooks/useGPS';
 import api from '@/services/api';
 import { haversineDistance } from '@/utils/geo';
@@ -528,6 +529,13 @@ export default function TrackingActiveScreen() {
           longitudeDelta: 0.015,
         }}
       >
+        {/* Render Offline Local Map Tiles */}
+        <UrlTile
+          urlTemplate={`${FileSystem.documentDirectory}tiles/{z}/{x}/{y}.png`}
+          offlineMode={true}
+          zIndex={1}
+        />
+
         {/* Render Registered Route Points (Simulated registered line path) */}
         {routePoints.length >= 2 && (
           <Polyline
