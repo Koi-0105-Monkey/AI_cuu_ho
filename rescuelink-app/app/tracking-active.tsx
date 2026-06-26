@@ -179,13 +179,16 @@ export default function TrackingActiveScreen() {
     try {
       // 1. Get active trip details
       const tripStr = await AsyncStorage.getItem('active_trip');
-      if (!tripStr) {
-        Alert.alert('Không có hành trình', 'Không tìm thấy hành trình đang hoạt động nào.');
-        router.replace('/(tabs)');
-        return;
+      if (tripStr) {
+        const trip = JSON.parse(tripStr);
+        setActiveTrip(trip);
+      } else {
+        setActiveTrip({
+          routeName: 'Chế độ Khám phá Bản đồ',
+          emergencyContact: 'Chưa cấu hình cứu hộ',
+          isExploration: true
+        });
       }
-      const trip = JSON.parse(tripStr);
-      setActiveTrip(trip);
 
       // 2. Get registered route points
       const routeStr = await AsyncStorage.getItem('route_points');
@@ -446,6 +449,10 @@ export default function TrackingActiveScreen() {
   };
 
   const handleEndTrip = async () => {
+    if (activeTrip?.isExploration) {
+      router.replace('/(tabs)');
+      return;
+    }
     Alert.alert(
       'Kết thúc hành trình',
       'Bạn có chắc chắn muốn kết thúc chuyến trekking này và dừng định vị ngầm không?',
@@ -806,8 +813,10 @@ export default function TrackingActiveScreen() {
             {activeTrip?.routeName}
           </Text>
           <View className="flex-row items-center mt-1.5">
-            <View className="w-2 h-2 bg-safe-500 rounded-full mr-1.5" />
-            <Text className="text-[10px] text-safe-400 font-semibold uppercase tracking-wide">Định vị ngầm đang chạy</Text>
+            <View className={`w-2 h-2 rounded-full mr-1.5 ${activeTrip?.isExploration ? 'bg-amber-500' : 'bg-safe-500'}`} />
+            <Text className={`text-[10px] font-semibold uppercase tracking-wide ${activeTrip?.isExploration ? 'text-amber-400' : 'text-safe-400'}`}>
+              {activeTrip?.isExploration ? 'Chế độ Khám phá' : 'Định vị ngầm đang chạy'}
+            </Text>
           </View>
         </View>
 
@@ -1006,7 +1015,9 @@ export default function TrackingActiveScreen() {
             {ending ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text className="text-emergency-400 font-bold text-xs uppercase tracking-wide">Kết thúc</Text>
+              <Text className="text-emergency-400 font-bold text-xs uppercase tracking-wide">
+                {activeTrip?.isExploration ? 'Thoát' : 'Kết thúc'}
+              </Text>
             )}
           </Pressable>
 

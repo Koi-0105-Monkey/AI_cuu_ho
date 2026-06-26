@@ -42,19 +42,30 @@ async function ensureTileDirExists(z: number, x: number): Promise<void> {
 // Get unique tiles needed for a given route across zoom levels
 export function getTilesForRoute(
   routePoints: GPSCoordinate[],
-  zoomLevels: number[] = [13, 14, 15]
+  zoomLevels: number[] = [13, 14, 15],
+  radius: number = 0
 ): TileCoordinate[] {
   const tileSet = new Set<string>();
   const tiles: TileCoordinate[] = [];
 
   for (const zoom of zoomLevels) {
+    // For lower zooms (like zoom 13), we expand radius slightly if radius > 0
+    const currentRadius = (zoom === 13 && radius > 0) ? radius + 1 : radius;
+
     for (const point of routePoints) {
-      const x = lon2tile(point.lng, zoom);
-      const y = lat2tile(point.lat, zoom);
-      const key = `${zoom}_${x}_${y}`;
-      if (!tileSet.has(key)) {
-        tileSet.add(key);
-        tiles.push({ z: zoom, x, y });
+      const centerX = lon2tile(point.lng, zoom);
+      const centerY = lat2tile(point.lat, zoom);
+
+      for (let dx = -currentRadius; dx <= currentRadius; dx++) {
+        for (let dy = -currentRadius; dy <= currentRadius; dy++) {
+          const x = centerX + dx;
+          const y = centerY + dy;
+          const key = `${zoom}_${x}_${y}`;
+          if (!tileSet.has(key)) {
+            tileSet.add(key);
+            tiles.push({ z: zoom, x, y });
+          }
+        }
       }
     }
   }
@@ -86,7 +97,7 @@ export async function downloadTile(z: number, x: number, y: number): Promise<boo
 }
 
 // Download all tiles along a route with progress reporting
-// Limit maximum downloaded tiles to 300 tiles (~6MB) to protect resources
+// Limit maximum downloaded tiles to 1500 tiles (~30MB) to allow wider corridor coverage
 export async function downloadRouteTiles(
   routePoints: GPSCoordinate[],
   onProgress?: (progress: number) => void
@@ -96,8 +107,9 @@ export async function downloadRouteTiles(
     return { total: 0, downloaded: 0, skipped: 0, failed: 0 };
   }
 
-  const allTiles = getTilesForRoute(routePoints);
-  const maxTiles = 300;
+  // Get tiles with a radius of 1 to cover surrounding regions (3x3 grid around each point)
+  const allTiles = getTilesForRoute(routePoints, [13, 14, 15], 1);
+  const maxTiles = 1500;
   
   // If tiles exceed limit, slice to respect maximum resource limit
   const tilesToDownload = allTiles.slice(0, maxTiles);

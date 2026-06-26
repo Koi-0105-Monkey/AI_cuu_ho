@@ -515,6 +515,12 @@ export default function HomeScreen() {
               <Text className="text-white font-bold text-sm tracking-wide uppercase">Cài đặt hành trình →</Text>
             </Pressable>
           </Link>
+
+          <Link href="/tracking-active" asChild>
+            <Pressable className="bg-surface-2 border border-surface-3 py-4 rounded-2xl items-center justify-center active:bg-surface-3">
+              <Text className="text-white font-bold text-sm tracking-wide uppercase">Xem bản đồ & Khám phá →</Text>
+            </Pressable>
+          </Link>
         </View>
       )}
 
