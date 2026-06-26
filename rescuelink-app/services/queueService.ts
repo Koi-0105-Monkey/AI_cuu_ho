@@ -27,11 +27,19 @@ export async function syncPendingEndTrip() {
   }
 }
 
-export async function flushOfflineQueue() {
-  // Try to sync pending end trip first
-  await syncPendingEndTrip();
+let isFlushing = false;
 
+export async function flushOfflineQueue() {
+  if (isFlushing) {
+    console.log('[Queue Service] Sync already in progress, skipping this run.');
+    return { success: false, reason: 'Sync already in progress' };
+  }
+  isFlushing = true;
+  
   try {
+    // Try to sync pending end trip first
+    await syncPendingEndTrip();
+
     const queueStr = await AsyncStorage.getItem('gps_queue');
     if (!queueStr) return { success: true, count: 0 };
 
@@ -62,5 +70,7 @@ export async function flushOfflineQueue() {
       await AsyncStorage.setItem('gps_queue', JSON.stringify([]));
     }
     return { success: false, reason: err.message };
+  } finally {
+    isFlushing = false;
   }
 }

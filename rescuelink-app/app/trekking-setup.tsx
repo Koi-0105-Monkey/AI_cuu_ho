@@ -22,17 +22,19 @@ export default function TrekkingSetupScreen() {
   const [routeName, setRouteName] = useState('');
   const [durationHours, setDurationHours] = useState(8); // Default 8 hours
   const [submitting, setSubmitting] = useState(false);
+  const [userName, setUserName] = useState('');
   const [emergencyContacts, setEmergencyContacts] = useState<any[]>([]);
 
   useEffect(() => {
-    loadEmergencyContacts();
+    loadUserInfo();
   }, []);
 
-  const loadEmergencyContacts = async () => {
+  const loadUserInfo = async () => {
     try {
       const userInfoStr = await AsyncStorage.getItem('user_info');
       if (userInfoStr) {
         const userInfo = JSON.parse(userInfoStr);
+        setUserName(userInfo.name || '');
         setEmergencyContacts(userInfo.emergencyContacts || []);
       }
     } catch (e) {
@@ -171,6 +173,14 @@ export default function TrekkingSetupScreen() {
 
       <View className="bg-surface-1 border border-surface-3 p-7 rounded-3xl gap-6">
         
+        {/* User Name Info (Read-only) */}
+        <View className="gap-2">
+          <Text className="text-xs font-semibold text-white tracking-wide">Người thực hiện hành trình</Text>
+          <View className="bg-surface-2 border border-surface-3 p-3.5 rounded-2xl">
+            <Text className="text-white text-xs font-bold">{userName || 'Chưa cập nhật'}</Text>
+          </View>
+        </View>
+
         {/* Route Name Input */}
         <View className="gap-2">
           <Text className="text-xs font-semibold text-white tracking-wide">Tên cung đường trekking</Text>

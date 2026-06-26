@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LOCATION_TASK_NAME } from '@/tasks/backgroundTasks';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 export function useGPS() {
   const [isTracking, setIsTracking] = useState(false);
@@ -63,17 +64,22 @@ export function useGPS() {
 
       // 3. Start background location updates
       try {
-        await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-          accuracy: Location.Accuracy.Balanced,
-          timeInterval: 30000, // 30 seconds interval (we filter adaptively inside the task)
-          deferredUpdatesInterval: 30000,
-          deferredUpdatesDistance: 5,
-          foregroundService: {
-            notificationTitle: 'RescueLink đang bảo vệ bạn',
-            notificationBody: 'Hệ thống đang lưu vết GPS ngầm nhằm mục đích cứu hộ.',
-            notificationColor: '#ef4444'
-          }
-        });
+        const isExpoGo = Constants.appOwnership === 'expo';
+        if (Platform.OS === 'ios' && isExpoGo) {
+          console.warn('[useGPS] Skipping startLocationUpdatesAsync on iOS Expo Go to prevent native crash. App will rely on foreground tracking.');
+        } else {
+          await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+            accuracy: Location.Accuracy.Balanced,
+            timeInterval: 30000, // 30 seconds interval (we filter adaptively inside the task)
+            deferredUpdatesInterval: 30000,
+            deferredUpdatesDistance: 5,
+            foregroundService: {
+              notificationTitle: 'RescueLink đang bảo vệ bạn',
+              notificationBody: 'Hệ thống đang lưu vết GPS ngầm nhằm mục đích cứu hộ.',
+              notificationColor: '#ef4444'
+            }
+          });
+        }
       } catch (bgTaskErr) {
         console.warn('Failed to start background tracking (likely Expo Go limitation):', (bgTaskErr as Error).message);
       }
