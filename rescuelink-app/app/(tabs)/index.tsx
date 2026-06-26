@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from '@/tw';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Link, useRouter } from 'expo-router';
+import { Link, useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { Alert, ActivityIndicator } from 'react-native';
 import * as SMS from 'expo-sms';
@@ -30,9 +30,11 @@ export default function HomeScreen() {
   const [contactPhone, setContactPhone] = useState('');
   const [contactRelation, setContactRelation] = useState('');
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      checkAuth();
+    }, [])
+  );
 
   // Monitor safety warnings when logged in
   useEffect(() => {
@@ -45,6 +47,43 @@ export default function HomeScreen() {
       if (interval) clearInterval(interval);
     };
   }, [token]);
+
+  const syncActiveTripFromServer = async () => {
+    try {
+      const storedToken = await AsyncStorage.getItem('user_token');
+      if (!storedToken) return;
+
+      const res = await api.get('/trips/active');
+      if (res.data.success) {
+        if (res.data.trip) {
+          const tripData = res.data.trip;
+          const storedUser = await AsyncStorage.getItem('user_info');
+          const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+          const cleanPhone = parsedUser?.emergencyContacts?.[0]?.phone || '0901234567';
+          
+          const localActiveTrip = {
+            id: tripData._id,
+            routeName: tripData.routeName,
+            emergencyContact: cleanPhone,
+            expectedReturn: tripData.expectedReturn,
+            startedAt: tripData.startedAt
+          };
+          await AsyncStorage.setItem('active_trip', JSON.stringify(localActiveTrip));
+          setActiveTrip(localActiveTrip);
+        } else {
+          // No active trip on server, so clean up locally
+          const storedTrip = await AsyncStorage.getItem('active_trip');
+          if (storedTrip) {
+            console.log('[Home] Active trip completed/removed on server, cleaning up locally.');
+            await AsyncStorage.removeItem('active_trip');
+            setActiveTrip(null);
+          }
+        }
+      }
+    } catch (serverErr) {
+      console.warn('[Home] Failed to sync active trip from server:', serverErr);
+    }
+  };
 
   const checkAuth = async () => {
     setLoading(true);
@@ -61,7 +100,12 @@ export default function HomeScreen() {
         const storedTrip = await AsyncStorage.getItem('active_trip');
         if (storedTrip) {
           setActiveTrip(JSON.parse(storedTrip));
+        } else {
+          setActiveTrip(null);
         }
+
+        // Sync from server to ensure local state aligns with DB
+        await syncActiveTripFromServer();
       }
     } catch (e) {
       console.error(e);

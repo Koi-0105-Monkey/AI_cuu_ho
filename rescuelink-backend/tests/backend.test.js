@@ -162,6 +162,40 @@ describe('RescueLink Backend API Test Suite', () => {
       expect(res.body.trip.status).toBe('active');
     });
 
+    it('should get current active trip successfully', async () => {
+      // First check if active trip is null
+      let res = await request(app)
+        .get('/api/trips/active')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.trip).toBeNull();
+
+      // Start a trip
+      const expectedReturn = new Date();
+      expectedReturn.setHours(expectedReturn.getHours() + 5);
+
+      await request(app)
+        .post('/api/trips/start')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          routeName: 'Ta Xua Peak',
+          expectedReturn: expectedReturn.toISOString(),
+          lat: 21.3582,
+          lng: 104.4539,
+          battery: 95
+        });
+
+      // Check active trip again
+      res = await request(app)
+        .get('/api/trips/active')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.trip).not.toBeNull();
+      expect(res.body.trip.routeName).toBe('Ta Xua Peak');
+    });
+
     it('should update battery and last location of a trip', async () => {
       // Start a trip
       const tripRes = await request(app)

@@ -59,6 +59,21 @@ router.post('/start', protect, validate(startTripSchema), async (req, res, next)
   }
 });
 
+// @desc    Get user's current active trip
+// @route   GET /api/trips/active
+// @access  Private
+router.get('/active', protect, async (req, res, next) => {
+  try {
+    const activeTrip = await Trip.findOne({ userId: req.user._id, status: 'active' });
+    res.json({
+      success: true,
+      trip: activeTrip || null
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // @desc    End an active trip
 // @route   PATCH /api/trips/:id/end
 // @access  Private
