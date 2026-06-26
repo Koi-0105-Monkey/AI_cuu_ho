@@ -1,6 +1,7 @@
 import { SymbolView } from 'expo-symbols';
 import { Link, Tabs } from 'expo-router';
 import { Platform, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -12,19 +13,24 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#ef4444',
+        tabBarActiveTintColor: '#FF4D3D',
+        tabBarInactiveTintColor: '#6b6b6b',
         tabBarStyle: {
-          backgroundColor: '#121212',
-          borderTopColor: '#262626',
+          backgroundColor: '#0a0a0a',
+          borderTopColor: '#1e1e1e',
+          borderTopWidth: 0.5,
+          paddingTop: 4,
+          height: 88,
         },
         headerStyle: {
-          backgroundColor: '#121212',
-          borderBottomColor: '#262626',
+          backgroundColor: '#0f0f0f',
         },
         headerTitleStyle: {
-          color: '#ffffff',
-          fontWeight: 'bold',
+          color: '#f5f5f5',
+          fontWeight: '700',
+          fontSize: 17,
         },
+        headerShadowVisible: false,
         headerShown: useClientOnlyValue(false, true),
       }}>
       <Tabs.Screen
@@ -32,15 +38,15 @@ export default function TabLayout() {
         options={{
           title: 'Trekking',
           tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'map.fill',
-                android: 'map',
-                web: 'map',
-              }}
-              tintColor={color}
-              size={24}
-            />
+            Platform.OS === 'ios' ? (
+              <SymbolView
+                name="map.fill"
+                tintColor={color}
+                size={24}
+              />
+            ) : (
+              <Ionicons name="map" size={24} color={color} />
+            )
           ),
         }}
       />
@@ -49,15 +55,15 @@ export default function TabLayout() {
         options={{
           title: 'Khẩn cấp',
           tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'exclamationmark.triangle.fill',
-                android: 'warning',
-                web: 'warning',
-              }}
-              tintColor={color}
-              size={24}
-            />
+            Platform.OS === 'ios' ? (
+              <SymbolView
+                name="exclamationmark.triangle.fill"
+                tintColor={color}
+                size={24}
+              />
+            ) : (
+              <Ionicons name="warning" size={24} color={color} />
+            )
           ),
         }}
       />
@@ -66,15 +72,15 @@ export default function TabLayout() {
         options={{
           title: 'Cá nhân',
           tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'person.fill',
-                android: 'person',
-                web: 'person',
-              }}
-              tintColor={color}
-              size={24}
-            />
+            Platform.OS === 'ios' ? (
+              <SymbolView
+                name="person.fill"
+                tintColor={color}
+                size={24}
+              />
+            ) : (
+              <Ionicons name="person" size={24} color={color} />
+            )
           ),
         }}
       />

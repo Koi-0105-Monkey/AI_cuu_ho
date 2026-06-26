@@ -230,10 +230,18 @@ export default function HomeScreen() {
     ]);
   };
 
+  // Get user initials for avatar
+  const getInitials = (fullName: string) => {
+    if (!fullName) return '?';
+    const parts = fullName.trim().split(' ');
+    if (parts.length === 1) return parts[0][0]?.toUpperCase() || '?';
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
   if (loading) {
     return (
       <View className="flex-1 bg-surface justify-center items-center">
-        <ActivityIndicator size="large" color="#ef4444" />
+        <ActivityIndicator size="large" color="#FF4D3D" />
         <Text className="text-sm text-muted-light mt-4">Đang tải...</Text>
       </View>
     );
@@ -242,48 +250,50 @@ export default function HomeScreen() {
   // ─── AUTHENTICATION SCREEN (LOGIN / REGISTER) ────────────────
   if (!token) {
     return (
-      <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6 justify-center min-h-screen py-16">
-        <View className="items-center mb-8">
-          <Text className="text-3xl font-bold text-emergency-500 uppercase tracking-wider">RescueLink</Text>
-          <Text className="text-xs text-muted-light mt-1">Hệ Thống Cứu Hộ & Định Vị Khẩn Cấp</Text>
+      <ScrollView className="flex-1 bg-surface" contentContainerClassName="px-7 justify-center min-h-screen py-20">
+        {/* Brand */}
+        <View className="items-center mb-10">
+          <Text className="text-4xl font-bold text-emergency-500 uppercase tracking-widest">RescueLink</Text>
+          <Text className="text-xs text-muted mt-2 tracking-wide">Hệ Thống Cứu Hộ & Định Vị Khẩn Cấp</Text>
         </View>
 
-        <View className="bg-surface-1 border border-surface-4 p-5 rounded-2xl gap-4">
-          <Text className="text-lg font-bold text-white text-center">
+        {/* Auth Form Card */}
+        <View className="bg-surface-1 border border-surface-3 p-7 rounded-3xl gap-5">
+          <Text className="text-lg font-bold text-white text-center tracking-wide">
             {isRegister ? 'ĐĂNG KÝ THÀNH VIÊN' : 'ĐĂNG NHẬP CỨU HỘ'}
           </Text>
 
           {isRegister && (
-            <View className="gap-1">
-              <Text className="text-xs text-muted-light">Họ và Tên</Text>
+            <View className="gap-1.5">
+              <Text className="text-xs text-muted-light font-medium">Họ và Tên</Text>
               <TextInput
-                className="bg-surface-3 border border-surface-4 text-white rounded-lg px-3 py-2 text-sm"
+                className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-sm"
                 placeholder="Nguyễn Văn A"
-                placeholderTextColor="#737373"
+                placeholderTextColor="#6b6b6b"
                 value={name}
                 onChangeText={setName}
               />
             </View>
           )}
 
-          <View className="gap-1">
-            <Text className="text-xs text-muted-light">Số điện thoại</Text>
+          <View className="gap-1.5">
+            <Text className="text-xs text-muted-light font-medium">Số điện thoại</Text>
             <TextInput
-              className="bg-surface-3 border border-surface-4 text-white rounded-lg px-3 py-2 text-sm"
+              className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-sm"
               placeholder="0901234567"
-              placeholderTextColor="#737373"
+              placeholderTextColor="#6b6b6b"
               keyboardType="phone-pad"
               value={phone}
               onChangeText={setPhone}
             />
           </View>
 
-          <View className="gap-1">
-            <Text className="text-xs text-muted-light">Mật khẩu</Text>
+          <View className="gap-1.5">
+            <Text className="text-xs text-muted-light font-medium">Mật khẩu</Text>
             <TextInput
-              className="bg-surface-3 border border-surface-4 text-white rounded-lg px-3 py-2 text-sm"
+              className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-sm"
               placeholder="••••••••"
-              placeholderTextColor="#737373"
+              placeholderTextColor="#6b6b6b"
               secureTextEntry
               value={password}
               onChangeText={setPassword}
@@ -291,38 +301,38 @@ export default function HomeScreen() {
           </View>
 
           {isRegister && (
-            <View className="mt-2 border-t border-surface-4 pt-3 gap-3">
-              <Text className="text-xs font-semibold text-emergency-400">NGƯỜI THÂN LIÊN HỆ KHẨN CẤP</Text>
+            <View className="mt-1 border-t border-surface-3 pt-5 gap-4">
+              <Text className="text-xs font-semibold text-emergency-400 tracking-wider">NGƯỜI THÂN LIÊN HỆ KHẨN CẤP</Text>
               
-              <View className="gap-1">
-                <Text className="text-xs text-muted-light">Tên người thân</Text>
+              <View className="gap-1.5">
+                <Text className="text-xs text-muted-light font-medium">Tên người thân</Text>
                 <TextInput
-                  className="bg-surface-3 border border-surface-4 text-white rounded-lg px-3 py-2 text-sm"
+                  className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-sm"
                   placeholder="Nguyễn Văn B"
-                  placeholderTextColor="#737373"
+                  placeholderTextColor="#6b6b6b"
                   value={contactName}
                   onChangeText={setContactName}
                 />
               </View>
 
-              <View className="gap-1">
-                <Text className="text-xs text-muted-light">SĐT người thân</Text>
+              <View className="gap-1.5">
+                <Text className="text-xs text-muted-light font-medium">SĐT người thân</Text>
                 <TextInput
-                  className="bg-surface-3 border border-surface-4 text-white rounded-lg px-3 py-2 text-sm"
+                  className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-sm"
                   placeholder="0987654321"
-                  placeholderTextColor="#737373"
+                  placeholderTextColor="#6b6b6b"
                   keyboardType="phone-pad"
                   value={contactPhone}
                   onChangeText={setContactPhone}
                 />
               </View>
 
-              <View className="gap-1">
-                <Text className="text-xs text-muted-light">Mối quan hệ</Text>
+              <View className="gap-1.5">
+                <Text className="text-xs text-muted-light font-medium">Mối quan hệ</Text>
                 <TextInput
-                  className="bg-surface-3 border border-surface-4 text-white rounded-lg px-3 py-2 text-sm"
+                  className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-sm"
                   placeholder="Bố / Mẹ / Vợ / Bạn"
-                  placeholderTextColor="#737373"
+                  placeholderTextColor="#6b6b6b"
                   value={contactRelation}
                   onChangeText={setContactRelation}
                 />
@@ -331,21 +341,21 @@ export default function HomeScreen() {
           )}
 
           <Pressable
-            className="bg-emergency-600 active:bg-emergency-700 py-3 rounded-lg mt-4 items-center justify-center"
+            className="bg-emergency-500 active:bg-emergency-600 py-4 rounded-2xl mt-3 items-center justify-center"
             onPress={isRegister ? handleRegister : handleLogin}
             disabled={authLoading}
           >
             {authLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text className="text-white font-bold text-sm">
+              <Text className="text-white font-bold text-sm tracking-wider">
                 {isRegister ? 'ĐĂNG KÝ NGAY' : 'ĐĂNG NHẬP'}
               </Text>
             )}
           </Pressable>
 
           <Pressable
-            className="py-1 items-center mt-2"
+            className="py-2 items-center"
             onPress={() => setIsRegister(!isRegister)}
           >
             <Text className="text-xs text-muted-light underline">
@@ -359,120 +369,124 @@ export default function HomeScreen() {
 
   // ─── HOME SCREEN FOR LOGGED IN USERS ──────────────────
   return (
-    <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6 py-12 gap-6">
+    <ScrollView className="flex-1 bg-surface" contentContainerClassName="px-6 py-14 gap-8">
       
       {/* ⚠️ SAFETY ALERT BANNERS ─── */}
       {hasCheckinWarning && (
-        <View className="bg-amber-600/20 border border-amber-500/40 p-4 rounded-xl gap-3">
-          <Text className="text-xs font-bold text-amber-400 uppercase">CẢNH BÁO DỪNG DI CHUYỂN</Text>
-          <Text className="text-xs text-white leading-normal">
+        <View className="bg-warn-500/10 border border-warn-500/25 p-5 rounded-3xl gap-3">
+          <View className="flex-row items-center gap-2">
+            <Text className="text-base">⚠️</Text>
+            <Text className="text-xs font-bold text-warn-400 uppercase tracking-wider">Cảnh báo dừng di chuyển</Text>
+          </View>
+          <Text className="text-xs text-white/80 leading-5">
             Hệ thống phát hiện bạn đứng yên lâu bất thường. Hãy bấm xác nhận bên dưới để hủy cảnh báo khẩn cấp.
           </Text>
           <Pressable
-            className="bg-emerald-600 active:bg-emerald-700 py-2 rounded-lg items-center justify-center"
+            className="bg-safe-500 active:bg-safe-600 py-3 rounded-2xl items-center justify-center"
             onPress={handleCheckinOk}
           >
-            <Text className="text-white font-bold text-xs">TÔI VẪN ỔN (CHECK-IN)</Text>
+            <Text className="text-white font-bold text-xs tracking-wider">TÔI VẪN ỔN ✓</Text>
           </Pressable>
         </View>
       )}
 
       {pendingSms && (
-        <View className="bg-emergency-950/20 border border-emergency-800/40 p-4 rounded-xl gap-3">
-          <Text className="text-xs font-bold text-red-400 uppercase">CẦN GỬI TIN SOS KHẨN CẤP</Text>
-          <Text className="text-xs text-white leading-normal">
-            Hệ thống phát hiện trạng thái khẩn cấp trong khi bạn không có kết nối Internet (Offline). Vui lòng nhấn gửi SMS để báo động cho người thân.
+        <View className="bg-emergency-950/30 border border-emergency-700/30 p-5 rounded-3xl gap-3">
+          <View className="flex-row items-center gap-2">
+            <Text className="text-base">🚨</Text>
+            <Text className="text-xs font-bold text-emergency-400 uppercase tracking-wider">Cần gửi tin SOS khẩn cấp</Text>
+          </View>
+          <Text className="text-xs text-white/80 leading-5">
+            Hệ thống phát hiện trạng thái khẩn cấp trong khi bạn không có kết nối Internet. Vui lòng nhấn gửi SMS để báo động cho người thân.
           </Text>
           <Pressable
-            className="bg-emergency-600 active:bg-emergency-700 py-2.5 rounded-lg items-center justify-center"
+            className="bg-emergency-500 active:bg-emergency-600 py-3.5 rounded-2xl items-center justify-center"
             onPress={handleSendSms}
           >
-            <Text className="text-white font-bold text-xs uppercase">GỬI TIN NHẮN SOS NGAY</Text>
+            <Text className="text-white font-bold text-xs uppercase tracking-wider">GỬI TIN NHẮN SOS NGAY</Text>
           </Pressable>
         </View>
       )}
 
-      {/* Header Info */}
-      <View className="flex-row justify-between items-center bg-surface-1 border border-surface-4 p-4 rounded-xl">
-        <View>
-          <Text className="text-xs text-muted-light">Thành viên cứu hộ</Text>
-          <Text className="text-lg font-bold text-white">{user?.name}</Text>
-          <Text className="text-xs text-muted-light font-mono mt-0.5">{user?.phone}</Text>
+      {/* ─── Greeting Section ─── */}
+      <View className="flex-row items-center gap-4">
+        <View className="w-12 h-12 rounded-full bg-surface-3 items-center justify-center">
+          <Text className="text-base font-bold text-white">{getInitials(user?.name)}</Text>
+        </View>
+        <View className="flex-1">
+          <Text className="text-xs text-muted">Xin chào</Text>
+          <Text className="text-xl font-bold text-white">{user?.name}</Text>
         </View>
         <Pressable
-          className="bg-surface-3 border border-surface-4 px-3 py-1.5 rounded-lg active:bg-surface-4"
+          className="bg-surface-2 border border-surface-3 px-4 py-2 rounded-2xl active:bg-surface-3"
           onPress={handleLogout}
         >
-          <Text className="text-xs text-red-400 font-medium">Đăng xuất</Text>
+          <Text className="text-xs text-emergency-400 font-medium">Đăng xuất</Text>
         </Pressable>
       </View>
 
       {/* Active Trip Info or Setup Call */}
       {activeTrip ? (
-        <View className="bg-emerald-950/20 border border-emerald-800/40 p-5 rounded-2xl gap-4">
+        /* ─── Active Trip Dashboard ─── */
+        <View className="bg-surface-1 border-l-2 border-safe-500 p-6 rounded-3xl gap-5">
           <View className="flex-row items-center justify-between">
-            <Text className="text-sm font-bold text-emerald-400 uppercase">HÀNH TRÌNH ĐANG HOẠT ĐỘNG</Text>
-            <View className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping" />
+            <View className="flex-row items-center gap-2">
+              <View className="w-2 h-2 bg-safe-500 rounded-full" />
+              <Text className="text-xs font-bold text-safe-400 uppercase tracking-wider">Đang hoạt động</Text>
+            </View>
           </View>
 
           <View className="gap-2">
-            <Text className="text-white text-lg font-bold">{activeTrip.routeName}</Text>
-            <Text className="text-xs text-muted-light">
-              Liên hệ khẩn cấp: {activeTrip.emergencyContact}
-            </Text>
-            <Text className="text-xs text-muted-light">
-              Dự kiến về: {new Date(activeTrip.expectedReturn).toLocaleString()}
-            </Text>
+            <Text className="text-white text-xl font-bold">{activeTrip.routeName}</Text>
+            <View className="gap-1.5">
+              <Text className="text-xs text-muted-light">
+                📞  Liên hệ khẩn cấp: {activeTrip.emergencyContact}
+              </Text>
+              <Text className="text-xs text-muted-light">
+                🕐  Dự kiến về: {new Date(activeTrip.expectedReturn).toLocaleString()}
+              </Text>
+            </View>
           </View>
 
           <Pressable
-            className="bg-emerald-600 active:bg-emerald-700 py-3 rounded-lg items-center justify-center mt-2"
+            className="bg-safe-500 active:bg-safe-600 py-4 rounded-2xl items-center justify-center"
             onPress={() => router.push('/tracking-active')}
           >
-            <Text className="text-white font-bold text-sm">VÀO MÀN HÌNH BẢN ĐỒ TRACKING</Text>
+            <Text className="text-white font-bold text-sm tracking-wide">VÀO BẢN ĐỒ TRACKING →</Text>
           </Pressable>
         </View>
       ) : (
-        <View className="bg-surface-1 border border-surface-4 p-6 rounded-2xl gap-5">
-          <View className="items-center">
-            <Text className="text-xl font-bold text-white">BẮT ĐẦU TREKKING</Text>
-            <Text className="text-xs text-muted text-center mt-1.5 px-4 leading-normal">
-              Đăng ký hành trình của bạn để hệ thống định vị ngầm bảo vệ và tự động phát SOS khi gặp sự cố hoặc cạn pin.
+        /* ─── Start Trekking Hero Card ─── */
+        <View className="bg-surface-1 border border-surface-3 p-7 rounded-3xl gap-6">
+          <View className="items-center gap-3">
+            <Text className="text-3xl">🏔️</Text>
+            <Text className="text-2xl font-bold text-white">Bắt đầu hành trình</Text>
+            <Text className="text-xs text-muted text-center leading-5 px-2">
+              Đăng ký cung đường để hệ thống định vị ngầm bảo vệ và tự động phát SOS khi gặp sự cố.
             </Text>
           </View>
 
-          <View className="border-t border-surface-4 pt-4 gap-4">
-            <View className="flex-row gap-3 items-center">
-              <View className="w-6 h-6 rounded-full bg-emergency-600/20 items-center justify-center">
-                <Text className="text-xs font-bold text-emergency-500">1</Text>
-              </View>
-              <Text className="text-xs text-muted-light flex-1">
-                Khai báo cung đường và thông tin liên hệ của người thân
-              </Text>
-            </View>
-            <View className="flex-row gap-3 items-center">
-              <View className="w-6 h-6 rounded-full bg-emergency-600/20 items-center justify-center">
-                <Text className="text-xs font-bold text-emergency-500">2</Text>
-              </View>
-              <Text className="text-xs text-muted-light flex-1">
-                Hệ thống tự động ghi nhật ký GPS kể cả khi mất mạng
-              </Text>
-            </View>
-            <View className="flex-row gap-3 items-center">
-              <View className="w-6 h-6 rounded-full bg-emergency-600/20 items-center justify-center">
-                <Text className="text-xs font-bold text-emergency-500">3</Text>
-              </View>
-              <Text className="text-xs text-muted-light flex-1">
-                Tự động gửi tin khẩn cấp SOS bằng SMS GSM khi mất sóng 4G
-              </Text>
-            </View>
-          </View>
-
           <Link href="/trekking-setup" asChild>
-            <Pressable className="bg-emergency-600 active:bg-emergency-700 py-3.5 rounded-lg items-center justify-center mt-2">
-              <Text className="text-white font-bold text-sm uppercase">CÀI ĐẶT HÀNH TRÌNH</Text>
+            <Pressable className="bg-emergency-500 active:bg-emergency-600 py-4 rounded-2xl items-center justify-center">
+              <Text className="text-white font-bold text-sm tracking-wide uppercase">Cài đặt hành trình →</Text>
             </Pressable>
           </Link>
+        </View>
+      )}
+
+      {/* ─── Quick Stats Row ─── */}
+      {!activeTrip && (
+        <View className="flex-row gap-4">
+          <View className="flex-1 bg-surface-1 border border-surface-3 p-4 rounded-2xl items-center gap-2">
+            <Text className="text-lg">🗺️</Text>
+            <Text className="text-xs text-muted">Tổng hành trình</Text>
+            <Text className="text-xl font-bold text-white">—</Text>
+          </View>
+          <View className="flex-1 bg-surface-1 border border-surface-3 p-4 rounded-2xl items-center gap-2">
+            <Text className="text-lg">🛡️</Text>
+            <Text className="text-xs text-muted">Ngày an toàn</Text>
+            <Text className="text-xl font-bold text-white">—</Text>
+          </View>
         </View>
       )}
     </ScrollView>

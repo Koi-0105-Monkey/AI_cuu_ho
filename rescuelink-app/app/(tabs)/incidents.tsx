@@ -10,10 +10,10 @@ import { useFocusEffect, useRouter } from 'expo-router';
 const { width } = Dimensions.get('window');
 
 const INCIDENT_TYPES = [
-  { type: 'MANUAL', label: 'Yêu Cầu Cứu Hộ', severity: 5, bg: 'bg-red-600', icon: '🚨' },
-  { type: 'CRASH', label: 'Tai Nạn Xe', severity: 4, bg: 'bg-amber-600', icon: '🚗' },
-  { type: 'MED', label: 'Sự Cố Y Tế', severity: 4, bg: 'bg-rose-600', icon: '🩺' },
-  { type: 'VEH', label: 'Xe Bị Hỏng', severity: 3, bg: 'bg-blue-600', icon: '🔧' },
+  { type: 'MANUAL', label: 'Yêu Cầu Cứu Hộ', severity: 5, bg: 'bg-emergency-800/60', activeBg: 'active:bg-emergency-800/80', icon: '🚨' },
+  { type: 'CRASH', label: 'Tai Nạn Xe', severity: 4, bg: 'bg-amber-900/50', activeBg: 'active:bg-amber-900/70', icon: '🚗' },
+  { type: 'MED', label: 'Sự Cố Y Tế', severity: 4, bg: 'bg-rose-900/50', activeBg: 'active:bg-rose-900/70', icon: '🩺' },
+  { type: 'VEH', label: 'Xe Bị Hỏng', severity: 3, bg: 'bg-blue-900/50', activeBg: 'active:bg-blue-900/70', icon: '🔧' },
 ];
 
 export default function IncidentsScreen() {
@@ -200,22 +200,22 @@ export default function IncidentsScreen() {
       <View className="flex-1 bg-black relative">
         <CameraView style={StyleSheet.absoluteFillObject} ref={cameraRef} />
         <View className="absolute inset-x-0 bottom-0 p-8 gap-6 justify-end">
-          <View className="flex-row justify-between items-center bg-black/40 p-4 rounded-xl">
+          <View className="flex-row justify-between items-center bg-black/50 p-5 rounded-3xl">
             <Pressable 
-              className="bg-surface-3 border border-surface-4 px-4 py-2.5 rounded-lg"
+              className="bg-surface-3 px-5 py-3 rounded-2xl"
               onPress={() => setShowCamera(false)}
             >
-              <Text className="text-white text-xs font-semibold">HỦY</Text>
+              <Text className="text-white text-xs font-bold tracking-wide">HỦY</Text>
             </Pressable>
             
             <Pressable 
-              className="w-16 h-16 bg-red-600 rounded-full border-4 border-white justify-center items-center active:scale-95"
+              className="w-18 h-18 bg-emergency-500 rounded-full border-4 border-white justify-center items-center active:scale-95"
               onPress={capturePhoto}
             >
-              <View className="w-12 h-12 bg-red-600 rounded-full" />
+              <View className="w-14 h-14 bg-emergency-500 rounded-full" />
             </Pressable>
             
-            <View className="w-12" />
+            <View className="w-14" />
           </View>
         </View>
       </View>
@@ -225,20 +225,21 @@ export default function IncidentsScreen() {
   if (checkingAuth) {
     return (
       <View className="flex-1 bg-surface justify-center items-center">
-        <ActivityIndicator size="large" color="#ef4444" />
+        <ActivityIndicator size="large" color="#FF4D3D" />
       </View>
     );
   }
 
   if (!token) {
     return (
-      <View className="flex-1 bg-surface justify-center items-center p-6 gap-4">
-        <Text className="text-xl font-bold text-red-500 text-center">🚨 BẠN CHƯA ĐĂNG NHẬP</Text>
-        <Text className="text-xs text-muted-light text-center leading-normal max-w-xs">
-          Vui lòng quay lại tab **Trekking** đăng ký/đăng nhập tài khoản để có thể sử dụng các chức năng khẩn cấp và cứu hộ.
+      <View className="flex-1 bg-surface justify-center items-center p-8 gap-5">
+        <Text className="text-2xl">🚨</Text>
+        <Text className="text-xl font-bold text-emergency-500 text-center">Bạn chưa đăng nhập</Text>
+        <Text className="text-xs text-muted text-center leading-5 max-w-xs">
+          Vui lòng quay lại tab Trekking đăng ký/đăng nhập tài khoản để sử dụng các chức năng khẩn cấp và cứu hộ.
         </Text>
         <Pressable
-          className="bg-emergency-600 active:bg-emergency-700 px-6 py-2.5 rounded-xl shadow-lg mt-2"
+          className="bg-emergency-500 active:bg-emergency-600 px-8 py-3 rounded-2xl mt-2"
           onPress={() => router.replace('/(tabs)')}
         >
           <Text className="text-xs font-bold text-white uppercase tracking-wider">Đi tới Đăng Nhập</Text>
@@ -248,20 +249,20 @@ export default function IncidentsScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6 py-12 gap-6">
+    <ScrollView className="flex-1 bg-surface" contentContainerClassName="px-6 py-14 gap-8">
       
       {/* 🚨 QUICK INCIDENT REPORT CENTER */}
-      <View className="bg-surface-1 border border-surface-4 p-5 rounded-2xl gap-4">
-        <View className="items-center">
-          <Text className="text-xl font-bold text-white uppercase">Cảnh Báo Khẩn Cấp</Text>
-          <Text className="text-xs text-muted mt-1">Chọn loại sự cố để lập tức gửi tín hiệu cứu trợ</Text>
+      <View className="gap-5">
+        <View className="items-center gap-2">
+          <Text className="text-2xl font-bold text-white">Cảnh Báo Khẩn Cấp</Text>
+          <Text className="text-xs text-muted">Chọn loại sự cố để gửi tín hiệu cứu trợ</Text>
         </View>
 
-        <View className="grid grid-cols-2 gap-3 flex-row flex-wrap">
+        <View className="flex-row flex-wrap gap-3">
           {INCIDENT_TYPES.map((inc) => (
             <Pressable
               key={inc.type}
-              className={`${inc.bg} active:opacity-90 w-[48%] py-5 rounded-xl justify-center items-center gap-2 relative`}
+              className={`${inc.bg} ${inc.activeBg} w-[48%] py-6 rounded-3xl justify-center items-center gap-3 relative border border-white/5`}
               onPress={() => handleQuickReport(inc.type, inc.severity)}
               disabled={reportingType !== null}
             >
@@ -269,8 +270,11 @@ export default function IncidentsScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <>
-                  <Text className="text-2xl">{inc.icon}</Text>
-                  <Text className="text-white font-bold text-xs">{inc.label}</Text>
+                  <Text className="text-3xl">{inc.icon}</Text>
+                  <Text className="text-white font-bold text-xs text-center tracking-wide">{inc.label}</Text>
+                  <View className="absolute top-3 right-3 w-5 h-5 rounded-full bg-white/10 items-center justify-center">
+                    <Text className="text-[9px] font-bold text-white/70">{inc.severity}</Text>
+                  </View>
                 </>
               )}
             </Pressable>
@@ -279,37 +283,37 @@ export default function IncidentsScreen() {
       </View>
 
       {/* 🔥 FIRE DETECTION CAMERA PANEL */}
-      <View className="bg-surface-1 border border-surface-4 p-5 rounded-2xl gap-5">
-        <View className="items-center">
-          <Text className="text-lg font-bold text-white flex-row items-center">
-            🔥 Báo Cháy Rừng (AI Claude Vision)
+      <View className="bg-surface-1 border border-surface-3 p-6 rounded-3xl gap-5">
+        <View className="items-center gap-2">
+          <Text className="text-lg font-bold text-white">
+            🔥 Báo Cháy Rừng
           </Text>
-          <Text className="text-xs text-muted text-center mt-1">
-            Chụp ảnh hiện trường đám cháy. AI sẽ tự động phân tích và xác định mức độ nguy hại ngay lập tức.
+          <Text className="text-xs text-muted text-center leading-5">
+            Chụp ảnh hiện trường. AI Claude Vision sẽ phân tích và xác định mức độ nguy hại.
           </Text>
         </View>
 
         {/* AI Result Box */}
         {aiResult && (
-          <View className={`border p-4 rounded-xl gap-2 ${
+          <View className={`border p-5 rounded-2xl gap-3 ${
             aiResult.hasFire 
-              ? 'bg-red-950/20 border-red-500/40' 
-              : 'bg-surface-3 border-surface-4'
+              ? 'bg-emergency-950/30 border-emergency-500/30' 
+              : 'bg-surface-2 border-surface-3'
           }`}>
             <View className="flex-row justify-between items-center">
-              <Text className={`text-xs font-bold ${aiResult.hasFire ? 'text-red-400' : 'text-muted-light'}`}>
-                {aiResult.hasFire ? '🔥 PHÁT HIỆN LỬA/KHÓI' : '⚠️ KHÔNG PHÁT HIỆN CHÁY RÕ RỆT'}
+              <Text className={`text-xs font-bold ${aiResult.hasFire ? 'text-emergency-400' : 'text-muted-light'}`}>
+                {aiResult.hasFire ? '🔥 PHÁT HIỆN LỬA/KHÓI' : '⚠️ KHÔNG PHÁT HIỆN CHÁY'}
               </Text>
               <Text className="text-xs font-mono text-white">
-                Tin cậy: {(aiResult.confidence * 100).toFixed(0)}%
+                {(aiResult.confidence * 100).toFixed(0)}%
               </Text>
             </View>
-            <Text className="text-xs text-white leading-normal italic">
+            <Text className="text-xs text-white/80 leading-5 italic">
               "{aiResult.description}"
             </Text>
             {aiResult.hasFire && (
-              <Text className="text-[10px] text-red-300 font-semibold uppercase mt-1">
-                * Đội cứu hỏa đã được kích hoạt và điều phối khẩn cấp!
+              <Text className="text-[10px] text-emergency-300 font-semibold uppercase tracking-wide mt-1">
+                * Đội cứu hỏa đã được kích hoạt!
               </Text>
             )}
           </View>
@@ -320,16 +324,16 @@ export default function IncidentsScreen() {
           <View className="gap-4">
             <Image 
               source={{ uri: photoBase64 }} 
-              style={{ width: '100%', height: 200, borderRadius: 12 }} 
+              style={{ width: '100%', height: 200, borderRadius: 20 }} 
               resizeMode="cover"
             />
             
-            <View className="gap-1.5">
-              <Text className="text-xs font-semibold text-white">Lời nhắn bổ sung (Không bắt buộc)</Text>
+            <View className="gap-2">
+              <Text className="text-xs font-medium text-muted-light">Lời nhắn bổ sung (không bắt buộc)</Text>
               <TextInput
-                className="bg-surface-3 border border-surface-4 text-white rounded-lg px-3 py-2 text-sm"
+                className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-sm"
                 placeholder="Ví dụ: Lửa đang lan nhanh theo hướng gió..."
-                placeholderTextColor="#737373"
+                placeholderTextColor="#6b6b6b"
                 value={message}
                 onChangeText={setMessage}
               />
@@ -337,7 +341,7 @@ export default function IncidentsScreen() {
 
             <View className="flex-row gap-3">
               <Pressable
-                className="flex-1 bg-emergency-600 active:bg-emergency-700 py-3 rounded-lg items-center justify-center"
+                className="flex-1 bg-emergency-500 active:bg-emergency-600 py-3.5 rounded-2xl items-center justify-center"
                 onPress={handleSendFireReport}
                 disabled={submitting}
               >
@@ -347,12 +351,12 @@ export default function IncidentsScreen() {
                     <Text className="text-white font-bold text-xs">AI ĐANG PHÂN TÍCH...</Text>
                   </View>
                 ) : (
-                  <Text className="text-white font-bold text-xs uppercase">PHÂN TÍCH VÀ BÁO CÁO CHÁY</Text>
+                  <Text className="text-white font-bold text-xs uppercase tracking-wide">Phân tích & Báo cáo</Text>
                 )}
               </Pressable>
               
               <Pressable
-                className="bg-surface-3 border border-surface-4 px-4 py-3 rounded-lg items-center justify-center"
+                className="bg-surface-2 border border-surface-3 px-5 py-3.5 rounded-2xl items-center justify-center"
                 onPress={() => setPhotoBase64(null)}
                 disabled={submitting}
               >
@@ -362,12 +366,12 @@ export default function IncidentsScreen() {
           </View>
         ) : (
           <Pressable
-            className="border-2 border-dashed border-surface-4 py-8 rounded-xl items-center justify-center gap-3 active:bg-surface-2"
+            className="border-2 border-dashed border-surface-4 py-10 rounded-3xl items-center justify-center gap-3 active:bg-surface-2"
             onPress={triggerCamera}
           >
-            <Text className="text-3xl">📸</Text>
-            <Text className="text-white font-semibold text-xs uppercase">BẤM VÀO ĐÂY ĐỂ MỞ CAMERA CHỤP ẢNH</Text>
-            <Text className="text-[10px] text-muted-light">Quyền truy cập Camera và Định vị được yêu cầu</Text>
+            <Text className="text-4xl">📸</Text>
+            <Text className="text-white font-semibold text-xs uppercase tracking-wide">Mở camera chụp ảnh</Text>
+            <Text className="text-[10px] text-muted">Quyền Camera và Định vị được yêu cầu</Text>
           </Pressable>
         )}
       </View>

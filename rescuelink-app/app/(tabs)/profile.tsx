@@ -200,23 +200,32 @@ export default function ProfileScreen() {
     );
   };
 
+  // Get user initials for avatar
+  const getInitials = (fullName: string) => {
+    if (!fullName) return '?';
+    const parts = fullName.trim().split(' ');
+    if (parts.length === 1) return parts[0][0]?.toUpperCase() || '?';
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
   if (checkingAuth) {
     return (
       <View className="flex-1 bg-surface justify-center items-center">
-        <ActivityIndicator size="large" color="#ef4444" />
+        <ActivityIndicator size="large" color="#FF4D3D" />
       </View>
     );
   }
 
   if (!token) {
     return (
-      <View className="flex-1 bg-surface justify-center items-center p-6 gap-4">
-        <Text className="text-xl font-bold text-red-500 text-center">🚨 BẠN CHƯA ĐĂNG NHẬP</Text>
-        <Text className="text-xs text-muted-light text-center leading-normal max-w-xs">
-          Vui lòng quay lại tab **Trekking** đăng ký/đăng nhập tài khoản để có thể xem thông tin cá nhân và quản lý liên hệ khẩn cấp.
+      <View className="flex-1 bg-surface justify-center items-center p-8 gap-5">
+        <Text className="text-2xl">🚨</Text>
+        <Text className="text-xl font-bold text-emergency-500 text-center">Bạn chưa đăng nhập</Text>
+        <Text className="text-xs text-muted text-center leading-5 max-w-xs">
+          Vui lòng quay lại tab Trekking đăng ký/đăng nhập tài khoản để xem thông tin cá nhân và quản lý liên hệ khẩn cấp.
         </Text>
         <Pressable
-          className="bg-emergency-600 active:bg-emergency-700 px-6 py-2.5 rounded-xl shadow-lg mt-2"
+          className="bg-emergency-500 active:bg-emergency-600 px-8 py-3 rounded-2xl mt-2"
           onPress={() => router.replace('/(tabs)')}
         >
           <Text className="text-xs font-bold text-white uppercase tracking-wider">Đi tới Đăng Nhập</Text>
@@ -228,27 +237,27 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View className="flex-1 bg-surface justify-center items-center">
-        <ActivityIndicator size="large" color="#ef4444" />
-        <Text className="text-sm text-muted-light mt-4 font-mono">Đang tải thông tin cá nhân...</Text>
+        <ActivityIndicator size="large" color="#FF4D3D" />
+        <Text className="text-sm text-muted mt-4">Đang tải thông tin...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6 py-16 gap-6">
+    <ScrollView className="flex-1 bg-surface" contentContainerClassName="px-6 py-14 gap-8">
       
       {/* Title */}
-      <View className="mb-2">
-        <Text className="text-2xl font-bold text-white uppercase tracking-wide">CÁ NHÂN</Text>
-        <Text className="text-xs text-muted-light mt-1">Thông tin cá nhân & Thiết lập liên hệ khẩn cấp</Text>
+      <View>
+        <Text className="text-2xl font-bold text-white uppercase tracking-wider">Cá nhân</Text>
+        <Text className="text-xs text-muted mt-1.5">Thông tin cá nhân & liên hệ khẩn cấp</Text>
       </View>
 
-      {/* User Info Section */}
-      <View className="bg-surface-1 border border-surface-4 p-5 rounded-2xl gap-4">
-        <View className="flex-row justify-between items-center pb-3 border-b border-surface-3">
-          <Text className="text-xs font-semibold text-emergency-400">THÀNH VIÊN RESCUELINK</Text>
+      {/* ─── Profile Card ─── */}
+      <View className="bg-surface-1 border border-surface-3 p-6 rounded-3xl gap-5">
+        <View className="flex-row justify-between items-center pb-4 border-b border-surface-3">
+          <Text className="text-xs font-semibold text-emergency-400 tracking-wider">THÀNH VIÊN RESCUELINK</Text>
           <Pressable 
-            className="px-2.5 py-1 bg-surface-3 border border-surface-4 rounded-lg active:bg-surface-4"
+            className="px-3 py-1.5 bg-surface-2 border border-surface-3 rounded-xl active:bg-surface-3"
             onPress={() => {
               if (isEditing) {
                 handleUpdateName();
@@ -261,101 +270,95 @@ export default function ProfileScreen() {
             {updating ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text className="text-[10px] text-white font-medium">
+              <Text className="text-[10px] text-white font-medium tracking-wide">
                 {isEditing ? 'LƯU' : 'CHỈNH SỬA'}
               </Text>
             )}
           </Pressable>
         </View>
 
-        {isEditing ? (
-          <View className="gap-2">
-            <Text className="text-[10px] text-muted">Họ và Tên</Text>
-            <TextInput
-              className="bg-surface-3 border border-surface-4 text-white rounded-lg px-3 py-2 text-sm"
-              value={editName}
-              onChangeText={setEditName}
-              placeholder="Nguyễn Văn A"
-              placeholderTextColor="#737373"
-            />
+        {/* Avatar + Name */}
+        <View className="items-center gap-3">
+          <View className="w-16 h-16 rounded-full bg-surface-3 items-center justify-center">
+            <Text className="text-xl font-bold text-white">{getInitials(user?.name)}</Text>
           </View>
-        ) : (
-          <View className="gap-1">
-            <Text className="text-[10px] text-muted">Họ và Tên</Text>
-            <Text className="text-lg font-bold text-white">{user?.name}</Text>
-          </View>
-        )}
 
-        <View className="gap-1">
-          <Text className="text-[10px] text-muted">Số điện thoại đăng ký</Text>
-          <Text className="text-sm font-bold text-white font-mono">{user?.phone}</Text>
+          {isEditing ? (
+            <View className="gap-2 w-full">
+              <Text className="text-[10px] text-muted text-center">Họ và Tên</Text>
+              <TextInput
+                className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-sm text-center"
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Nguyễn Văn A"
+                placeholderTextColor="#6b6b6b"
+              />
+            </View>
+          ) : (
+            <View className="items-center gap-1">
+              <Text className="text-lg font-bold text-white">{user?.name}</Text>
+              <Text className="text-xs text-muted font-mono">{user?.phone}</Text>
+            </View>
+          )}
         </View>
 
-        <View className="gap-1">
-          <Text className="text-[10px] text-muted">Vai trò hệ thống</Text>
-          <View className="flex-row">
-            <View className="bg-emergency-600/20 border border-emergency-500/30 px-2.5 py-0.5 rounded-full">
-              <Text className="text-[9px] font-bold text-emergency-400 uppercase tracking-wide">
-                {user?.role === 'admin' ? 'QUẢN TRỊ VIÊN' : user?.role === 'rescuer' ? 'ĐỘI CỨU HỘ' : 'THÀNH VIÊN TREKKING'}
-              </Text>
-            </View>
+        {/* Role Badge */}
+        <View className="items-center">
+          <View className="bg-emergency-500/10 border border-emergency-500/20 px-3 py-1 rounded-full">
+            <Text className="text-[9px] font-bold text-emergency-400 uppercase tracking-wider">
+              {user?.role === 'admin' ? 'QUẢN TRỊ VIÊN' : user?.role === 'rescuer' ? 'ĐỘI CỨU HỘ' : 'THÀNH VIÊN TREKKING'}
+            </Text>
           </View>
         </View>
       </View>
 
-      {/* Emergency Contacts List */}
-      <View className="bg-surface-1 border border-surface-4 p-5 rounded-2xl gap-4">
-        <View className="flex-row justify-between items-center pb-3 border-b border-surface-3">
-          <Text className="text-xs font-semibold text-emergency-400">NGƯỜI THÂN LIÊN HỆ SOS (SMS)</Text>
+      {/* ─── Emergency Contacts List ─── */}
+      <View className="bg-surface-1 border border-surface-3 p-6 rounded-3xl gap-5">
+        <View className="flex-row justify-between items-center pb-4 border-b border-surface-3">
+          <Text className="text-xs font-semibold text-emergency-400 tracking-wider">NGƯỜI THÂN LIÊN HỆ SOS</Text>
           {!showAddForm && (
             <Pressable 
-              className="px-2.5 py-1 bg-emergency-600 rounded-lg active:bg-emergency-700"
+              className="px-3 py-1.5 bg-emergency-500 rounded-xl active:bg-emergency-600"
               onPress={() => setShowAddForm(true)}
             >
-              <Text className="text-[10px] text-white font-bold">+ THÊM MỚI</Text>
+              <Text className="text-[10px] text-white font-bold tracking-wide">+ THÊM MỚI</Text>
             </Pressable>
           )}
         </View>
 
         {/* Add Contact Form Panel */}
         {showAddForm && (
-          <View className="bg-surface-2 border border-surface-4 p-4 rounded-xl gap-3 mb-2">
+          <View className="bg-surface-2 border border-surface-3 p-5 rounded-2xl gap-4">
             <Text className="text-xs font-bold text-white">Thêm Liên Hệ Mới</Text>
             
-            <View className="gap-1.5">
-              <TextInput
-                className="bg-surface-3 border border-surface-4 text-white rounded-lg px-3 py-1.5 text-xs"
-                placeholder="Tên người thân"
-                placeholderTextColor="#737373"
-                value={newContactName}
-                onChangeText={setNewContactName}
-              />
-            </View>
+            <TextInput
+              className="bg-surface-3 text-white rounded-xl px-4 py-2.5 text-xs"
+              placeholder="Tên người thân"
+              placeholderTextColor="#6b6b6b"
+              value={newContactName}
+              onChangeText={setNewContactName}
+            />
 
-            <View className="gap-1.5">
-              <TextInput
-                className="bg-surface-3 border border-surface-4 text-white rounded-lg px-3 py-1.5 text-xs"
-                placeholder="Số điện thoại"
-                placeholderTextColor="#737373"
-                keyboardType="phone-pad"
-                value={newContactPhone}
-                onChangeText={setNewContactPhone}
-              />
-            </View>
+            <TextInput
+              className="bg-surface-3 text-white rounded-xl px-4 py-2.5 text-xs"
+              placeholder="Số điện thoại"
+              placeholderTextColor="#6b6b6b"
+              keyboardType="phone-pad"
+              value={newContactPhone}
+              onChangeText={setNewContactPhone}
+            />
 
-            <View className="gap-1.5">
-              <TextInput
-                className="bg-surface-3 border border-surface-4 text-white rounded-lg px-3 py-1.5 text-xs"
-                placeholder="Mối quan hệ (ví dụ: Bố, Mẹ, Vợ)"
-                placeholderTextColor="#737373"
-                value={newContactRelation}
-                onChangeText={setNewContactRelation}
-              />
-            </View>
+            <TextInput
+              className="bg-surface-3 text-white rounded-xl px-4 py-2.5 text-xs"
+              placeholder="Mối quan hệ (ví dụ: Bố, Mẹ, Vợ)"
+              placeholderTextColor="#6b6b6b"
+              value={newContactRelation}
+              onChangeText={setNewContactRelation}
+            />
 
-            <View className="flex-row gap-2 justify-end mt-1">
+            <View className="flex-row gap-3 justify-end mt-1">
               <Pressable
-                className="px-3 py-1.5 bg-surface-3 border border-surface-4 rounded-lg"
+                className="px-4 py-2 bg-surface-3 rounded-xl"
                 onPress={() => {
                   setShowAddForm(false);
                   setNewContactName('');
@@ -367,14 +370,14 @@ export default function ProfileScreen() {
               </Pressable>
               
               <Pressable
-                className="px-4 py-1.5 bg-emergency-600 rounded-lg"
+                className="px-5 py-2 bg-emergency-500 rounded-xl active:bg-emergency-600"
                 onPress={handleAddContact}
                 disabled={updating}
               >
                 {updating ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text className="text-[10px] text-white font-bold">LƯU LẠI</Text>
+                  <Text className="text-[10px] text-white font-bold tracking-wide">LƯU LẠI</Text>
                 )}
               </Pressable>
             </View>
@@ -383,31 +386,31 @@ export default function ProfileScreen() {
 
         {/* Contacts list */}
         {(!user?.emergencyContacts || user.emergencyContacts.length === 0) ? (
-          <Text className="text-xs text-muted text-center py-4 leading-normal">
-            Chưa cấu hình người thân khẩn cấp. Bạn vui lòng thêm tối thiểu 1 người thân để hệ thống có thể tự động gửi tin nhắn SMS khi gặp sự cố.
+          <Text className="text-xs text-muted text-center py-6 leading-5">
+            Chưa có người thân khẩn cấp. Thêm tối thiểu 1 người để hệ thống tự động gửi SMS khi gặp sự cố.
           </Text>
         ) : (
           <View className="gap-3">
             {user.emergencyContacts.map((contact: EmergencyContact, index: number) => (
-              <View key={index} className="bg-surface-3 border border-surface-4 p-3.5 rounded-xl flex-row justify-between items-center">
-                <View className="flex-1 mr-2 gap-1">
-                  <View className="flex-row items-center gap-1.5 flex-wrap">
+              <View key={index} className="bg-surface-2 border border-surface-3 p-4 rounded-2xl flex-row justify-between items-center">
+                <View className="flex-1 mr-3 gap-1.5">
+                  <View className="flex-row items-center gap-2 flex-wrap">
                     <Text className="text-white text-sm font-bold">{contact.name}</Text>
-                    <View className="bg-emergency-600/10 border border-emergency-500/25 px-1.5 py-0.5 rounded-md">
-                      <Text className="text-[8px] font-bold text-emergency-400 uppercase tracking-wide">
+                    <View className="bg-emergency-500/10 border border-emergency-500/20 px-2 py-0.5 rounded-full">
+                      <Text className="text-[8px] font-bold text-emergency-400 uppercase tracking-wider">
                         {contact.relation}
                       </Text>
                     </View>
                   </View>
-                  <Text className="text-xs text-muted-light font-mono mt-0.5">{contact.phone}</Text>
+                  <Text className="text-xs text-muted font-mono">{contact.phone}</Text>
                 </View>
 
                 <Pressable
-                  className="w-7 h-7 rounded-lg bg-surface-1 border border-surface-4 items-center justify-center active:bg-surface-4"
+                  className="w-8 h-8 rounded-xl bg-surface-3 items-center justify-center active:bg-surface-4"
                   onPress={() => handleDeleteContact(index)}
                   disabled={updating}
                 >
-                  <Text className="text-red-400 text-xs font-bold">✕</Text>
+                  <Text className="text-emergency-400 text-xs font-bold">✕</Text>
                 </Pressable>
               </View>
             ))}
@@ -415,39 +418,39 @@ export default function ProfileScreen() {
         )}
       </View>
 
-      {/* Device Status & Permissions Panel */}
-      <View className="bg-surface-1 border border-surface-4 p-5 rounded-2xl gap-4">
-        <View className="pb-3 border-b border-surface-3">
-          <Text className="text-xs font-semibold text-emergency-400">TRẠNG THÁI THIẾT BỊ HỆ THỐNG</Text>
+      {/* ─── Device Status Panel ─── */}
+      <View className="bg-surface-1 border border-surface-3 p-6 rounded-3xl gap-5">
+        <View className="pb-4 border-b border-surface-3">
+          <Text className="text-xs font-semibold text-emergency-400 tracking-wider">TRẠNG THÁI THIẾT BỊ</Text>
         </View>
 
-        <View className="gap-3">
+        <View className="gap-4">
           <View className="flex-row justify-between items-center">
-            <Text className="text-xs text-muted-light">Định vị nền (Always Location)</Text>
-            <Text className={`text-xs font-bold ${locationPermission.includes('Always') || locationPermission.includes('Luôn') ? 'text-emerald-400' : 'text-amber-400'}`}>
+            <Text className="text-xs text-muted">Định vị nền (Always Location)</Text>
+            <Text className={`text-xs font-bold ${locationPermission.includes('Always') || locationPermission.includes('Luôn') ? 'text-safe-400' : 'text-warn-400'}`}>
               {locationPermission}
             </Text>
           </View>
 
           <View className="flex-row justify-between items-center">
-            <Text className="text-xs text-muted-light">Đo biến cảm va chạm (Sensors)</Text>
-            <Text className="text-xs font-bold text-emerald-400">Sẵn sàng (Accelerometer/Gyro)</Text>
+            <Text className="text-xs text-muted">Cảm biến va chạm (Sensors)</Text>
+            <Text className="text-xs font-bold text-safe-400">Sẵn sàng</Text>
           </View>
 
           <View className="flex-row justify-between items-center">
-            <Text className="text-xs text-muted-light">Bản cập nhật app</Text>
-            <Text className="text-xs font-mono text-muted">v1.0.0 (Production SDK 56)</Text>
+            <Text className="text-xs text-muted">Phiên bản</Text>
+            <Text className="text-xs font-mono text-muted-light">v1.0.0</Text>
           </View>
         </View>
 
         <Pressable 
-          className="bg-surface-3 border border-surface-4 py-2 rounded-lg items-center mt-1 active:bg-surface-4"
+          className="bg-surface-2 border border-surface-3 py-3 rounded-2xl items-center active:bg-surface-3"
           onPress={() => {
             checkDeviceStatus();
             fetchProfile();
           }}
         >
-          <Text className="text-white text-xs font-bold uppercase">LÀM MỚI TRẠNG THÁI</Text>
+          <Text className="text-white text-xs font-bold uppercase tracking-wide">Làm mới trạng thái</Text>
         </Pressable>
       </View>
 

@@ -23,30 +23,38 @@
 
 @layer theme {
   @theme {
-    /* Emergency custom color palette */
-    --color-emergency-50: #fef2f2;
-    --color-emergency-100: #fee2e2;
-    --color-emergency-200: #fecaca;
-    --color-emergency-300: #fca5a5;
-    --color-emergency-400: #f87171;
-    --color-emergency-500: #ef4444;
-    --color-emergency-600: #dc2626;
-    --color-emergency-700: #b91c1c;
-    --color-emergency-800: #991b1b;
-    --color-emergency-900: #7f1d1d;
-    --color-emergency-950: #450a0a;
+    /* Emergency accent palette — warmer red-orange */
+    --color-emergency-50: #fff1f0;
+    --color-emergency-100: #ffe0dd;
+    --color-emergency-200: #ffc7c2;
+    --color-emergency-300: #ff9e95;
+    --color-emergency-400: #ff6b5e;
+    --color-emergency-500: #ff4d3d;
+    --color-emergency-600: #e8362a;
+    --color-emergency-700: #c4271d;
+    --color-emergency-800: #a1231c;
+    --color-emergency-900: #85231e;
+    --color-emergency-950: #480d09;
 
-    --color-surface: #0a0a0a;
-    --color-surface-1: #121212;
-    --color-surface-2: #1a1a1a;
-    --color-surface-3: #262626;
-    --color-surface-4: #333333;
-    
-    --color-muted: #737373;
-    --color-muted-light: #a3a3a3;
-    
+    /* Deep dark surface system */
+    --color-surface: #050505;
+    --color-surface-1: #0f0f0f;
+    --color-surface-2: #161616;
+    --color-surface-3: #1e1e1e;
+    --color-surface-4: #2a2a2a;
+
+    /* Muted text */
+    --color-muted: #6b6b6b;
+    --color-muted-light: #9a9a9a;
+
+    /* Safe / success palette */
     --color-safe-400: #34d399;
     --color-safe-500: #10b981;
     --color-safe-600: #059669;
+
+    /* Warning palette */
+    --color-warn-400: #fbbf24;
+    --color-warn-500: #f59e0b;
+    --color-warn-600: #d97706;
   }
 }

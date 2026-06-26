@@ -69,11 +69,11 @@ function RootLayoutNav() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#09090b', // Nền header tối (zinc-950)
+          backgroundColor: '#050505',
         },
-        headerTintColor: '#f4f4f5', // Màu chữ sáng (zinc-100)
+        headerTintColor: '#f5f5f5',
         contentStyle: {
-          backgroundColor: '#09090b', // Nền màn hình tối
+          backgroundColor: '#050505',
         },
       }}
     >

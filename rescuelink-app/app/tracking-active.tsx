@@ -492,8 +492,8 @@ export default function TrackingActiveScreen() {
   if (loading) {
     return (
       <View className="flex-1 bg-surface justify-center items-center">
-        <ActivityIndicator size="large" color="#ef4444" />
-        <Text className="text-sm text-muted-light mt-4">Đang tải thông tin bản đồ...</Text>
+        <ActivityIndicator size="large" color="#FF4D3D" />
+        <Text className="text-sm text-muted mt-4">Đang tải thông tin bản đồ...</Text>
       </View>
     );
   }
@@ -542,7 +542,7 @@ export default function TrackingActiveScreen() {
         {walkedPath.length >= 2 && (
           <Polyline
             coordinates={walkedPath}
-            strokeColor="#ef4444"
+            strokeColor="#FF4D3D"
             strokeWidth={4}
           />
         )}
@@ -574,98 +574,98 @@ export default function TrackingActiveScreen() {
             }}
             title="Vị trí của bạn"
           >
-            <View className="w-6 h-6 items-center justify-center bg-emergency-600/30 border border-emergency-500 rounded-full">
-              <View className="w-3.5 h-3.5 bg-emergency-600 rounded-full border-2 border-white" />
+            <View className="w-7 h-7 items-center justify-center bg-emergency-500/30 border border-emergency-400 rounded-full">
+              <View className="w-4 h-4 bg-emergency-500 rounded-full border-2 border-white" />
             </View>
           </Marker>
         )}
       </MapView>
 
       {/* 2. Top Bar Details */}
-      <View className="absolute top-12 left-4 right-4 bg-surface-1/90 border border-surface-4 p-4 rounded-2xl flex-row justify-between items-center z-10">
-        <View className="flex-1 mr-2">
+      <View className="absolute top-12 left-5 right-5 bg-surface-1/95 border border-surface-3 p-5 rounded-3xl flex-row justify-between items-center z-10">
+        <View className="flex-1 mr-3">
           <Text className="text-white text-base font-bold" numberOfLines={1}>
             {activeTrip?.routeName}
           </Text>
-          <View className="flex-row items-center mt-1">
-            <View className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse mr-1.5" />
-            <Text className="text-[10px] text-emerald-400 font-semibold uppercase">Định vị ngầm đang chạy</Text>
+          <View className="flex-row items-center mt-1.5">
+            <View className="w-2 h-2 bg-safe-500 rounded-full mr-1.5" />
+            <Text className="text-[10px] text-safe-400 font-semibold uppercase tracking-wide">Định vị ngầm đang chạy</Text>
           </View>
         </View>
 
         {/* Network & Queue Indicator */}
-        <View className="items-end gap-1">
-          <View className={`px-2 py-0.5 rounded-full border ${isOnline ? 'bg-emerald-950/20 border-emerald-800' : 'bg-amber-950/20 border-amber-800'}`}>
-            <Text className={`text-[9px] font-bold ${isOnline ? 'text-emerald-400' : 'text-amber-400'}`}>
+        <View className="items-end gap-1.5">
+          <View className={`px-2.5 py-1 rounded-full border ${isOnline ? 'bg-safe-500/10 border-safe-500/30' : 'bg-warn-500/10 border-warn-500/30'}`}>
+            <Text className={`text-[9px] font-bold tracking-wide ${isOnline ? 'text-safe-400' : 'text-warn-400'}`}>
               {isOnline ? 'ONLINE' : 'OFFLINE'}
             </Text>
           </View>
           {queueCount > 0 && (
-            <Text className="text-[8px] text-muted-light font-mono">
-              Xếp hàng: {queueCount} điểm GPS
+            <Text className="text-[8px] text-muted font-mono">
+              Hàng đợi: {queueCount} GPS
             </Text>
           )}
         </View>
       </View>
 
       {/* 3. Alerts overlay - Warnings notifications */}
-      <View className="absolute top-36 left-4 right-4 z-10 gap-2">
+      <View className="absolute top-36 left-5 right-5 z-10 gap-2.5">
         {warnings.map((warn, i) => (
-          <View key={i} className="bg-emergency-900/90 border border-emergency-700/60 px-3 py-2 rounded-xl flex-row items-center justify-between">
-            <Text className="text-white text-xs font-bold flex-1 pr-2">⚠️ CẢNH BÁO: {warn}</Text>
+          <View key={i} className="bg-emergency-900/90 border border-emergency-700/40 px-4 py-3 rounded-2xl flex-row items-center justify-between">
+            <Text className="text-white text-xs font-bold flex-1 pr-2">⚠️ {warn}</Text>
           </View>
         ))}
 
         {checkinWarning && (
-          <View className="bg-amber-600/90 border border-amber-500/40 p-3 rounded-xl gap-2">
-            <Text className="text-white text-xs font-bold uppercase">CẢNH BÁO DỪNG CHUYỂN ĐỘNG</Text>
-            <Text className="text-white text-[10px] leading-relaxed">
-              Bạn đứng yên &gt; 20 phút. Vui lòng xác nhận an toàn để hủy đếm ngược cứu hộ.
+          <View className="bg-warn-500/90 border border-warn-400/40 p-4 rounded-2xl gap-2.5">
+            <Text className="text-white text-xs font-bold uppercase tracking-wide">Cảnh báo dừng chuyển động</Text>
+            <Text className="text-white/90 text-[10px] leading-4">
+              Bạn đứng yên &gt; 20 phút. Xác nhận an toàn để hủy đếm ngược cứu hộ.
             </Text>
             <Pressable
-              className="bg-emerald-600 active:bg-emerald-700 py-1.5 rounded-lg items-center"
+              className="bg-safe-500 active:bg-safe-600 py-2 rounded-xl items-center"
               onPress={handleCheckinOk}
             >
-              <Text className="text-white font-bold text-xs">TÔI VẪN ỔN</Text>
+              <Text className="text-white font-bold text-xs tracking-wide">TÔI VẪN ỔN ✓</Text>
             </Pressable>
           </View>
         )}
 
         {pendingSms && (
-          <View className="bg-emergency-950/95 border border-emergency-800 p-3 rounded-xl gap-2">
-            <Text className="text-red-400 text-xs font-bold uppercase">CẦN GỬI TIN SOS GSM</Text>
-            <Text className="text-white text-[10px]">
-              Vị trí được ghi nhận ngoại tuyến. Bấm bên dưới để gửi tin nhắn SOS cho người thân qua mạng di động.
+          <View className="bg-emergency-950/95 border border-emergency-700/40 p-4 rounded-2xl gap-2.5">
+            <Text className="text-emergency-400 text-xs font-bold uppercase tracking-wide">Cần gửi tin SOS GSM</Text>
+            <Text className="text-white/80 text-[10px] leading-4">
+              Vị trí được ghi nhận ngoại tuyến. Bấm bên dưới để gửi tin nhắn SOS cho người thân.
             </Text>
             <Pressable
-              className="bg-emergency-600 active:bg-emergency-700 py-1.5 rounded-lg items-center"
+              className="bg-emergency-500 active:bg-emergency-600 py-2 rounded-xl items-center"
               onPress={handleSendPendingSms}
             >
-              <Text className="text-white font-bold text-xs uppercase">GỬI SMS CẤP CỨU</Text>
+              <Text className="text-white font-bold text-xs uppercase tracking-wide">Gửi SMS cấp cứu</Text>
             </Pressable>
           </View>
         )}
       </View>
 
       {/* 4. Bottom HUD Dashboard controls */}
-      <View className="absolute bottom-6 left-4 right-4 z-10 gap-3">
+      <View className="absolute bottom-8 left-5 right-5 z-10 gap-3">
         
         {/* HUD Statistics */}
-        <View className="bg-surface-1/90 border border-surface-4 p-4 rounded-2xl gap-3">
+        <View className="bg-surface-1/95 border border-surface-3 p-5 rounded-3xl gap-3">
           <View className="flex-row justify-around">
             <View className="items-center">
               <Text className="text-[10px] text-muted">Thời gian đi</Text>
-              <Text className="text-lg font-bold text-white font-mono mt-0.5">{elapsedTime}</Text>
+              <Text className="text-lg font-bold text-white font-mono mt-1">{elapsedTime}</Text>
             </View>
             <View className="w-px h-8 bg-surface-3 self-center" />
             <View className="items-center">
               <Text className="text-[10px] text-muted">Quãng đường</Text>
-              <Text className="text-lg font-bold text-white font-mono mt-0.5">{distanceWalkedKm} km</Text>
+              <Text className="text-lg font-bold text-white font-mono mt-1">{distanceWalkedKm} km</Text>
             </View>
             <View className="w-px h-8 bg-surface-3 self-center" />
             <View className="items-center">
-              <Text className="text-[10px] text-muted">Dung lượng pin</Text>
-              <Text className={`text-lg font-bold font-mono mt-0.5 ${batteryLevel <= 20 ? 'text-emergency-500' : 'text-emerald-400'}`}>
+              <Text className="text-[10px] text-muted">Pin</Text>
+              <Text className={`text-lg font-bold font-mono mt-1 ${batteryLevel <= 20 ? 'text-emergency-400' : 'text-safe-400'}`}>
                 {batteryLevel}%
               </Text>
             </View>
@@ -673,12 +673,12 @@ export default function TrackingActiveScreen() {
 
           {/* Quick info row */}
           {activeTrip && (
-            <View className="border-t border-surface-3 pt-2.5 flex-row justify-between items-center">
-              <Text className="text-[10px] text-muted-light">
+            <View className="border-t border-surface-3 pt-3 flex-row justify-between items-center">
+              <Text className="text-[10px] text-muted">
                 SOS: {activeTrip.emergencyContact}
               </Text>
-              <Text className="text-[10px] text-muted-light">
-                Dự kiến về: {new Date(activeTrip.expectedReturn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <Text className="text-[10px] text-muted">
+                Về: {new Date(activeTrip.expectedReturn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Text>
             </View>
           )}
@@ -688,7 +688,7 @@ export default function TrackingActiveScreen() {
         <View className="flex-row gap-3">
           {/* Recenter Button */}
           <Pressable
-            className="w-12 h-12 rounded-xl bg-surface-1 border border-surface-4 items-center justify-center active:bg-surface-2"
+            className="w-12 h-12 rounded-2xl bg-surface-1/95 border border-surface-3 items-center justify-center active:bg-surface-2"
             onPress={recalculateMapZoom}
           >
             <Text className="text-white text-base">🧭</Text>
@@ -696,7 +696,7 @@ export default function TrackingActiveScreen() {
 
           {/* Share Button */}
           <Pressable
-            className="w-12 h-12 rounded-xl bg-surface-1 border border-surface-4 items-center justify-center active:bg-surface-2"
+            className="w-12 h-12 rounded-2xl bg-surface-1/95 border border-surface-3 items-center justify-center active:bg-surface-2"
             onPress={handleShareTrip}
           >
             <Text className="text-white text-base">📤</Text>
@@ -704,20 +704,20 @@ export default function TrackingActiveScreen() {
 
           {/* End Trek Button */}
           <Pressable
-            className="flex-1 h-12 rounded-xl bg-surface-3 border border-surface-4 items-center justify-center active:bg-surface-4"
+            className="flex-1 h-12 rounded-2xl bg-surface-2 border border-surface-3 items-center justify-center active:bg-surface-3"
             onPress={handleEndTrip}
             disabled={ending}
           >
             {ending ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text className="text-red-400 font-bold text-xs uppercase">KẾT THÚC HÀNH TRÌNH</Text>
+              <Text className="text-emergency-400 font-bold text-xs uppercase tracking-wide">Kết thúc</Text>
             )}
           </Pressable>
 
           {/* Big Panic SOS Button */}
           <Pressable
-            className="flex-1 h-12 rounded-xl bg-emergency-600 items-center justify-center active:bg-emergency-700 shadow-lg shadow-emergency-600/40"
+            className="flex-1 h-12 rounded-2xl bg-emergency-500 items-center justify-center active:bg-emergency-600"
             onPress={handlePanicSOS}
           >
             <Text className="text-white font-black text-xs uppercase tracking-wider">PANIC SOS</Text>

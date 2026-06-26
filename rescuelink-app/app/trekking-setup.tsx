@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from '@/tw';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -9,20 +9,36 @@ import * as Location from 'expo-location';
 import * as Battery from 'expo-battery';
 
 const DURATIONS = [
-  { label: '4 tiếng', value: 4 },
-  { label: '8 tiếng', value: 8 },
-  { label: '12 tiếng', value: 12 },
-  { label: '24 tiếng (1 ngày)', value: 24 },
-  { label: '48 tiếng (2 ngày)', value: 48 },
+  { label: '4h', value: 4 },
+  { label: '8h', value: 8 },
+  { label: '12h', value: 12 },
+  { label: '24h', value: 24 },
+  { label: '48h', value: 48 },
 ];
 
 export default function TrekkingSetupScreen() {
   const router = useRouter();
   const { startTracking } = useGPS();
   const [routeName, setRouteName] = useState('');
-  const [emergencyContact, setEmergencyContact] = useState('');
   const [durationHours, setDurationHours] = useState(8); // Default 8 hours
   const [submitting, setSubmitting] = useState(false);
+  const [emergencyContacts, setEmergencyContacts] = useState<any[]>([]);
+
+  useEffect(() => {
+    loadEmergencyContacts();
+  }, []);
+
+  const loadEmergencyContacts = async () => {
+    try {
+      const userInfoStr = await AsyncStorage.getItem('user_info');
+      if (userInfoStr) {
+        const userInfo = JSON.parse(userInfoStr);
+        setEmergencyContacts(userInfo.emergencyContacts || []);
+      }
+    } catch (e) {
+      console.warn('Failed to load user info in trekking setup:', e);
+    }
+  };
 
   // Calculate expected return date
   const now = new Date();
@@ -33,15 +49,17 @@ export default function TrekkingSetupScreen() {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập tên cung đường trekking.');
       return;
     }
-    if (!emergencyContact.trim()) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập số điện thoại người thân nhận cảnh báo.');
+    if (emergencyContacts.length === 0) {
+      Alert.alert(
+        'Chưa cài đặt người thân',
+        'Vui lòng cấu hình người thân khẩn cấp trong tab Cá nhân trước khi bắt đầu hành trình.'
+      );
       return;
     }
     
-    // Simple phone format validation
-    const cleanPhone = emergencyContact.trim();
+    const cleanPhone = emergencyContacts[0].phone.trim();
     if (cleanPhone.length < 9) {
-      Alert.alert('Lỗi', 'Số điện thoại liên hệ khẩn cấp không hợp lệ.');
+      Alert.alert('Lỗi', 'Số điện thoại liên hệ khẩn cấp của bạn không hợp lệ.');
       return;
     }
 
@@ -141,60 +159,79 @@ export default function TrekkingSetupScreen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-surface" contentContainerClassName="p-6 py-12 justify-center min-h-screen">
+    <ScrollView className="flex-1 bg-surface" contentContainerClassName="px-7 py-14 justify-center min-h-screen">
       {/* Title */}
-      <View className="mb-8">
+      <View className="mb-10">
+        <Pressable className="mb-4" onPress={() => router.back()}>
+          <Text className="text-white text-lg">←</Text>
+        </Pressable>
         <Text className="text-2xl font-bold text-white">Cài Đặt Hành Trình</Text>
-        <Text className="text-xs text-muted-light mt-1">Đăng ký thông tin trekking để được hỗ trợ khẩn cấp</Text>
+        <Text className="text-xs text-muted mt-1.5">Đăng ký thông tin trekking để được hỗ trợ khẩn cấp</Text>
       </View>
 
-      <View className="bg-surface-1 border border-surface-4 p-5 rounded-2xl gap-5">
+      <View className="bg-surface-1 border border-surface-3 p-7 rounded-3xl gap-6">
         
         {/* Route Name Input */}
-        <View className="gap-1.5">
-          <Text className="text-xs font-semibold text-white">Tên cung đường trekking</Text>
+        <View className="gap-2">
+          <Text className="text-xs font-semibold text-white tracking-wide">Tên cung đường trekking</Text>
           <TextInput
-            className="bg-surface-3 border border-surface-4 text-white rounded-lg px-3 py-2 text-sm"
-            placeholder="Ví dụ: Phượt đỉnh Tây Yên Tử, Trùng Khánh..."
-            placeholderTextColor="#737373"
+            className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-sm"
+            placeholder="Ví dụ: Phượt đỉnh Tây Yên Tử..."
+            placeholderTextColor="#6b6b6b"
             value={routeName}
             onChangeText={setRouteName}
           />
         </View>
 
-        {/* Emergency Contact Input */}
-        <View className="gap-1.5">
-          <Text className="text-xs font-semibold text-white">SĐT người thân nhận tin SOS (Khẩn cấp)</Text>
-          <TextInput
-            className="bg-surface-3 border border-surface-4 text-white rounded-lg px-3 py-2 text-sm"
-            placeholder="Ví dụ: 0912345678"
-            placeholderTextColor="#737373"
-            keyboardType="phone-pad"
-            value={emergencyContact}
-            onChangeText={setEmergencyContact}
-          />
-          <Text className="text-[10px] text-muted-light leading-normal">
-            * Hệ thống sẽ tự động nhắn tin SMS trực tiếp từ điện thoại của bạn đến số này khi pin yếu hoặc gặp sự cố kể cả khi mất sóng internet.
+        {/* Emergency Contacts Info (Read-only from Profile) */}
+        <View className="gap-2">
+          <Text className="text-xs font-semibold text-white tracking-wide">Người thân nhận tin SOS (Cấu hình ở Cá nhân)</Text>
+          {emergencyContacts.length > 0 ? (
+            <View className="gap-2">
+              {emergencyContacts.map((contact, idx) => (
+                <View key={idx} className="bg-surface-2 border border-surface-3 p-3.5 rounded-2xl flex-row justify-between items-center">
+                  <View className="gap-0.5">
+                    <Text className="text-white text-xs font-bold">{contact.name} ({contact.relation})</Text>
+                    <Text className="text-[10px] text-muted font-mono">{contact.phone}</Text>
+                  </View>
+                  {idx === 0 && (
+                    <View className="bg-emerald-500/10 border border-emerald-500/25 px-1.5 py-0.5 rounded-md">
+                      <Text className="text-[8px] font-bold text-emerald-400 uppercase tracking-wide">Mặc định</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View className="bg-red-950/20 border border-red-500/30 p-4 rounded-2xl gap-2">
+              <Text className="text-red-400 text-xs font-bold uppercase">🚨 Chưa cấu hình người thân</Text>
+              <Text className="text-[10px] text-white leading-normal">
+                Vui lòng truy cập tab **Cá nhân** để thêm tối thiểu 1 người thân khẩn cấp trước khi khởi hành.
+              </Text>
+            </View>
+          )}
+          <Text className="text-[10px] text-muted leading-4">
+            * Tin nhắn SMS SOS khẩn cấp sẽ tự động gửi cho người thân trên khi xảy ra sự cố hoặc pin yếu.
           </Text>
         </View>
 
         {/* Duration Selection */}
-        <View className="gap-2.5">
-          <Text className="text-xs font-semibold text-white">Thời gian dự kiến hành trình</Text>
-          <View className="flex-row flex-wrap gap-2">
+        <View className="gap-3">
+          <Text className="text-xs font-semibold text-white tracking-wide">Thời gian dự kiến</Text>
+          <View className="flex-row flex-wrap gap-2.5">
             {DURATIONS.map((dur) => (
               <Pressable
                 key={dur.value}
-                className={`px-3 py-2 rounded-lg border transition-all ${
+                className={`px-5 py-2.5 rounded-2xl border ${
                   durationHours === dur.value
-                    ? 'bg-emergency-600/20 border-emergency-500 text-white'
-                    : 'bg-surface-3 border-surface-4 text-muted-light'
+                    ? 'bg-emergency-500/15 border-emergency-500'
+                    : 'bg-surface-2 border-surface-3'
                 }`}
                 onPress={() => setDurationHours(dur.value)}
               >
                 <Text
-                  className={`text-xs ${
-                    durationHours === dur.value ? 'text-emergency-400 font-semibold' : 'text-muted-light'
+                  className={`text-sm font-medium ${
+                    durationHours === dur.value ? 'text-emergency-400' : 'text-muted'
                   }`}
                 >
                   {dur.label}
@@ -205,38 +242,38 @@ export default function TrekkingSetupScreen() {
         </View>
 
         {/* Calculated Time Preview */}
-        <View className="bg-surface-3 border border-surface-4 p-3 rounded-lg flex-row justify-between items-center mt-1">
+        <View className="bg-surface-2 border border-surface-3 p-4 rounded-2xl flex-row justify-between items-center">
           <View>
-            <Text className="text-[10px] text-muted">Thời điểm dự kiến về</Text>
-            <Text className="text-sm font-bold text-white font-mono mt-0.5">
-              {expectedReturnDate.toLocaleTimeString()} - {expectedReturnDate.toLocaleDateString()}
+            <Text className="text-[10px] text-muted">Dự kiến về</Text>
+            <Text className="text-sm font-bold text-white font-mono mt-1">
+              {expectedReturnDate.toLocaleTimeString()} — {expectedReturnDate.toLocaleDateString()}
             </Text>
           </View>
           <View className="items-end">
-            <Text className="text-[10px] text-muted">Tổng thời gian</Text>
-            <Text className="text-xs font-semibold text-emergency-400 mt-0.5">{durationHours} tiếng</Text>
+            <Text className="text-[10px] text-muted">Tổng</Text>
+            <Text className="text-sm font-bold text-emergency-400 mt-1">{durationHours} tiếng</Text>
           </View>
         </View>
 
         {/* Start Button */}
         <Pressable
-          className="bg-emergency-600 active:bg-emergency-700 py-3.5 rounded-lg mt-3 items-center justify-center"
+          className="bg-emergency-500 active:bg-emergency-600 py-4 rounded-2xl mt-2 items-center justify-center"
           onPress={handleStartTrek}
           disabled={submitting}
         >
           {submitting ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-white font-bold text-sm uppercase">Kích hoạt hành trình & định vị ngầm</Text>
+            <Text className="text-white font-bold text-sm uppercase tracking-wide">Kích hoạt hành trình & định vị ngầm</Text>
           )}
         </Pressable>
 
         {/* Back button */}
         <Pressable
-          className="py-1 items-center"
+          className="py-2 items-center"
           onPress={() => router.back()}
         >
-          <Text className="text-xs text-muted-light underline">Quay lại trang chủ</Text>
+          <Text className="text-xs text-muted underline">Quay lại trang chủ</Text>
         </Pressable>
 
       </View>
