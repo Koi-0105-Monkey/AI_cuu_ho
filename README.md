@@ -4,6 +4,13 @@
 
 ---
 
+## 🌐 Địa chỉ Xuất bản (Production Links)
+
+*   **Bảng điều khiển Web Admin (Vercel)**: [https://ai-cuu-ho-web.vercel.app](https://ai-cuu-ho-web.vercel.app)
+*   **Máy chủ Backend API (Render)**: [https://rescuelink-backend-5wwo.onrender.com](https://rescuelink-backend-5wwo.onrender.com)
+
+---
+
 ## 📸 Giao diện Hệ thống
 
 ### 1. 📱 Ứng dụng Di động (RescueLink Mobile App)
