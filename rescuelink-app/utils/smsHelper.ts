@@ -13,3 +13,8 @@ export function buildCircularAnomalyMessage(totalDistance: number, displacement:
 export function buildDeviationAnomalyMessage(devDistance: number, lat: number, lng: number): string {
   return `[AI CANH BAO LAC DUONG] Thanh vien da lech cung duong dang ky ${Math.round(devDistance)}m tai: https://maps.google.com/?q=${lat},${lng}`;
 }
+
+export function buildCompressedSosMessage(lat: number, lng: number): string {
+  return `SOS RescueLink! maps.google.com/?q=${lat.toFixed(5)},${lng.toFixed(5)}`;
+}
+

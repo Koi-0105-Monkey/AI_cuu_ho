@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, TextInput, ScrollView } from '@/tw';
-import { Alert, StyleSheet, ActivityIndicator, Platform, Share } from 'react-native';
+import { Alert, StyleSheet, ActivityIndicator, Platform, Share, Vibration } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import MapView, { Marker, Polyline, UrlTile, PROVIDER_DEFAULT } from 'react-native-maps';
@@ -8,11 +8,15 @@ import * as Location from 'expo-location';
 import * as Battery from 'expo-battery';
 import * as SMS from 'expo-sms';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as Notifications from 'expo-notifications';
+import { Audio } from 'expo-av';
 import { useGPS } from '@/hooks/useGPS';
 import api from '@/services/api';
 import { haversineDistance } from '@/utils/geo';
 import { flushOfflineQueue } from '@/services/queueService';
 import { downloadRouteTiles } from '@/utils/offlineMap';
+import { buildCompressedSosMessage } from '@/utils/smsHelper';
+
 
 // Custom dark mode theme style for Google Maps
 const darkMapStyle = [
@@ -67,8 +71,18 @@ export default function TrackingActiveScreen() {
   const [searching, setSearching] = useState(false);
   const [routeInfo, setRouteInfo] = useState<any>(null);
 
+  // Panic SOS countdown and tap states
+  const [showSosCountdown, setShowSosCountdown] = useState(false);
+  const [sosCountdownTime, setSosCountdownTime] = useState(10);
+  const [lastTapTime, setLastTapTime] = useState(0);
+  const [showSosTooltip, setShowSosTooltip] = useState(false);
+  const [isFlashRed, setIsFlashRed] = useState(false);
+  const countdownTimerRef = useRef<any>(null);
+  const flashTimerRef = useRef<any>(null);
+
   // Background map tile download states
   const [downloadProgress, setDownloadProgress] = useState(0);
+
   const [isDownloadingTiles, setIsDownloadingTiles] = useState(false);
 
   const processForegroundLocation = async (loc: Location.LocationObject) => {
@@ -160,7 +174,79 @@ export default function TrackingActiveScreen() {
     };
   }, []);
 
+  // Request notifications permission and handle ongoing notifications
+  useEffect(() => {
+    const setupOngoingNotification = async () => {
+      try {
+        // Request notification permission if not granted
+        const { status: currentStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = currentStatus;
+        if (currentStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
 
+        if (finalStatus !== 'granted') {
+          console.warn('Notifications permission not granted.');
+          return;
+        }
+
+        // Get active trip details
+        const tripStr = await AsyncStorage.getItem('active_trip');
+        const titleText = tripStr ? 'RescueLink: Hành trình đang hoạt động' : 'RescueLink: Đang khám phá bản đồ';
+        
+        let routeLabel = 'Đang khám phá';
+        if (tripStr) {
+          try {
+            const parsed = JSON.parse(tripStr);
+            routeLabel = parsed.routeName || 'Chưa đặt tên';
+          } catch (e) {}
+        }
+        const bodyText = tripStr 
+          ? `Cung đường: ${routeLabel}. Định vị ngầm đang chạy.` 
+          : 'Định hướng ngoại tuyến đang chạy. Nhấp để mở.';
+          
+        await Notifications.scheduleNotificationAsync({
+          identifier: 'rescuelink-active-trip',
+          content: {
+            title: titleText,
+            body: bodyText,
+            sticky: true,
+            autoDismiss: false,
+            color: '#ef4444',
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+          },
+          trigger: null,
+        });
+      } catch (err) {
+        console.warn('Failed to start ongoing notification:', err);
+      }
+    };
+
+    setupOngoingNotification();
+
+    return () => {
+      // Clear ongoing notification when screen unmounts
+      Notifications.dismissNotificationAsync('rescuelink-active-trip').catch(err => {
+        console.warn('Failed to dismiss ongoing notification:', err);
+      });
+    };
+  }, []);
+
+
+  // Debounced search auto-suggest
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const delayTimer = setTimeout(() => {
+      handleSearchLocation(searchQuery, true);
+    }, 600); // 600ms debounce
+
+    return () => clearTimeout(delayTimer);
+  }, [searchQuery]);
 
   // Sync data from AsyncStorage & check notifications periodically
   useEffect(() => {
@@ -380,73 +466,158 @@ export default function TrackingActiveScreen() {
     }
   };
 
-  const handlePanicSOS = async () => {
+  const playBeepSound = async () => {
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        require('../assets/beep.mp3')
+      );
+      await sound.playAsync();
+      // Unload sound when finished to avoid memory leaks
+      setTimeout(() => {
+        sound.unloadAsync().catch(() => {});
+      }, 1200);
+    } catch (err) {
+      console.warn('Failed to play beep sound:', err);
+    }
+  };
+
+  const cleanupSosTimers = () => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    if (flashTimerRef.current) {
+      clearInterval(flashTimerRef.current);
+      flashTimerRef.current = null;
+    }
+  };
+
+  // Cleanup timers on component unmount
+  useEffect(() => {
+    return () => {
+      cleanupSosTimers();
+    };
+  }, []);
+
+  const triggerActualSOS = async () => {
+    cleanupSosTimers();
+    setShowSosCountdown(false);
+    
+    // Vibrate intensely to signify SOS activation (1s on, 0.5s off, etc)
+    Vibration.vibrate([0, 1000, 500, 1000, 500, 1000]);
+
+    let lat = 21.0285;
+    let lng = 105.8542;
+
+    if (currentLocation) {
+      lat = currentLocation.coords.latitude;
+      lng = currentLocation.coords.longitude;
+    }
+
+    // 1. Try to send incident to backend
+    let onlineIncidentSuccess = false;
+    try {
+      const res = await api.post('/incidents', {
+        type: 'MANUAL',
+        severity: 5,
+        lat,
+        lng,
+        message: 'PANIC SOS triggered manually by member.'
+      });
+      if (res.data.success) {
+        onlineIncidentSuccess = true;
+      }
+    } catch (err) {
+      console.log('Server is offline or unreachable for PANIC SOS.');
+    }
+
+    // 2. Queue SMS fallback to emergency contact (using the new compressed SMS helper)
+    const messageStr = buildCompressedSosMessage(lat, lng);
+    
+    if (activeTrip?.emergencyContact) {
+      // Store as pending to prompt user immediately
+      const pending = {
+        phone: activeTrip.emergencyContact,
+        message: messageStr
+      };
+      await AsyncStorage.setItem('pending_sms_alert', JSON.stringify(pending));
+      setPendingSms(pending);
+
+      // Try opening SMS right away
+      const isAvailable = await SMS.isAvailableAsync();
+      if (isAvailable) {
+        await SMS.sendSMSAsync([activeTrip.emergencyContact], messageStr);
+        await AsyncStorage.removeItem('pending_sms_alert');
+        setPendingSms(null);
+      }
+    }
+
     Alert.alert(
-      'KÍCH HOẠT PANIC SOS KHẨN CẤP',
-      'Xác nhận gửi tín hiệu cấp cứu khẩn cấp cho Đội Cứu Hộ và Người Thân? Bạn chỉ nên nhấn nút này trong trường hợp gặp tai nạn nghiêm trọng.',
-      [
-        { text: 'Hủy bỏ', style: 'cancel' },
-        {
-          text: 'XÁC NHẬN GỬI CẤP CỨU',
-          style: 'destructive',
-          onPress: async () => {
-            let lat = 21.0285;
-            let lng = 105.8542;
-
-            if (currentLocation) {
-              lat = currentLocation.coords.latitude;
-              lng = currentLocation.coords.longitude;
-            }
-
-            // 1. Try to send incident to backend
-            let onlineIncidentSuccess = false;
-            try {
-              const res = await api.post('/incidents', {
-                type: 'MANUAL',
-                severity: 5,
-                lat,
-                lng,
-                message: 'PANIC SOS triggered manually by member.'
-              });
-              if (res.data.success) {
-                onlineIncidentSuccess = true;
-              }
-            } catch (err) {
-              console.log('Server is offline or unreachable for PANIC SOS.');
-            }
-
-            // 2. Queue SMS fallback to emergency contact
-            const messageStr = `[PANIC SOS KHAN CAP] Toi dang gap tai nan nghiem trong can cuu ho! Vi tri: https://maps.google.com/?q=${lat},${lng} luc ${new Date().toLocaleTimeString()}`;
-            
-            if (activeTrip?.emergencyContact) {
-              // Store as pending to prompt user immediately
-              const pending = {
-                phone: activeTrip.emergencyContact,
-                message: messageStr
-              };
-              await AsyncStorage.setItem('pending_sms_alert', JSON.stringify(pending));
-              setPendingSms(pending);
-
-              // Try opening SMS right away
-              const isAvailable = await SMS.isAvailableAsync();
-              if (isAvailable) {
-                await SMS.sendSMSAsync([activeTrip.emergencyContact], messageStr);
-                await AsyncStorage.removeItem('pending_sms_alert');
-                setPendingSms(null);
-              }
-            }
-
-            Alert.alert(
-              'Tín hiệu đã được gửi',
-              onlineIncidentSuccess 
-                ? 'Đã gửi báo động khẩn cấp lên Server Cứu Hộ thành công!'
-                : 'Báo động đã được lưu và đang mở trình nhắn tin SMS để gửi tin khẩn cấp cho người thân.'
-            );
-          }
-        }
-      ]
+      'Đã gửi khẩn cấp',
+      onlineIncidentSuccess 
+        ? 'Đã gửi báo động khẩn cấp lên Server Cứu Hộ thành công!'
+        : 'Báo động đã được ghi nhận. Hệ thống đang mở trình nhắn tin SMS để gửi tin khẩn cấp cho người thân.'
     );
   };
+
+  const handleSosPress = () => {
+    const now = Date.now();
+    if (now - lastTapTime < 1000) {
+      // User double-tapped!
+      setLastTapTime(0);
+      setShowSosTooltip(false);
+      
+      // Start SOS Countdown
+      setShowSosCountdown(true);
+      setSosCountdownTime(10);
+      
+      // Start the countdown timer interval
+      cleanupSosTimers();
+      
+      // Play initial beep and vibrate immediately
+      playBeepSound();
+      Vibration.vibrate(200);
+
+      let timeLeft = 10;
+      countdownTimerRef.current = setInterval(() => {
+        timeLeft -= 1;
+        setSosCountdownTime(timeLeft);
+        
+        if (timeLeft <= 0) {
+          clearInterval(countdownTimerRef.current!);
+          countdownTimerRef.current = null;
+          triggerActualSOS();
+        } else {
+          // Play warning audio and vibrate every second
+          playBeepSound();
+          Vibration.vibrate(200);
+        }
+      }, 1000);
+
+      // Start background flashing effect interval
+      let flash = false;
+      flashTimerRef.current = setInterval(() => {
+        flash = !flash;
+        setIsFlashRed(flash);
+      }, 500);
+
+    } else {
+      setLastTapTime(now);
+      setShowSosTooltip(true);
+      // Automatically hide tooltip after 2.5 seconds
+      setTimeout(() => {
+        setShowSosTooltip(false);
+      }, 2500);
+    }
+  };
+
+  const cancelSosCountdown = () => {
+    cleanupSosTimers();
+    setShowSosCountdown(false);
+    Vibration.vibrate(100); // short feedback vibration for cancel
+    Alert.alert('Đã hủy cấp cứu', 'Hành động khẩn cấp SOS đã được hủy.');
+  };
+
 
   const handleEndTrip = async () => {
     if (activeTrip?.isExploration) {
@@ -510,9 +681,11 @@ export default function TrackingActiveScreen() {
   };
 
   // Search location via Nominatim API (Online) or AsyncStorage cache (Offline)
-  const handleSearchLocation = async (text: string) => {
+  const handleSearchLocation = async (text: string, isAutoSuggest = false) => {
     if (!text.trim() || text.trim().length < 2) {
-      Alert.alert('Nhập tìm kiếm', 'Vui lòng nhập từ khóa tìm kiếm (tối thiểu 2 ký tự).');
+      if (!isAutoSuggest) {
+        Alert.alert('Nhập tìm kiếm', 'Vui lòng nhập từ khóa tìm kiếm (tối thiểu 2 ký tự).');
+      }
       return;
     }
     setSearching(true);
@@ -532,23 +705,27 @@ export default function TrackingActiveScreen() {
           setSearchResults(data);
         } else {
           setSearchResults([]);
-          Alert.alert('Không tìm thấy', 'Không tìm thấy địa điểm nào trực tuyến khớp với từ khóa.');
+          if (!isAutoSuggest) {
+            Alert.alert('Không tìm thấy', 'Không tìm thấy địa điểm nào trực tuyến khớp với từ khóa.');
+          }
         }
       } catch (error) {
         console.warn('Geocoding error:', error);
-        Alert.alert('Lỗi kết nối', 'Không thể tìm kiếm trực tuyến. Đang thử chế độ ngoại tuyến...');
-        await searchOfflineDestinations(text);
+        if (!isAutoSuggest) {
+          Alert.alert('Lỗi kết nối', 'Không thể tìm kiếm trực tuyến. Đang thử chế độ ngoại tuyến...');
+        }
+        await searchOfflineDestinations(text, isAutoSuggest);
       } finally {
         setSearching(false);
       }
     } else {
-      await searchOfflineDestinations(text);
+      await searchOfflineDestinations(text, isAutoSuggest);
       setSearching(false);
     }
   };
 
   // Offline search helper
-  const searchOfflineDestinations = async (text: string) => {
+  const searchOfflineDestinations = async (text: string, isAutoSuggest = false) => {
     try {
       const cachedStr = await AsyncStorage.getItem('offline_destinations');
       if (cachedStr) {
@@ -567,16 +744,21 @@ export default function TrackingActiveScreen() {
           setSearchResults(results);
         } else {
           setSearchResults([]);
-          Alert.alert('Ngoại tuyến', 'Không tìm thấy địa điểm đã lưu khớp với từ khóa.');
+          if (!isAutoSuggest) {
+            Alert.alert('Ngoại tuyến', 'Không tìm thấy địa điểm đã lưu khớp với từ khóa.');
+          }
         }
       } else {
         setSearchResults([]);
-        Alert.alert('Ngoại tuyến', 'Chưa có địa điểm nào được lưu ngoại tuyến trước đó.');
+        if (!isAutoSuggest) {
+          Alert.alert('Ngoại tuyến', 'Chưa có địa điểm nào được lưu ngoại tuyến trước đó.');
+        }
       }
     } catch (e) {
       console.warn('Error reading offline destinations:', e);
     }
   };
+
 
   // Select destination and load/calculate route
   const handleSelectDestination = async (item: any) => {
@@ -988,6 +1170,15 @@ export default function TrackingActiveScreen() {
           )}
         </View>
 
+        {/* Tooltip for Double Tap SOS */}
+        {showSosTooltip && (
+          <View className="items-center bg-red-950/95 border border-red-500/30 px-3 py-2 rounded-2xl shadow-xl">
+            <Text className="text-red-400 text-[10px] font-bold text-center tracking-wide uppercase">
+              🚨 NHẤN ĐÚP 2 LẦN LIÊN TỤC ĐỂ BÁO CỨU HỘ
+            </Text>
+          </View>
+        )}
+
         {/* Control Buttons Bar */}
         <View className="flex-row gap-3">
           {/* Recenter Button */}
@@ -1024,14 +1215,63 @@ export default function TrackingActiveScreen() {
           {/* Big Panic SOS Button */}
           <Pressable
             className="flex-1 h-12 rounded-2xl bg-emergency-500 items-center justify-center active:bg-emergency-600"
-            onPress={handlePanicSOS}
+            onPress={handleSosPress}
           >
             <Text className="text-white font-black text-xs uppercase tracking-wider">PANIC SOS</Text>
           </Pressable>
         </View>
 
       </View>
+
+      {/* 5. Fullscreen SOS Countdown Overlay */}
+      {showSosCountdown && (
+        <View className="absolute inset-0 z-50 flex items-center justify-center bg-black/95">
+          {/* Flashing Background overlay */}
+          <View className={`absolute inset-0 ${isFlashRed ? 'bg-red-950/70' : 'bg-transparent'}`} />
+
+          <View className="items-center px-8 gap-8">
+            <View className="w-20 h-20 bg-red-600 rounded-full items-center justify-center shadow-lg shadow-red-900/50">
+              <Text className="text-white text-3xl">🚨</Text>
+            </View>
+
+            <View className="gap-2 items-center">
+              <Text className="text-white text-xl font-bold text-center uppercase tracking-wider">
+                Yêu Cầu Cứu Hộ Khẩn Cấp
+              </Text>
+              <Text className="text-muted text-xs text-center px-4 leading-relaxed">
+                Hệ thống sẽ tự động gửi vị trí GPS của bạn đến đội cứu hộ và tin nhắn SMS khẩn cấp cho người thân sau:
+              </Text>
+            </View>
+
+            <View className="items-center justify-center w-40 h-40 rounded-full border-4 border-red-500 bg-red-950/40">
+              <Text className="text-white text-7xl font-extrabold font-mono">{sosCountdownTime}</Text>
+              <Text className="text-red-400 text-[10px] font-bold uppercase tracking-widest mt-1">Giây</Text>
+            </View>
+
+            <View className="w-full gap-4.5 mt-4">
+              <Pressable
+                className="bg-red-600 active:bg-red-700 py-4.5 rounded-2xl items-center justify-center border border-red-500 shadow-lg shadow-red-900/40"
+                onPress={triggerActualSOS}
+              >
+                <Text className="text-white font-extrabold text-sm uppercase tracking-wider">
+                  Gửi Cứu Hộ Ngay
+                </Text>
+              </Pressable>
+
+              <Pressable
+                className="bg-surface-2 active:bg-surface-3 py-4 rounded-2xl items-center justify-center border border-surface-3"
+                onPress={cancelSosCountdown}
+              >
+                <Text className="text-white font-bold text-xs uppercase tracking-wide">
+                  Hủy Cấp Cứu (Safe)
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
+
   );
 }
 

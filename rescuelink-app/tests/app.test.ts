@@ -12,7 +12,9 @@ import {
   buildCheckinFailedMessage,
   buildCircularAnomalyMessage,
   buildDeviationAnomalyMessage,
+  buildCompressedSosMessage,
 } from '../utils/smsHelper';
+
 
 describe('RescueLink Geo Utilities', () => {
   test('haversineDistance calculates correct distance between Hanoi and Ho Chi Minh City', () => {
@@ -83,7 +85,14 @@ describe('RescueLink SMS Helper Builders', () => {
     expect(message).toContain('lech cung duong dang ky 520m');
     expect(message).toContain('https://maps.google.com/?q=21.0285,105.8542');
   });
+
+  test('buildCompressedSosMessage returns short ASCII SMS template under 60 chars', () => {
+    const message = buildCompressedSosMessage(21.0285432, 105.8542123);
+    expect(message).toBe('SOS RescueLink! maps.google.com/?q=21.02854,105.85421');
+    expect(message.length).toBeLessThan(60);
+  });
 });
+
 
 describe('RescueLink Offline Map Utilities', () => {
   const { lon2tile, lat2tile, getLocalTileUri, getTilesForRoute } = require('../utils/offlineMap');
