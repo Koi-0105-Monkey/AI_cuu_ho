@@ -1,20 +1,27 @@
 # 🚨 RescueLink - Emergency & Outdoor Safety Platform
 
-**RescueLink** (RescueAI) là nền t án an toàn dã ngoại và cứu trợ khẩn cấp thông minh, được thiết kế để hỗ trợ người leo núi (trekking) và thám hiểm trong các tình huống đi lạc, gặp tai nạn hoặc mất liên lạc ở khu vực rừng núi sâu. Hệ thống kết hợp định vị ngầm thích ứng, bản đồ ngoại tuyến, phát hiện bất thường bằng AI, và cơ chế gửi tín hiệu khẩn cấp đa phương thức (WebSockets/SMS).
+**RescueLink** (RescueAI) là nền tảng an toàn dã ngoại và cứu trợ khẩn cấp thông minh, được thiết kế để hỗ trợ người leo núi (trekking) và thám hiểm trong các tình huống đi lạc, gặp tai nạn hoặc mất liên lạc ở khu vực rừng núi sâu. Hệ thống kết hợp định vị ngầm thích ứng, bản đồ ngoại tuyến, phát hiện bất thường bằng AI, và cơ chế gửi tín hiệu khẩn cấp đa phương thức (WebSockets/SMS).
 
 ---
 
 ## 📸 Giao diện Hệ thống
 
 ### 1. 📱 Ứng dụng Di động (RescueLink Mobile App)
-Giao diện bản đồ tích hợp định vị trực quan, tìm kiếm ngoại tuyến, ghim thông báo trạng thái thường trực và nút kích hoạt Cấp cứu khẩn cấp an toàn:
+Ứng dụng trekking an toàn hiển thị bản đồ địa hình tối, định vị GPS thời gian thực trên cung đường, thống kê hành trình và nút **PANIC SOS** khẩn cấp kèm cơ chế chống bấm nhầm:
 
-![RescueLink Mobile UI](rescuelink-app/assets/images/mobile_mockup.png)
+![RescueLink Mobile App - Live Tracking](rescuelink-app/assets/images/mobile_mockup.png)
 
-### 2. 🖥️ Bảng điều khiển Trung tâm Cứu hộ (RescueLink Web Dashboard)
-Bảng điều khiển thời gian thực dành cho đội cứu hộ chuyên nghiệp để giám sát vị trí thành viên, phân tích chỉ số pin và quản lý các sự cố khẩn cấp tức thì:
+### 2. 🖥️ Trang đăng nhập Hệ thống Cứu hộ (RescueLink Web Login)
+Trang đăng nhập Admin dành cho nhân viên trung tâm cứu hộ, bảo mật bằng số điện thoại và mật khẩu:
+
+![RescueLink Web Login](rescuelink-app/assets/images/web_login_preview.webp)
+
+### 3. 🖥️ Bảng điều khiển Trung tâm Cứu hộ (RescueLink Web Dashboard)
+Bảng điều khiển thời gian thực cho đội cứu hộ: xem Live Incident Feed, theo dõi hành trình thành viên trên bản đồ Leaflet và quản lý sự cố khẩn cấp:
 
 ![RescueLink Web Dashboard](rescuelink-app/assets/images/dashboard_mockup.png)
+
+
 
 ---
 
