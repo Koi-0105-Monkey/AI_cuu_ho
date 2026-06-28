@@ -9,6 +9,7 @@ const operatorsRoutes = require('./operators');
 const familyRoutes = require('./family');
 const weatherRoutes = require('./weather');
 const notificationsRoutes = require('./notifications');
+const vqgRoutes = require('./vqg');
 
 const router = express.Router();
 
@@ -22,5 +23,6 @@ router.use('/operators', operatorsRoutes);
 router.use('/family', familyRoutes);
 router.use('/weather', weatherRoutes);
 router.use('/notifications', notificationsRoutes);
+router.use('/vqg', vqgRoutes);
 
 module.exports = router;

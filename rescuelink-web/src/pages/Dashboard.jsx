@@ -1,7 +1,7 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import toast from 'react-hot-toast';
@@ -41,6 +41,40 @@ const tripIcon = L.divIcon({
   iconSize: [24, 24],
   iconAnchor: [12, 12]
 });
+
+const fireHotspotIcon = L.divIcon({
+  html: `<div class="relative flex items-center justify-center w-6 h-6">
+    <div class="absolute w-full h-full bg-red-600 rounded-full opacity-60 animate-ping"></div>
+    <div class="w-3.5 h-3.5 bg-orange-500 rounded-full border-2 border-white z-10 shadow-lg flex items-center justify-center text-[9px] font-bold">🔥</div>
+  </div>`,
+  className: 'custom-leaflet-icon',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12]
+});
+
+const rangerIcon = L.divIcon({
+  html: `<div class="relative flex items-center justify-center w-6 h-6">
+    <div class="absolute w-full h-full bg-emerald-500 rounded-full opacity-40 animate-pulse"></div>
+    <div class="w-3.5 h-3.5 bg-emerald-700 rounded-full border-2 border-white z-10 shadow-lg flex items-center justify-center text-[8px]">👮</div>
+  </div>`,
+  className: 'custom-leaflet-icon',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12]
+});
+
+const VQG_BOUNDS = [
+  [22.38, 103.75],
+  [22.38, 103.88],
+  [22.28, 103.88],
+  [22.28, 103.75]
+];
+
+const FORBIDDEN_ZONE = [
+  [22.36, 103.76],
+  [22.36, 103.82],
+  [22.32, 103.82],
+  [22.32, 103.76]
+];
 
 // Custom island labels for Hoang Sa & Truong Sa
 const islandIcon = (name) => L.divIcon({
@@ -92,6 +126,40 @@ export default function Dashboard() {
   const [trips, setTrips] = useState([]);
   const feedRef = useRef(null);
   const qc = useQueryClient();
+
+  const VIETTEL_MAPS_KEY = import.meta.env.VITE_VIETTEL_MAPS_KEY || '';
+  const TILE_URL = VIETTEL_MAPS_KEY 
+    ? `https://maps.viettelmap.vn/api/v1/tile/{z}/{x}/{y}.png?key=${VIETTEL_MAPS_KEY}`
+    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+
+  // Load satellite hotspots
+  const { data: hotspots = [] } = useQuery({
+    queryKey: ['satellite-hotspots'],
+    queryFn: () => api.get('/vqg/hotspots').then(r => r.data.data || []),
+    refetchInterval: 30_000,
+  });
+
+  const createIncidentMutation = useMutation({
+    mutationFn: (newIncident) => api.post('/incidents', newIncident),
+    onSuccess: () => {
+      qc.invalidateQueries(['active-incidents']);
+      qc.invalidateQueries(['admin-stats']);
+      toast.success('Đã tạo sự cố xác minh cháy rừng và phân công trạm kiểm lâm!');
+    }
+  });
+
+  const handleVerifyHotspot = (hotspot) => {
+    if (confirm(`Xác nhận phân công đội tuần tra kiểm lâm đi xác minh điểm nóng cháy vệ tinh tại [${hotspot.lat}, ${hotspot.lng}]?`)) {
+      createIncidentMutation.mutate({
+        type: 'FIRE',
+        severity: hotspot.confidence === 'High' ? 5 : 4,
+        lat: hotspot.lat,
+        lng: hotspot.lng,
+        message: `[FireWatch VN] Phát hiện điểm cháy rừng vệ tinh (${hotspot.satellite}), bức xạ nhiệt FRP ${hotspot.frp} MW. Cần kiểm lâm xác thực thực địa.`,
+        batteryAtTime: 100
+      });
+    }
+  };
 
   // Stats
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -235,14 +303,26 @@ export default function Dashboard() {
 
           {/* Right Column: Monitor Map */}
           <div className="card p-0 overflow-hidden xl:col-span-2 h-full relative flex flex-col">
-            <div className="absolute top-3 left-12 z-[1000] bg-surface-2/90 border border-surface-4 px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-4 text-xs">
+            <div className="absolute top-3 left-12 z-[1000] bg-surface-2/90 border border-surface-4 px-3 py-1.5 rounded-lg shadow-lg flex flex-wrap items-center gap-4 text-xs">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 bg-red-500 rounded-full inline-block animate-pulse" />
                 <span className="text-white font-medium">Sự cố khẩn cấp</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block animate-pulse" />
-                <span className="text-white font-medium">Người đang trekking</span>
+                <span className="text-white font-medium">Trekker</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 bg-emerald-700 rounded-full inline-block animate-pulse" />
+                <span className="text-white font-medium">Kiểm lâm tuần tra</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-orange-500 font-bold">🔥</span>
+                <span className="text-white font-medium">Điểm cháy vệ tinh</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3.5 h-2 bg-red-500/20 border border-red-500 inline-block" />
+                <span className="text-white font-medium">Vùng cấm VQG</span>
               </div>
             </div>
             
@@ -252,9 +332,32 @@ export default function Dashboard() {
               className="w-full h-full min-h-[350px] flex-1"
             >
               <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+                url={TILE_URL}
+                attribution='&copy; <a href="https://viettelmap.vn/">Viettel Maps</a>'
                 maxZoom={19}
+              />
+
+              {/* Vẽ Ranh giới VQG Hoàng Liên */}
+              <Polygon
+                positions={VQG_BOUNDS}
+                pathOptions={{
+                  color: '#10b981',
+                  fillColor: '#10b981',
+                  fillOpacity: 0.05,
+                  weight: 2
+                }}
+              />
+
+              {/* Vẽ Phân khu cấm bảo vệ nghiêm ngặt */}
+              <Polygon
+                positions={FORBIDDEN_ZONE}
+                pathOptions={{
+                  color: '#ef4444',
+                  fillColor: '#ef4444',
+                  fillOpacity: 0.15,
+                  weight: 2,
+                  dashArray: '5, 5'
+                }}
               />
               
               {/* Incident Markers */}
@@ -290,30 +393,74 @@ export default function Dashboard() {
                 </Marker>
               ))}
 
-              {/* Trekking Trip Markers */}
-              {activeTripsForMap.map((trip) => (
+              {/* Satellite Fire Hotspots (MODIS/VIIRS) */}
+              {hotspots.map((hs) => (
                 <Marker
-                  key={trip._id}
-                  position={[trip.lastKnownLocation.coordinates[1], trip.lastKnownLocation.coordinates[0]]}
-                  icon={tripIcon}
+                  key={hs.id}
+                  position={[hs.lat, hs.lng]}
+                  icon={fireHotspotIcon}
                 >
                   <Popup className="dark-popup">
                     <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-emerald-600 text-sm">🏃 Trekking</span>
-                        <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
-                          Pin: {trip.lastBattery}%
-                        </span>
-                      </div>
-                      <p className="text-xs font-semibold">Thành viên: {trip.userId?.name || 'Ẩn danh'}</p>
-                      <p className="text-xs text-slate-600">Cung đường: <span className="font-medium text-slate-800">{trip.routeName || 'Chưa đặt tên'}</span></p>
-                      <p className="text-[10px] text-slate-500">
-                        Cập nhật: {new Date(trip.lastSeen).toLocaleTimeString()}
-                      </p>
+                      <span className="font-bold text-orange-600 text-sm">🔥 Điểm cháy vệ tinh</span>
+                      <p className="text-xs font-semibold">Vệ tinh: {hs.satellite} ({hs.confidence})</p>
+                      <p className="text-xs">Bức xạ nhiệt: <strong className="text-red-600">{hs.frp} MW</strong></p>
+                      <p className="text-xs">Phát hiện lúc: {new Date(hs.acqTime).toLocaleTimeString()}</p>
+                      <button
+                        onClick={() => handleVerifyHotspot(hs)}
+                        className="w-full text-center text-xs bg-orange-500 hover:bg-orange-600 text-white font-semibold py-1.5 rounded transition-colors mt-2"
+                      >
+                        Giao kiểm lâm xác minh 🚨
+                      </button>
                     </div>
                   </Popup>
                 </Marker>
               ))}
+
+              {/* Trekking Trip & Ranger Patrol Markers */}
+              {activeTripsForMap.map((trip) => {
+                const isRanger = trip.userId?.isRanger || trip.userId?.role === 'authority';
+                const lat = trip.lastKnownLocation.coordinates[1];
+                const lng = trip.lastKnownLocation.coordinates[0];
+                
+                // Simplified geofencing check
+                const inForbiddenZone = !isRanger && 
+                  lat >= 22.32 && lat <= 22.36 && 
+                  lng >= 103.76 && lng <= 103.82;
+
+                const markerIcon = isRanger ? rangerIcon : tripIcon;
+
+                return (
+                  <Marker
+                    key={trip._id}
+                    position={[lat, lng]}
+                    icon={markerIcon}
+                  >
+                    <Popup className="dark-popup">
+                      <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
+                        <div className="flex items-center justify-between">
+                          <span className={`font-bold text-sm ${isRanger ? 'text-emerald-700' : 'text-emerald-600'}`}>
+                            {isRanger ? '👮 Kiểm lâm tuần tra' : '🏃 Trekking'}
+                          </span>
+                          <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
+                            Pin: {trip.lastBattery}%
+                          </span>
+                        </div>
+                        {inForbiddenZone && (
+                          <div className="bg-red-100 border border-red-300 text-red-700 text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse mt-1">
+                            ⚠️ CẢNH BÁO: Xâm nhập phân khu cấm
+                          </div>
+                        )}
+                        <p className="text-xs font-semibold">Tên: {trip.userId?.name || 'Ẩn danh'}</p>
+                        <p className="text-xs text-slate-600">Cung đường: <span className="font-medium text-slate-800">{trip.routeName || 'Chưa đặt tên'}</span></p>
+                        <p className="text-[10px] text-slate-500">
+                          Cập nhật: {new Date(trip.lastSeen).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
 
               {/* Quần đảo Hoàng Sa & Trường Sa thuộc chủ quyền Việt Nam */}
               <Marker position={[16.5, 112.0]} icon={islandIcon('Quần đảo Hoàng Sa')}>

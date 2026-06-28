@@ -23,19 +23,25 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
 *   **SMS Mock Mode**: Thêm cấu hình `SMS_MOCK_MODE=true` trong môi trường phát triển để tránh mất credit Twilio thật khi test.
 *   **Weather Alerts**: Tích hợp API Open-Meteo để tự động kiểm tra thời tiết nguy hiểm mỗi 30 phút và push notification qua Firebase FCM.
 *   **Family Public Share**: Cho phép người thân theo dõi thông qua link public `/family/:shareToken` mà không cần tài khoản.
-*   **VQG Portal (B2G)**: Khởi tạo hoàn chỉnh ứng dụng `rescuelink-vqg` trên cổng 5174 với giao diện xanh kiểm lâm tối giản.
+*   **Gộp Tính Năng Kiểm Lâm**: Loại bỏ hoàn toàn ứng dụng web riêng lẻ `rescuelink-vqg` để tối ưu dự án. Toàn bộ tính năng kiểm lâm (phân khu cấm, điểm cháy vệ tinh, tuần tra thực địa, nhật ký vi phạm lâm nghiệp SMART) đã được tích hợp trực tiếp vào [Web Dashboard](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web) và [Mobile App](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-app).
+*   **Tích Hợp Bản Đồ Viettel Maps (VMaps)**: Chuyển đổi toàn bộ nền bản đồ số sang sử dụng Viettel Maps Tile Layer XYZ phục vụ vùng núi Việt Nam chi tiết, hỗ trợ cơ chế tự động fallback thông minh.
+*   **Tích Hợp Viettel AI**:
+    *   Tích hợp dịch vụ [viettelAiService.js](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-backend/src/services/viettelAiService.js) xử lý Speech-to-Text (ASR) giải mã ghi âm Voice SOS, khôi phục dấu tiếng Việt cho SMS không dấu (Diacritics Restorer) và trích xuất thực thể khẩn cấp (NER).
+    *   Tích hợp trình phát âm thanh và hiển thị phân tích AI cứu nạn trực quan trên Web Operator Dashboard.
 
 ---
 
 ## 📋 3. Nhiệm Vụ Tiếp Theo & Ưu Tiên (Next Steps & Priorities)
 
 - `[ ]` Tích hợp Firebase service account key thật để thử nghiệm FCM Notification đầy đủ.
-- `[ ]` Bổ sung công cụ quản lý polygon/ranh giới VQG trong `rescuelink-vqg`.
 - `[ ]` Tối ưu hóa caching bản đồ ngoại tuyến trên ứng dụng di động.
+- `[ ]` Đăng ký API Token thật của Viettel AI Open Platform và Viettel Maps để chuyển sang chạy production thật.
+- `[x]` Chạy lệnh dọn dẹp xóa thư mục [rescuelink-vqg/](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-vqg) khi có sự xác nhận của người dùng (Đã thực hiện).
 
 ---
 
-## 💡 4. Bài Học Kinh Nghiệm & Lưu Ý Đặc Biệt (Lessons Learned & Gotchas)
+## 💡 4. Bài Học Kinh Kinh Nghiệm & Lưu Ý Đặc Biệt (Lessons Learned & Gotchas)
 
 *   **SMS Composer Fallback**: Khi trekker gửi SOS ngoại tuyến từ ứng dụng, điện thoại sẽ tự động kích hoạt trình soạn tin nhắn mặc định và trừ tiền trực tiếp vào tài khoản SIM của trekker (chứ không chạy qua Twilio của backend).
+*   **SMS Auto-Parser vs AI**: Đối với tin nhắn Panic tự động của hệ thống (có kèm link Google Maps và toạ độ), backend sử dụng Regex Parser để trích xuất vị trí ngay lập tức nhằm đảm bảo tính nhanh chóng. Đối với tin nhắn viết tay mô tả chi tiết tai nạn (custom text không dấu), backend gọi Viettel AI NLP để khôi phục dấu và trích xuất thực thể hỗ trợ tìm kiếm.
 *   **Firebase FCM và Mạng**: FCM yêu cầu thiết bị nhận (điện thoại người thân) phải kết nối Internet để nhận thông báo tức thì, hoạt động song song với SMS truyền thống.

@@ -25,18 +25,20 @@ const seedVqg = async () => {
     const passwordHash = await bcrypt.hash(vqgPassword, salt);
 
     if (user) {
-      console.log(`User with phone ${vqgPhone} already exists. Updating role to authority (VQG)...`);
+      console.log(`User with phone ${vqgPhone} already exists. Updating role to authority (VQG) and isRanger=true...`);
       user.role = 'authority';
+      user.isRanger = true;
       user.passwordHash = passwordHash;
       user.name = rangerName;
       await user.save();
     } else {
-      console.log(`Creating new VQG user with phone ${vqgPhone}...`);
+      console.log(`Creating new VQG user with phone ${vqgPhone} and isRanger=true...`);
       user = await User.create({
         name: rangerName,
         phone: vqgPhone,
         passwordHash,
-        role: 'authority'
+        role: 'authority',
+        isRanger: true
       });
     }
 

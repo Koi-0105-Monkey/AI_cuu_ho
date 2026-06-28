@@ -38,6 +38,11 @@ export default function FamilyView() {
   const { shareToken } = useParams();
   const [trip, setTrip] = useState(null);
   const [track, setTrack] = useState({ segments: [], rawPoints: [] });
+
+  const VIETTEL_MAPS_KEY = import.meta.env.VITE_VIETTEL_MAPS_KEY || '';
+  const TILE_URL = VIETTEL_MAPS_KEY 
+    ? `https://maps.viettelmap.vn/api/v1/tile/{z}/{x}/{y}.png?key=${VIETTEL_MAPS_KEY}`
+    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [hasEmergency, setHasEmergency] = useState(false);
@@ -127,8 +132,8 @@ export default function FamilyView() {
           className="w-full h-full"
         >
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+            url={TILE_URL}
+            attribution='&copy; <a href="https://viettelmap.vn/">Viettel Maps</a>'
           />
 
           {polylinePositions.length > 0 && (

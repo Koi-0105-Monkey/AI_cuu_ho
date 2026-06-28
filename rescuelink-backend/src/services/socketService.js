@@ -68,5 +68,11 @@ module.exports = {
   },
   emitTripOverdue: (trip) => {
     if (io) io.emit('trip:overdue', trip);
+  },
+  emitThreatNew: (threat) => {
+    if (io) io.emit('threat:new', threat);
+  },
+  emitThreatUpdated: (threat) => {
+    if (io) io.emit('threat:updated', threat);
   }
 };

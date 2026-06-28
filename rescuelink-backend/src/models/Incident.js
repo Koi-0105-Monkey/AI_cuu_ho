@@ -45,6 +45,14 @@ const incidentSchema = new mongoose.Schema({
     enum: ['app', 'sms', 'auto'],
     default: 'app'
   },
+  audioUrl: { type: String },
+  voiceTranscript: { type: String },
+  extractedEntities: {
+    victimName: { type: String },
+    location: { type: String },
+    incidentType: { type: String },
+    severity: { type: Number }
+  },
   createdAt: { type: Date, default: Date.now }
 });
 

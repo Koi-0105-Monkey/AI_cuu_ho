@@ -46,6 +46,10 @@ const userSchema = new mongoose.Schema({
     sparse: true, // cho phép null, không bắt unique với null
     default: () => crypto.randomBytes(20).toString('hex')
   },
+  isRanger: {
+    type: Boolean,
+    default: false
+  },
   createdAt: { type: Date, default: Date.now }
 });
 

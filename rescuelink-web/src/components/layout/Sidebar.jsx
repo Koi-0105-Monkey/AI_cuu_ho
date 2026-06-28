@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  Gauge, Warning, MapPin, Users, SignOut
+  Gauge, Warning, MapPin, Users, SignOut, Tree
 } from '@phosphor-icons/react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -8,6 +8,7 @@ const RESCUE_NAV_ITEMS = [
   { to: '/',          icon: Gauge,   label: 'Dashboard' },
   { to: '/incidents', icon: Warning, label: 'Sự cố' },
   { to: '/users',     icon: Users,   label: 'Người dùng' },
+  { to: '/threats',   icon: Tree,    label: 'Vi phạm rừng' },
 ];
 
 const OPERATOR_NAV_ITEMS = [

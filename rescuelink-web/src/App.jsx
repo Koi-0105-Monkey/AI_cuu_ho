@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import IncidentList from './pages/IncidentList';
 import IncidentDetail from './pages/IncidentDetail';
 import UserList from './pages/UserList';
+import ThreatList from './pages/ThreatList';
 
 import FamilyView from './pages/FamilyView';
 import OperatorDashboard from './pages/operator/OperatorDashboard';
@@ -30,6 +31,7 @@ const router = createBrowserRouter([
       { path: 'incidents', element: <IncidentList /> },
       { path: 'incidents/:id', element: <IncidentDetail /> },
       { path: 'users', element: <UserList /> },
+      { path: 'threats', element: <ThreatList /> },
       
       // Operator Routes
       { path: 'operator', element: <OperatorDashboard /> },

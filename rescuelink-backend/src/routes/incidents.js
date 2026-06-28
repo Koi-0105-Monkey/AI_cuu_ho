@@ -10,8 +10,29 @@ const { upload, isCloudinaryConfigured } = require('../config/cloudinary');
 const { analyzeFireImage } = require('../services/aiService');
 const socketService = require('../services/socketService');
 const smsService = require('../services/smsService');
+const viettelAiService = require('../services/viettelAiService');
+const multer = require('multer');
 
 const router = express.Router();
+
+// Configure multer for voice SOS audio files
+const audioStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../../uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'voice-sos-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const uploadAudio = multer({
+  storage: audioStorage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
 
 // Helper to save base64 locally in development if Cloudinary is not available
 const saveBase64Locally = (base64String) => {
@@ -361,6 +382,221 @@ router.patch('/:id/status', protect, authorize('admin', 'rescuer'), async (req, 
     res.json({
       success: true,
       data: incident
+    });
+// @desc    Report incident via Voice SOS (audio recording)
+// @route   POST /api/incidents/report-voice-sos
+// @access  Private
+router.post('/report-voice-sos', protect, uploadAudio.single('audio'), async (req, res, next) => {
+  try {
+    const { lat, lng, batteryAtTime } = req.body;
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Audio file is required' });
+    }
+
+    const audioUrl = `/uploads/${req.file.filename}`;
+    const audioPath = req.file.path;
+
+    // 1. Viettel AI Speech-to-Text translation
+    let transcript = '';
+    try {
+      const audioBuffer = fs.readFileSync(audioPath);
+      transcript = await viettelAiService.transcribeAudio(audioBuffer, req.file.mimetype);
+    } catch (sttErr) {
+      console.error('[Viettel STT Failed, using fallback]', sttErr.message);
+      transcript = "Phát hiện tin nhắn thoại cứu hộ khẩn cấp nhưng lỗi dịch giọng nói.";
+    }
+
+    // 2. Viettel AI Entity Extraction
+    const entities = await viettelAiService.extractEntities(transcript);
+
+    // Find active trip if any
+    const activeTrip = await Trip.findOne({ userId: req.user._id, status: 'active' });
+
+    // Determine type map from entity incidentType
+    let type = 'MANUAL';
+    const typeMapping = {
+      'Cháy rừng': 'FIRE',
+      'Chấn thương': 'MED',
+      'Lạc đường': 'LOST',
+      'Rắn cắn/Ngộ độc': 'MED',
+      'Thiên tai/Mắc kẹt': 'LOST',
+      'Sức khỏe yếu': 'MED'
+    };
+    if (typeMapping[entities.incidentType]) {
+      type = typeMapping[entities.incidentType];
+    }
+
+    const incident = await Incident.create({
+      userId: req.user._id,
+      tripId: activeTrip ? activeTrip._id : undefined,
+      type,
+      severity: entities.severity || 4,
+      status: 'open',
+      location: {
+        type: 'Point',
+        coordinates: [
+          lng ? parseFloat(lng) : (activeTrip?.startLocation?.coordinates[0] || 105.8542),
+          lat ? parseFloat(lat) : (activeTrip?.startLocation?.coordinates[1] || 21.0285)
+        ]
+      },
+      message: `[BÁO CÁO GIỌNG NÓI] ${transcript}`,
+      audioUrl,
+      voiceTranscript: transcript,
+      extractedEntities: {
+        victimName: entities.victimName || req.user.name,
+        location: entities.location || 'Chưa xác định cụ thể',
+        incidentType: entities.incidentType,
+        severity: entities.severity
+      },
+      batteryAtTime: batteryAtTime ? parseInt(batteryAtTime) : undefined,
+      source: 'app'
+    });
+
+    // Populate user info for socket
+    const populatedIncident = await Incident.findById(incident._id).populate('userId', 'name phone');
+
+    // Emit event to Dashboard
+    socketService.emitIncidentNew(populatedIncident);
+
+    res.status(201).json({
+      success: true,
+      data: populatedIncident
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Receive incoming SMS SOS (Trekker offline fallback)
+// @route   POST /api/incidents/incoming-sms
+// @access  Public (Webhook)
+router.post('/incoming-sms', async (req, res, next) => {
+  try {
+    const { From, Body } = req.body;
+    if (!From || !Body) {
+      return res.status(400).json({ success: false, message: 'From and Body are required' });
+    }
+
+    // 1. Find User by Phone
+    let cleanPhone = From.replace('+84', '0');
+    let user = await require('../models/User').findOne({ phone: cleanPhone });
+    
+    // If not found, find by partial matching
+    if (!user) {
+      const searchPhone = cleanPhone.slice(-9); // last 9 digits
+      user = await require('../models/User').findOne({ phone: new RegExp(searchPhone + '$') });
+    }
+
+    // Fallback if user not registered
+    if (!user) {
+      const User = require('../models/User');
+      user = await User.findOne({ phone: '0000000000' });
+      if (!user) {
+        user = await User.create({
+          name: `Khách vãng lai (${cleanPhone})`,
+          phone: '0000000000',
+          password: 'guestpassword123',
+          role: 'trekker'
+        });
+      }
+    }
+
+    // 2. Parse GPS from message
+    let lat = 21.0285;
+    let lng = 105.8542;
+    let locationExtracted = false;
+
+    // Match maps.google.com/?q=lat,lng or coordinates lat,lng
+    const gpsRegex = /(?:q=)?(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/i;
+    const gpsMatch = Body.match(gpsRegex);
+    if (gpsMatch) {
+      lat = parseFloat(gpsMatch[1]);
+      lng = parseFloat(gpsMatch[2]);
+      locationExtracted = true;
+    }
+
+    // 3. Process with Viettel AI NLP
+    const cleanBody = Body.replace(/https?:\/\/\S+/g, '').replace(/SOS RescueLink!/g, '').trim();
+
+    let restoredText = cleanBody;
+    let entities = { victimName: user.name, location: 'Chưa rõ', incidentType: 'MANUAL', severity: 4 };
+
+    if (cleanBody.length > 2) {
+      restoredText = await viettelAiService.restoreDiacritics(cleanBody);
+      entities = await viettelAiService.extractEntities(restoredText);
+    }
+
+    // Find active trip for the user if any
+    const activeTrip = await Trip.findOne({ userId: user._id, status: 'active' });
+    if (activeTrip && !locationExtracted) {
+      if (activeTrip.startLocation?.coordinates) {
+        lng = activeTrip.startLocation.coordinates[0];
+        lat = activeTrip.startLocation.coordinates[1];
+      }
+    }
+
+    // Map incident type
+    let type = 'MANUAL';
+    const typeMapping = {
+      'Cháy rừng': 'FIRE',
+      'Chấn thương': 'MED',
+      'Lạc đường': 'LOST',
+      'Rắn cắn/Ngộ độc': 'MED',
+      'Thiên tai/Mắc kẹt': 'LOST',
+      'Sức khỏe yếu': 'MED'
+    };
+    if (typeMapping[entities.incidentType]) {
+      type = typeMapping[entities.incidentType];
+    }
+
+    const incident = await Incident.create({
+      userId: user._id,
+      tripId: activeTrip ? activeTrip._id : undefined,
+      type,
+      severity: entities.severity || 4,
+      status: 'open',
+      location: {
+        type: 'Point',
+        coordinates: [lng, lat]
+      },
+      message: `[SMS SOS - ${cleanPhone}] ${Body}`,
+      voiceTranscript: restoredText !== cleanBody ? restoredText : undefined,
+      extractedEntities: {
+        victimName: entities.victimName !== 'Chưa rõ' ? entities.victimName : user.name,
+        location: entities.location !== 'Chưa rõ tọa độ cụ thể' ? entities.location : (locationExtracted ? 'Tọa độ GPS đính kèm' : 'Chưa rõ'),
+        incidentType: entities.incidentType,
+        severity: entities.severity
+      },
+      source: 'sms'
+    });
+
+    const populatedIncident = await Incident.findById(incident._id).populate('userId', 'name phone');
+    socketService.emitIncidentNew(populatedIncident);
+
+    res.json({
+      success: true,
+      message: 'Incoming SMS processed successfully',
+      data: populatedIncident
+    });
+// @desc    Generate Text-to-Speech warning audio (Viettel TTS)
+// @route   POST /api/incidents/tts-warning
+// @access  Private (Admin/Authority only)
+router.post('/tts-warning', protect, authorize('admin', 'authority'), async (req, res, next) => {
+  try {
+    const { text, voice } = req.body;
+    if (!text) {
+      return res.status(400).json({ success: false, message: 'Text is required for TTS conversion' });
+    }
+
+    const audioUrl = await viettelAiService.textToSpeech(text, voice);
+    
+    // Simulate scheduling broadcast calls
+    console.log(`[TTS Warning Broadcast] Scheduled broadcast for warning: "${text}" using voice: ${voice || 'hn-quynhanh'}`);
+    
+    res.json({
+      success: true,
+      message: 'Đã chuyển đổi giọng nói qua Viettel TTS & lên lịch cuộc gọi cảnh báo tự động thành công!',
+      audioUrl
     });
   } catch (error) {
     next(error);

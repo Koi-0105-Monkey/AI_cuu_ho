@@ -45,6 +45,11 @@ export default function IncidentDetail() {
   const qc       = useQueryClient();
   const [note, setNote] = useState('');
 
+  const VIETTEL_MAPS_KEY = import.meta.env.VITE_VIETTEL_MAPS_KEY || '';
+  const TILE_URL = VIETTEL_MAPS_KEY 
+    ? `https://maps.viettelmap.vn/api/v1/tile/{z}/{x}/{y}.png?key=${VIETTEL_MAPS_KEY}`
+    : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
   const { data: inc, isLoading } = useQuery({
     queryKey: ['incident', id],
     queryFn:  () => api.get(`/incidents/${id}`).then(r => r.data.data),
@@ -97,7 +102,8 @@ export default function IncidentDetail() {
             <div className="card p-0 overflow-hidden">
               <MapContainer center={center} zoom={15} className="h-[350px] w-full">
                 <TileLayer
-                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  url={TILE_URL}
+                  attribution='&copy; <a href="https://viettelmap.vn/">Viettel Maps</a>'
                   maxZoom={19}
                 />
                 <Marker position={center}>
@@ -117,6 +123,75 @@ export default function IncidentDetail() {
                 <div className="flex gap-2">
                   <ChatCentered size={16} className="text-muted mt-0.5 shrink-0" />
                   <p className="text-sm text-muted-light leading-relaxed">{inc.message}</p>
+                </div>
+              </Section>
+            )}
+
+            {/* Viettel AI Analysis */}
+            {(inc.audioUrl || inc.voiceTranscript || inc.extractedEntities) && (
+              <Section title="Phân tích từ Viettel AI Open Platform">
+                <div className="space-y-4">
+                  {/* Audio SOS Player */}
+                  {inc.audioUrl && (
+                    <div className="bg-[#1b253b] p-3 rounded-lg border border-slate-700">
+                      <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                        <span>🎙️ Tệp ghi âm Voice SOS</span>
+                      </div>
+                      <audio 
+                        controls 
+                        src={inc.audioUrl.startsWith('http') ? inc.audioUrl : `http://localhost:5000${inc.audioUrl}`} 
+                        className="w-full h-8" 
+                      />
+                    </div>
+                  )}
+
+                  {/* Transcript */}
+                  {inc.voiceTranscript && (
+                    <div className="bg-[#1b253b] p-3 rounded-lg border border-slate-700">
+                      <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1">
+                        {inc.source === 'sms' ? '✍️ Tin nhắn khôi phục dấu (NLP Diacritics)' : '📝 Bản dịch giọng nói (ASR)'}
+                      </div>
+                      <p className="text-sm text-white italic">"{inc.voiceTranscript}"</p>
+                    </div>
+                  )}
+
+                  {/* Extracted Entities */}
+                  {inc.extractedEntities && (
+                    <div className="bg-[#1b253b] p-3 rounded-lg border border-slate-700">
+                      <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+                        🔍 Thực thể cứu nạn trích xuất (NLP NER)
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                          <span className="text-muted block text-xs">Nạn nhân</span>
+                          <span className="font-semibold text-white">{inc.extractedEntities.victimName || 'Chưa rõ'}</span>
+                        </div>
+                        <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                          <span className="text-muted block text-xs">Địa điểm</span>
+                          <span className="font-semibold text-white">{inc.extractedEntities.location || 'Chưa rõ'}</span>
+                        </div>
+                        <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                          <span className="text-muted block text-xs">Sự cố</span>
+                          <span className="font-semibold text-amber-400">{inc.extractedEntities.incidentType || 'Chưa rõ'}</span>
+                        </div>
+                        <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                          <span className="text-muted block text-xs">Mức khẩn cấp</span>
+                          <span className="font-semibold text-rose-500">Cấp {inc.extractedEntities.severity || 3}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        className="btn-primary w-fit mt-3 text-xs"
+                        onClick={() => {
+                          const val = `[Viettel AI NER] Nạn nhân: ${inc.extractedEntities.victimName || 'Chưa rõ'}, Địa điểm: ${inc.extractedEntities.location || 'Chưa rõ'}, Loại sự cố: ${inc.extractedEntities.incidentType || 'Khác'}`;
+                          setNote(val);
+                          toast.success('Đã áp dụng thông tin AI vào ghi chú xử lý');
+                        }}
+                      >
+                        Áp dụng thông tin AI vào ghi chú
+                      </button>
+                    </div>
+                  )}
                 </div>
               </Section>
             )}
