@@ -30,9 +30,30 @@ export default function HomeScreen() {
   const [contactPhone, setContactPhone] = useState('');
   const [contactRelation, setContactRelation] = useState('');
 
+  // Weather State
+  const [weather, setWeather] = useState<any>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+
+  // Fetch current weather at location
+  const fetchWeather = async (lat: number, lng: number) => {
+    setWeatherLoading(true);
+    try {
+      const res = await api.get(`/weather?lat=${lat}&lng=${lng}`);
+      if (res.data.success) {
+        setWeather(res.data.weather);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch weather forecast');
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
+
   useFocusEffect(
     React.useCallback(() => {
       checkAuth();
+      // Lấy thời tiết tại Sapa làm tọa độ mặc định để test
+      fetchWeather(22.33, 103.82);
     }, [])
   );
 
@@ -70,6 +91,12 @@ export default function HomeScreen() {
           };
           await AsyncStorage.setItem('active_trip', JSON.stringify(localActiveTrip));
           setActiveTrip(localActiveTrip);
+          
+          // Lấy vị trí cuối cùng của trip để tải thời tiết
+          if (tripData.lastKnownLocation?.coordinates) {
+            const [lng, lat] = tripData.lastKnownLocation.coordinates;
+            fetchWeather(lat, lng);
+          }
         } else {
           // No active trip on server, so clean up locally
           const storedTrip = await AsyncStorage.getItem('active_trip');
@@ -468,6 +495,30 @@ export default function HomeScreen() {
           <Text className="text-xs text-emergency-400 font-medium">Đăng xuất</Text>
         </Pressable>
       </View>
+
+      {/* ─── Weather Forecast Widget ─── */}
+      {weatherLoading ? (
+        <View className="bg-surface-1 border border-surface-3 p-4 rounded-3xl items-center justify-center py-6">
+          <ActivityIndicator size="small" color="#10b981" />
+          <Text className="text-[10px] text-slate-500 mt-2 font-medium">Đang đo thời tiết...</Text>
+        </View>
+      ) : weather ? (
+        <View className={`p-5 rounded-3xl border ${weather.isDangerous ? 'bg-red-950/20 border-red-900/35' : 'bg-surface-1 border-surface-3'} flex-row justify-between items-center`}>
+          <View className="flex-1 mr-3 gap-1">
+            <Text className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Thời tiết hiện tại</Text>
+            <Text className="text-sm font-bold text-white">{weather.description}</Text>
+            <Text className="text-[10px] text-slate-400 leading-4">
+              {weather.isDangerous 
+                ? '⚠️ Nguy cơ mưa bão cực cao! Tránh tiếp tục di chuyển sâu vào rừng.' 
+                : '✅ Thời tiết lý tưởng để tiếp tục chuyến đi.'}
+            </Text>
+          </View>
+          <View className="items-end shrink-0">
+            <Text className="text-2xl font-bold text-white font-mono">{weather.temperature}°C</Text>
+            <Text className="text-[9px] text-slate-500 font-mono">Gió: {weather.windspeed} km/h</Text>
+          </View>
+        </View>
+      ) : null}
 
       {/* Active Trip Info or Setup Call */}
       {activeTrip ? (

@@ -9,6 +9,11 @@ import IncidentList from './pages/IncidentList';
 import IncidentDetail from './pages/IncidentDetail';
 import UserList from './pages/UserList';
 
+import FamilyView from './pages/FamilyView';
+import OperatorDashboard from './pages/operator/OperatorDashboard';
+import OperatorGroups from './pages/operator/OperatorGroups';
+import OperatorAnalytics from './pages/operator/OperatorAnalytics';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: 1, staleTime: 30_000 },
@@ -17,6 +22,7 @@ const queryClient = new QueryClient({
 
 const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
+  { path: '/family/:shareToken', element: <FamilyView /> }, // Public family route
   {
     element: <AppLayout />,
     children: [
@@ -24,6 +30,11 @@ const router = createBrowserRouter([
       { path: 'incidents', element: <IncidentList /> },
       { path: 'incidents/:id', element: <IncidentDetail /> },
       { path: 'users', element: <UserList /> },
+      
+      // Operator Routes
+      { path: 'operator', element: <OperatorDashboard /> },
+      { path: 'operator/groups', element: <OperatorGroups /> },
+      { path: 'operator/analytics', element: <OperatorAnalytics /> },
     ],
   },
 ]);

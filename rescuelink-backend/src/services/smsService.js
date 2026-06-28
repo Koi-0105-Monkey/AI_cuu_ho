@@ -1,8 +1,9 @@
 const twilio = require('twilio');
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const fromPhone = process.env.TWILIO_PHONE_NUMBER;
+const authToken  = process.env.TWILIO_AUTH_TOKEN;
+const fromPhone  = process.env.TWILIO_PHONE_NUMBER;
+
 // Số nhận alert khẩn cấp — admin/rescue team (set qua env RESCUE_ALERT_PHONE)
 const rescueAlertPhone = process.env.RESCUE_ALERT_PHONE || '+84349113452';
 
@@ -11,18 +12,35 @@ const isTwilioConfigured = accountSid &&
   fromPhone &&
   !accountSid.startsWith('ACXXXX');
 
+/**
+ * ⚠️  SMS_MOCK_MODE
+ * Đặt SMS_MOCK_MODE=true trong .env để tắt gửi SMS thật khi test.
+ * Tin nhắn sẽ chỉ được in ra console — KHÔNG mất tiền Twilio.
+ *
+ * Mặc định:
+ *   - development / test → mock (an toàn, không tốn tiền)
+ *   - production        → gửi thật (cần Twilio được cấu hình đúng)
+ */
+const isMockMode =
+  process.env.SMS_MOCK_MODE === 'true' ||
+  (process.env.NODE_ENV !== 'production' && process.env.SMS_MOCK_MODE !== 'false');
+
 let twilioClient;
 
-if (isTwilioConfigured) {
+if (isTwilioConfigured && !isMockMode) {
   try {
     twilioClient = twilio(accountSid, authToken);
-    console.log('Twilio SMS Client initialized.');
+    console.log('✅ Twilio SMS Client initialized (PRODUCTION mode — SMS thật sẽ được gửi).');
   } catch (error) {
     console.error('Failed to initialize Twilio client:', error.message);
   }
+} else if (isMockMode) {
+  console.log('📵 SMS MOCK MODE ON — Không gửi SMS thật. Tin nhắn sẽ hiển thị trong console.');
+  console.log('   → Để bật SMS thật: set SMS_MOCK_MODE=false trong .env (chỉ dùng ở production!)');
 } else {
   console.log('Twilio credentials not configured. Using Mock SMS Service.');
 }
+
 
 /**
  * Format phone number to E.164 (required by Twilio)

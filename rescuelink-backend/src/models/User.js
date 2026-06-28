@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const emergencyContactSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -18,8 +19,32 @@ const userSchema = new mongoose.Schema({
   emergencyContacts: [emergencyContactSchema],
   role: {
     type: String,
-    enum: ['user', 'admin', 'rescuer'],
+    // user: trekker cá nhân
+    // admin: quản trị viên hệ thống
+    // rescuer: nhân viên trung tâm cứu hộ
+    // guide: hướng dẫn viên của tour operator
+    // operator: tài khoản công ty tour
+    // authority: tài khoản VQG / SAR
+    enum: ['user', 'admin', 'rescuer', 'guide', 'operator', 'authority'],
     default: 'user'
+  },
+  // ID công ty tour (dành cho role: guide, user thuộc operator)
+  operatorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Operator',
+    default: null
+  },
+  // FCM Device Token — để gửi push notification
+  fcmToken: {
+    type: String,
+    default: null
+  },
+  // Token duy nhất để tạo Family View share link
+  familyShareToken: {
+    type: String,
+    unique: true,
+    sparse: true, // cho phép null, không bắt unique với null
+    default: () => crypto.randomBytes(20).toString('hex')
   },
   createdAt: { type: Date, default: Date.now }
 });

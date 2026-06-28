@@ -27,7 +27,9 @@ connectDB();
 // Initialize Cron Jobs (Only if not in testing mode)
 if (process.env.NODE_ENV !== 'test') {
   const { initGpsCronJob } = require('./jobs/compressGps');
+  const { initWeatherCronJob } = require('./jobs/weatherCheck');
   initGpsCronJob();
+  initWeatherCronJob();
 }
 
 // Middlewares

@@ -4,14 +4,23 @@ import {
 } from '@phosphor-icons/react';
 import { useAuth } from '../../context/AuthContext';
 
-const NAV_ITEMS = [
+const RESCUE_NAV_ITEMS = [
   { to: '/',          icon: Gauge,   label: 'Dashboard' },
   { to: '/incidents', icon: Warning, label: 'Sự cố' },
   { to: '/users',     icon: Users,   label: 'Người dùng' },
 ];
 
+const OPERATOR_NAV_ITEMS = [
+  { to: '/operator',           icon: Gauge,   label: 'Dashboard' },
+  { to: '/operator/groups',    icon: Users,   label: 'Quản lý Đoàn' },
+  { to: '/operator/analytics', icon: Warning, label: 'Thống Kê' },
+];
+
 export default function Sidebar() {
   const { user, logout } = useAuth();
+
+  const isOperator = user?.role === 'operator';
+  const navItems = isOperator ? OPERATOR_NAV_ITEMS : RESCUE_NAV_ITEMS;
 
   return (
     <aside className="w-[220px] min-h-screen bg-surface-1 border-r border-surface-4
@@ -28,11 +37,11 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 flex flex-col gap-1">
-        {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
+        {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
-            end={to === '/'}
+            end={to === '/' || to === '/operator'}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
                transition-all duration-150 cursor-pointer

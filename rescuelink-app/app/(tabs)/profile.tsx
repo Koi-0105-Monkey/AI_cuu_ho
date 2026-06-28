@@ -418,6 +418,36 @@ export default function ProfileScreen() {
         )}
       </View>
 
+      {/* ─── Family Share Link Panel ─── */}
+      <View className="bg-surface-1 border border-surface-3 p-6 rounded-3xl gap-5">
+        <View className="pb-4 border-b border-surface-3">
+          <Text className="text-xs font-semibold text-emergency-400 tracking-wider">CHIA SẺ HÀNH TRÌNH (FAMILY LINK)</Text>
+        </View>
+        <Text className="text-xs text-muted leading-5">
+          Gửi đường dẫn này cho người thân ở nhà để họ theo dõi vị trí GPS và dung lượng pin thời gian thực của bạn mà không cần cài đặt ứng dụng.
+        </Text>
+        <Pressable 
+          className="bg-emergency-500 active:bg-emergency-600 py-3 rounded-2xl items-center"
+          onPress={async () => {
+            try {
+              const res = await api.get('/notifications/share-link');
+              if (res.data.success && res.data.activeTrip) {
+                const { shareUrl } = res.data.activeTrip;
+                const { Clipboard } = require('react-native');
+                Clipboard.setString(shareUrl);
+                Alert.alert('Đã copy link!', `Đường dẫn theo dõi hành trình của bạn đã được lưu vào khay nhớ tạm:\n\n${shareUrl}`);
+              } else {
+                Alert.alert('Chưa có hành trình', res.data.message || 'Hãy bắt đầu chuyến đi trước ở tab Trekking.');
+              }
+            } catch (err: any) {
+              Alert.alert('Lỗi', err.response?.data?.message || 'Không thể lấy link chia sẻ. Kiểm tra mạng.');
+            }
+          }}
+        >
+          <Text className="text-white text-xs font-bold uppercase tracking-wide">Lấy link theo dõi khẩn cấp</Text>
+        </Pressable>
+      </View>
+
       {/* ─── Device Status Panel ─── */}
       <View className="bg-surface-1 border border-surface-3 p-6 rounded-3xl gap-5">
         <View className="pb-4 border-b border-surface-3">

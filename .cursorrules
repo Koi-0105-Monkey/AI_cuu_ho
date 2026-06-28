@@ -1,0 +1,10 @@
+# Cursor Rules for RescueLink
+
+Please read and adhere to the project instincts, rules, and stack details defined in [.agents/AGENTS.md](file:///Users/khoihuynh/Documents/AI_cuu_ho/.agents/AGENTS.md).
+
+## Core Directives:
+1. **Research-First**: Search, read, and analyze relevant files using grep/view tools. Formulate an implementation plan and ask for confirmation before making complex code changes.
+2. **Session Memory**: Always consult [.agents/MEMORY.md](file:///Users/khoihuynh/Documents/AI_cuu_ho/.agents/MEMORY.md) to understand the current project status and update it at the end of key milestones.
+3. **No Placeholders**: Write fully functional, production-ready code. Do not truncate files or leave `// TODO` items unless explicitly requested.
+4. **Safety**: Do not run destructive commands (such as root-level `rm`, database truncations, or hard git resets) without explicit confirmation.
+5. **Language & Links**: Communicate in concise Vietnamese and always output clickable markdown links to files using `[filename](file:///path/to/file)` format.

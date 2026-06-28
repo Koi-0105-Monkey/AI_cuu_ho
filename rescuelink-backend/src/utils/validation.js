@@ -11,7 +11,7 @@ const registerSchema = z.object({
         phone: z.string().min(9, 'Contact phone must be at least 9 characters'),
         relation: z.string().min(1, 'Relation is required')
       })
-    ).min(1, 'At least one emergency contact is required')
+    ).optional()
   })
 });
 
@@ -28,7 +28,8 @@ const startTripSchema = z.object({
     expectedReturn: z.string().datetime('Expected return must be a valid ISO date'),
     lat: z.number().min(-90).max(90),
     lng: z.number().min(-180).max(180),
-    battery: z.number().optional()
+    battery: z.number().optional(),
+    groupId: z.string().optional()
   })
 });
 

@@ -18,13 +18,20 @@ export default function Login() {
     setLoading(true);
     try {
       const data = await login(phone, password);
-      if (!['admin', 'rescuer'].includes(data.user?.role)) {
-        toast.error('Tài khoản không có quyền truy cập admin.');
+      const userRole = data.user?.role;
+
+      if (!['admin', 'rescuer', 'operator'].includes(userRole)) {
+        toast.error('Tài khoản không có quyền truy cập hệ thống.');
         setLoading(false);
         return;
       }
+
       toast.success('Đăng nhập thành công');
-      navigate('/');
+      if (userRole === 'operator') {
+        navigate('/operator');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Đăng nhập thất bại');
       setLoading(false);

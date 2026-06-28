@@ -15,7 +15,7 @@ const router = express.Router();
 // @access  Private
 router.post('/start', protect, validate(startTripSchema), async (req, res, next) => {
   try {
-    const { routeName, expectedReturn, lat, lng, battery } = req.body;
+    const { routeName, expectedReturn, lat, lng, battery, groupId } = req.body;
 
     // Check if user already has an active trip
     const activeTrip = await Trip.findOne({ userId: req.user._id, status: 'active' });
@@ -28,6 +28,7 @@ router.post('/start', protect, validate(startTripSchema), async (req, res, next)
 
     const trip = await Trip.create({
       userId: req.user._id,
+      groupId: groupId || null,
       routeName,
       expectedReturn: new Date(expectedReturn),
       status: 'active',

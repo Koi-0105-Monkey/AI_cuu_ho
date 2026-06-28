@@ -40,7 +40,7 @@ Bảng điều khiển thời gian thực cho đội cứu hộ: xem Live Incide
 
 ## 🛠️ Công nghệ Sử dụng & Đánh giá Kiến trúc
 
-Hệ thống được chia làm 3 thành phần chính hoạt động độc lập và đồng bộ với nhau qua REST API và WebSockets:
+Hệ thống được chia làm các thành phần chính hoạt động độc lập và đồng bộ với nhau qua REST API, WebSockets và push notifications:
 
 ```mermaid
 graph TD
@@ -48,7 +48,8 @@ graph TD
     A -->|2. Dự phòng SMS 7-bit| C[Số Điện Thoại Người Thân]
     B -->|3. Socket.io Real-time| D[RescueLink Web - React]
     B -->|4. Lưu trữ| E[(MongoDB Cloud)]
-    B -->|5. Trình gửi SMS tự động| F[Twilio Service]
+    B -->|5. Trình gửi SMS & FCM Mock| F[Twilio / Firebase Service]
+    B -->|6. B2G Real-time sync| G[RescueLink VQG Portal - React]
 ```
 
 ### 1. 📱 Mobile App (`rescuelink-app`)
@@ -61,19 +62,29 @@ graph TD
 *   **Hệ thống Cảnh báo & Âm thanh**:
     *   Sử dụng `expo-av` để phát âm thanh cảnh báo lớn ngoại tuyến trong đếm ngược 10s.
     *   Sử dụng `expo-notifications` quản lý các cảnh báo hệ thống và ghim thông báo hành trình thường trực (`ongoing: true`/`sticky: true`) trên khay trạng thái hệ điều hành Android/iOS.
+*   **Widget & Chia sẻ**:
+    *   Tích hợp Live Weather widget lấy thông tin thời tiết tự động.
+    *   Cung cấp tính năng sao chép link chia sẻ hành trình (Family Share Link) gửi nhanh cho người thân qua Zalo/SMS.
 
-### 2. 🖥️ Web Operator Dashboard (`rescuelink-web`)
+### 2. 🖥️ Web Operator Dashboard & Portals (`rescuelink-web`)
 *   **Công nghệ**: React 19, Vite, Tailwind CSS v3, React Router v7.
 *   **Bản đồ Giám sát**: Leaflet & React-Leaflet vẽ tọa độ hành trình và các vùng khoanh vùng cứu hộ khẩn cấp thời gian thực.
 *   **Thời gian thực**: Tích hợp `socket.io-client` để đồng bộ vị trí di chuyển và thông báo sự cố ngay lập tức mà không cần tải lại trang.
-*   **Biểu đồ Thống kê**: Sử dụng `recharts` biểu diễn biến động dung lượng pin, khoảng cách di chuyển và mức độ lệch đường đi của thành viên.
+*   **Cổng Tour Operator B2B**: Quản lý hướng dẫn viên, phân đoàn và theo dõi đoàn trekking tập trung tại route `/operator`.
+*   **Trang Public Family View**: Người thân theo dõi trực tiếp vị trí thông qua share link `/family/:shareToken` mà không cần tài khoản.
 
-### 3. ⚙️ Backend API Server (`rescuelink-backend`)
+### 3. 🌲 Vườn Quốc Gia / Kiểm Lâm Portal (`rescuelink-vqg`)
+*   **Công nghệ**: React 19, Vite, Tailwind CSS v3, React Router v7.
+*   **Bản đồ Vùng**: Vẽ ranh giới địa lý của rừng Quốc Gia (Polygon Leaflet) để xác định trekker đang nằm trong hay ngoài rừng.
+*   **Giám sát thực địa**: Nhận cảnh báo sự cố khẩn cấp (SOS) xảy ra trên địa phận rừng, hỗ trợ kiểm lâm viên phân công trạm gác cứu nạn nhanh nhất.
+
+### 4. ⚙️ Backend API Server (`rescuelink-backend`)
 *   **Công nghệ**: Node.js, Express 5, MongoDB & Mongoose.
 *   **Kết nối**: Socket.io (v4) quản lý kết nối thời gian thực hai chiều giữa thiết bị di động và bảng điều khiển cứu hộ.
+*   **Cảnh báo thời tiết tự động**: Chạy cron job mỗi 30 phút tự động kiểm tra thời tiết nguy hiểm (Open-Meteo API) tại tọa độ của các chuyến đi đang hoạt động và gửi push thông báo.
 *   **Dự phòng & Gửi tin tự động**:
-    *   Tích hợp SDK Twilio gửi tin nhắn SMS khẩn cấp tự động.
-    *   Sử dụng `node-cron` chạy các tác vụ nền quét thời hạn hành trình định kỳ và tự động kích hoạt báo động mất liên lạc nếu thành viên dừng check-in quá giờ quy định.
+    *   Tích hợp SDK Twilio gửi tin nhắn SMS khẩn cấp tự động (có SMS_MOCK_MODE cho dev).
+    *   Tích hợp Firebase Admin SDK để gửi push notification FCM trực tiếp lên thiết bị di động.
 
 ---
 
@@ -116,7 +127,7 @@ npm install
 npm run dev
 ```
 
-### 2. Chạy Web Dashboard
+### 2. Chạy Web Dashboard (Doanh nghiệp & Cứu Hộ)
 ```bash
 cd rescuelink-web
 npm install
@@ -124,7 +135,15 @@ npm run dev
 ```
 Mở trình duyệt truy cập `http://localhost:5173`.
 
-### 3. Chạy App Di động (Expo)
+### 3. Chạy Cổng Vườn Quốc Gia / Kiểm Lâm (B2G Portal)
+```bash
+cd rescuelink-vqg
+npm install
+npm run dev
+```
+Mở trình duyệt truy cập `http://localhost:5174`.
+
+### 4. Chạy App Di động (Expo)
 ```bash
 cd rescuelink-app
 npm install
@@ -146,9 +165,15 @@ Quét mã QR hiển thị trên Terminal bằng ứng dụng Expo Go trên iOS h
     cd rescuelink-backend
     npm test
     ```
-*   **Web E2E & Unit Tests**:
+*   **Web Dashboard Tests**:
     ```bash
     cd rescuelink-web
     npm run test       # Chạy unit tests bằng vitest
     npm run test:e2e   # Chạy e2e tests bằng playwright
     ```
+*   **VQG Portal Tests**:
+    ```bash
+    cd rescuelink-vqg
+    # Cài đặt và cấu hình kiểm thử khi cần
+    ```
+

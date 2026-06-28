@@ -67,7 +67,7 @@ router.post('/', protect, validate(createIncidentSchema), async (req, res, next)
     // Notify web dashboard via Socket.io
     socketService.emitIncidentNew(populatedIncident);
 
-    // Send Emergency SMS to contacts
+    // Send Emergency SMS & FCM Notifications to contacts
     try {
       await smsService.sendEmergencySMS(req.user, {
         type,
@@ -82,6 +82,28 @@ router.post('/', protect, validate(createIncidentSchema), async (req, res, next)
       }
     } catch (smsError) {
       console.error(`Failed to send emergency SMS for incident: ${smsError.message}`);
+    }
+
+    // Gửi FCM Push Notification cho gia đình/người thân có FCM Token
+    try {
+      const User = require('../models/User');
+      const fcmService = require('../services/fcmService');
+      
+      // Tìm các user liên hệ khẩn cấp có tài khoản trong hệ thống và có fcmToken
+      const contactPhones = req.user.emergencyContacts.map(c => c.phone);
+      if (contactPhones.length > 0) {
+        const contactsWithFcm = await User.find({
+          phone: { $in: contactPhones },
+          fcmToken: { $ne: null }
+        }).select('fcmToken');
+
+        const tokens = contactsWithFcm.map(u => u.fcmToken);
+        if (tokens.length > 0) {
+          await fcmService.sendSOSNotification(req.user, incident, tokens);
+        }
+      }
+    } catch (fcmError) {
+      console.error(`Failed to send FCM notifications for incident: ${fcmError.message}`);
     }
 
     // If trip exists, update trip status to emergency

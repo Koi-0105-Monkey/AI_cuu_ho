@@ -40,7 +40,7 @@ router.post('/register', validate(registerSchema), async (req, res, next) => {
       name,
       phone,
       passwordHash,
-      emergencyContacts
+      emergencyContacts: emergencyContacts || []
     });
 
     if (user) {

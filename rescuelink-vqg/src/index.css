@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #040906; /* Dark Forest */
+    color: #e2e8f0;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+}
+
+/* Custom styles for high-end look */
+.card {
+  background-color: #0b140f;
+  border: 1px solid #142a1e;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+}
+
+.input-field {
+  width: 100%;
+  background-color: #070d0a;
+  border: 1px solid #142a1e;
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: white;
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.input-field:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.btn-primary {
+  background-color: #10b981;
+  color: white;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 10px 20px;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #059669;
+}
