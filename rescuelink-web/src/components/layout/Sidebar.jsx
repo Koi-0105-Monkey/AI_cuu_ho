@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   Gauge, Warning, MapPin, Users, SignOut
 } from '@phosphor-icons/react';
@@ -18,9 +18,11 @@ const OPERATOR_NAV_ITEMS = [
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
+  const { pathname } = useLocation();
 
-  const isOperator = user?.role === 'operator';
-  const navItems = isOperator ? OPERATOR_NAV_ITEMS : RESCUE_NAV_ITEMS;
+  const isAtOperatorPortal = pathname.startsWith('/operator');
+  const showOperatorMenu = user?.role === 'operator' || isAtOperatorPortal;
+  const navItems = showOperatorMenu ? OPERATOR_NAV_ITEMS : RESCUE_NAV_ITEMS;
 
   return (
     <aside className="w-[220px] min-h-screen bg-surface-1 border-r border-surface-4
@@ -55,6 +57,20 @@ export default function Sidebar() {
             {label}
           </NavLink>
         ))}
+
+        {/* Nút chuyển đổi nhanh cho Admin để tiện test */}
+        {user?.role === 'admin' && (
+          <div className="mt-4 pt-4 border-t border-surface-4 gap-1 flex flex-col">
+            <p className="text-[10px] text-slate-500 font-bold uppercase px-3 mb-1">Admin Switch</p>
+            <NavLink
+              to={isAtOperatorPortal ? '/' : '/operator'}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold text-amber-400 hover:bg-surface-3 transition-all"
+            >
+              <Gauge size={16} />
+              {isAtOperatorPortal ? '→ Cổng Cứu Hộ (HQ)' : '→ Cổng Operator'}
+            </NavLink>
+          </div>
+        )}
       </nav>
 
       {/* User & Logout */}

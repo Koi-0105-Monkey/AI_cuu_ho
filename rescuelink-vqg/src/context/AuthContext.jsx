@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (phone, password) => {
     const { data } = await api.post('/auth/login', { phone, password });
     
-    if (data.user?.role !== 'authority') {
+    if (data.user?.role !== 'authority' && data.user?.role !== 'admin') {
       throw new Error('Tài khoản không thuộc thẩm quyền Vườn Quốc Gia / Kiểm Lâm.');
     }
 
