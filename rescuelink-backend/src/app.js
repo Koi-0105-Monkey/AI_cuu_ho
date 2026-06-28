@@ -39,7 +39,8 @@ app.use(helmet({
 
 // CORS — cho phép web dashboard (Vercel) + local dev + Expo app
 const allowedOrigins = [
-  'http://localhost:5173',       // Vite dev
+  'http://localhost:5173',       // Vite dev (rescuelink-web)
+  'http://localhost:5174',       // Vite dev (rescuelink-vqg)
   'http://localhost:3000',
   process.env.WEB_URL,           // Vercel URL (set trên Render dashboard)
 ].filter(Boolean);
