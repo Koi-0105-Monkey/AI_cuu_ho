@@ -29,9 +29,9 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
     *   Tạo endpoint `/api/vqg/search` kết nối Viettel Maps API Geocoding thật (tương thích nhiều cấu trúc JSON) và fallback thông minh.
     *   Thêm HUD co giãn bounding box tải offline (zoom 12-16) thời gian thực trên di động và vẽ Polygon ranh giới các vùng đã tải lên bản đồ.
 *   **Tích Hợp Sentry SDK**: Cài đặt và cấu hình bọc giám sát lỗi Sentry tự động cho cả 3 phân hệ Mobile (`@sentry/react-native`), Backend (`@sentry/node`), và Web Dashboard (`@sentry/react`).
-*   **Tích Hợp Viettel AI**:
-    *   Tích hợp dịch vụ [viettelAiService.js](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-backend/src/services/viettelAiService.js) xử lý Speech-to-Text (ASR) giải mã ghi âm Voice SOS, khôi phục dấu tiếng Việt cho SMS không dấu (Diacritics Restorer) và trích xuất thực thể khẩn cấp (NER).
-    *   Tích hợp trình phát âm thanh và hiển thị phân tích AI cứu nạn trực quan trên Web Operator Dashboard.
+*   **Tích Hợp Google Gemini AI (Thay thế Viettel AI)**: 
+    *   Tích hợp dịch vụ [geminiService.js](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-backend/src/services/geminiService.js) tích hợp mô hình **Gemini 1.5 Flash** (gói miễn phí của Google AI Studio) để giải mã âm thanh Voice SOS, khôi phục dấu tiếng Việt cho SMS không dấu và trích xuất thực thể JSON sự cố cứu hộ.
+    *   Sử dụng **HTML5 SpeechSynthesis API** miễn phí trên trình duyệt của Web Operator Dashboard để đọc to tin nhắn, loại bỏ hoàn toàn các API tính phí TTS ở backend.
 *   **Tích Hợp Photon Geocoder Server**: Hỗ trợ tích hợp máy chủ tìm kiếm địa điểm tự dựng bằng Photon (Elasticsearch) thông qua biến `PHOTON_URL` trong [.env](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-backend/.env) của backend, viết file hướng dẫn setup Docker [PHOTON_SETUP.md](file:///Users/khoihuynh/Documents/AI_cuu_ho/PHOTON_SETUP.md) cho người dùng.
 
 ---
@@ -40,7 +40,7 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
 
 - `[ ]` Tích hợp Firebase service account key thật để thử nghiệm FCM Notification đầy đủ.
 - `[x]` Tối ưu hóa caching bản đồ ngoại tuyến trên ứng dụng di động (Đã hoàn thành co giãn bounding box tải offline và vẽ Polygon ranh giới).
-- `[ ]` Đăng ký API Token thật của Viettel AI Open Platform và Viettel Maps để chuyển sang chạy production thật.
+- `[ ]` Đăng ký API Key của Google Gemini (AI Studio miễn phí) điền vào file `.env` ở backend để chạy sản phẩm thật.
 - `[x]` Chạy lệnh dọn dẹp xóa thư mục [rescuelink-vqg/](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-vqg) khi có sự xác nhận của người dùng (Đã thực hiện).
 - `[x]` Cấu hình giám sát lỗi runtime Sentry cho cả 3 phân hệ (Đã thực hiện).
 

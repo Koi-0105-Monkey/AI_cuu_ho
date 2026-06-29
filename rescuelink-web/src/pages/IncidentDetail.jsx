@@ -127,9 +127,9 @@ export default function IncidentDetail() {
               </Section>
             )}
 
-            {/* Viettel AI Analysis */}
+            {/* Google Gemini AI Analysis */}
             {(inc.audioUrl || inc.voiceTranscript || inc.extractedEntities) && (
-              <Section title="Phân tích từ Viettel AI Open Platform">
+              <Section title="Phân tích sự cố bằng Google Gemini AI (Miễn phí)">
                 <div className="space-y-4">
                   {/* Audio SOS Player */}
                   {inc.audioUrl && (
@@ -148,8 +148,24 @@ export default function IncidentDetail() {
                   {/* Transcript */}
                   {inc.voiceTranscript && (
                     <div className="bg-[#1b253b] p-3 rounded-lg border border-slate-700">
-                      <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1">
-                        {inc.source === 'sms' ? '✍️ Tin nhắn khôi phục dấu (NLP Diacritics)' : '📝 Bản dịch giọng nói (ASR)'}
+                      <div className="flex justify-between items-center mb-1">
+                        <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                          {inc.source === 'sms' ? '✍️ Tin nhắn khôi phục dấu (Gemini NLP)' : '📝 Bản dịch giọng nói (Gemini ASR)'}
+                        </div>
+                        <button 
+                          onClick={() => {
+                            if ('speechSynthesis' in window) {
+                              window.speechSynthesis.cancel();
+                              const utterance = new SpeechSynthesisUtterance(inc.voiceTranscript);
+                              utterance.lang = 'vi-VN';
+                              window.speechSynthesis.speak(utterance);
+                            }
+                          }}
+                          className="text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/25 px-2 py-0.5 rounded flex items-center gap-1 transition-all"
+                          title="Đọc tin nhắn bằng tiếng Việt"
+                        >
+                          🔊 Nghe đọc
+                        </button>
                       </div>
                       <p className="text-sm text-white italic">"{inc.voiceTranscript}"</p>
                     </div>

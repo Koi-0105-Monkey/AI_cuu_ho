@@ -10,7 +10,7 @@ const { upload, isCloudinaryConfigured } = require('../config/cloudinary');
 const { analyzeFireImage } = require('../services/aiService');
 const socketService = require('../services/socketService');
 const smsService = require('../services/smsService');
-const viettelAiService = require('../services/viettelAiService');
+const geminiService = require('../services/geminiService');
 const multer = require('multer');
 
 const router = express.Router();
@@ -401,18 +401,24 @@ router.post('/report-voice-sos', protect, uploadAudio.single('audio'), async (re
     const audioUrl = `/uploads/${req.file.filename}`;
     const audioPath = req.file.path;
 
-    // 1. Viettel AI Speech-to-Text translation
+    // 1. Google Gemini Speech-to-Text translation
     let transcript = '';
     try {
       const audioBuffer = fs.readFileSync(audioPath);
-      transcript = await viettelAiService.transcribeAudio(audioBuffer, req.file.mimetype);
+      transcript = await geminiService.transcribeAudio(audioBuffer, req.file.mimetype);
     } catch (sttErr) {
-      console.error('[Viettel STT Failed, using fallback]', sttErr.message);
+      console.error('[Gemini STT Failed, using fallback]', sttErr.message);
       transcript = "Phát hiện tin nhắn thoại cứu hộ khẩn cấp nhưng lỗi dịch giọng nói.";
     }
 
-    // 2. Viettel AI Entity Extraction
-    const entities = await viettelAiService.extractEntities(transcript);
+    // 2. Google Gemini Entity Extraction
+    const geminiResult = await geminiService.processSmsMessage(transcript);
+    const entities = {
+      victimName: geminiResult.victimName,
+      location: geminiResult.location,
+      incidentType: geminiResult.incidentType,
+      severity: geminiResult.severity
+    };
 
     // Find active trip if any
     const activeTrip = await Trip.findOne({ userId: req.user._id, status: 'active' });
@@ -420,6 +426,10 @@ router.post('/report-voice-sos', protect, uploadAudio.single('audio'), async (re
     // Determine type map from entity incidentType
     let type = 'MANUAL';
     const typeMapping = {
+      'CHÁY': 'FIRE',
+      'TAI_NẠN': 'MED',
+      'LẠC': 'LOST',
+      'KHÁC': 'MANUAL',
       'Cháy rừng': 'FIRE',
       'Chấn thương': 'MED',
       'Lạc đường': 'LOST',
@@ -527,8 +537,14 @@ router.post('/incoming-sms', async (req, res, next) => {
     let entities = { victimName: user.name, location: 'Chưa rõ', incidentType: 'MANUAL', severity: 4 };
 
     if (cleanBody.length > 2) {
-      restoredText = await viettelAiService.restoreDiacritics(cleanBody);
-      entities = await viettelAiService.extractEntities(restoredText);
+      const geminiResult = await geminiService.processSmsMessage(cleanBody);
+      restoredText = geminiResult.textWithDiacritics;
+      entities = {
+        victimName: geminiResult.victimName,
+        location: geminiResult.location,
+        incidentType: geminiResult.incidentType,
+        severity: geminiResult.severity
+      };
     }
 
     // Find active trip for the user if any
@@ -543,6 +559,10 @@ router.post('/incoming-sms', async (req, res, next) => {
     // Map incident type
     let type = 'MANUAL';
     const typeMapping = {
+      'CHÁY': 'FIRE',
+      'TAI_NẠN': 'MED',
+      'LẠC': 'LOST',
+      'KHÁC': 'MANUAL',
       'Cháy rừng': 'FIRE',
       'Chấn thương': 'MED',
       'Lạc đường': 'LOST',
@@ -598,14 +618,15 @@ router.post('/tts-warning', protect, authorize('admin', 'authority'), async (req
       return res.status(400).json({ success: false, message: 'Text is required for TTS conversion' });
     }
 
-    const audioUrl = await viettelAiService.textToSpeech(text, voice);
+    // Mock warning audio URL (since we removed Viettel TTS)
+    const audioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
     
     // Simulate scheduling broadcast calls
-    console.log(`[TTS Warning Broadcast] Scheduled broadcast for warning: "${text}" using voice: ${voice || 'hn-quynhanh'}`);
+    console.log(`[TTS Warning Broadcast] Scheduled mock broadcast for warning: "${text}"`);
     
     res.json({
       success: true,
-      message: 'Đã chuyển đổi giọng nói qua Viettel TTS & lên lịch cuộc gọi cảnh báo tự động thành công!',
+      message: 'Đã giả lập giọng đọc cảnh báo khẩn cấp & lên lịch cuộc gọi tự động thành công!',
       audioUrl
     });
   } catch (error) {

@@ -360,45 +360,31 @@ router.get('/search', protect, async (req, res, next) => {
   }
 });
 
-// @desc    Debug & Test Viettel AI Services (Mock or Production)
-// @route   GET /api/vqg/debug-viettel-ai
+// @desc    Debug & Test Google Gemini AI Services (Mock or Production)
+// @route   GET /api/vqg/debug-gemini-ai
 // @access  Public
-router.get('/debug-viettel-ai', async (req, res, next) => {
+router.get('/debug-gemini-ai', async (req, res, next) => {
   try {
-    const { transcribeAudio, restoreDiacritics, extractEntities, textToSpeech } = require('../services/viettelAiService');
+    const { transcribeAudio, processSmsMessage } = require('../services/geminiService');
     const textQuery = req.query.text || 'toi dang bi lac o gan dinh ta xua tinh laocai';
     
-    // Test 1: Khôi phục dấu tiếng Việt (Diacritics Restorer)
-    const restoredText = await restoreDiacritics(textQuery);
+    // Test 1: Khôi phục dấu & Trích xuất NER cứu nạn (Gemini gộp chung)
+    const geminiResult = await processSmsMessage(textQuery);
     
-    // Test 2: Trích xuất thực thể khẩn cấp (NER)
-    const entities = await extractEntities(restoredText);
-    
-    // Test 3: Chuyển văn bản cảnh báo thành giọng nói (TTS)
-    const ttsUrl = await textToSpeech(`Cảnh báo khẩn cấp: phát hiện sự cố ${entities.incidentType || 'cứu nạn'} liên quan đến ${entities.victimName || 'nạn nhân'} tại ${entities.location || 'khu vực lân cận'}`);
-    
-    // Test 4: Ghi âm (Speech-to-Text mock)
+    // Test 2: Ghi âm (Speech-to-Text mock)
     const transcribedText = await transcribeAudio('dummy_base64_audio_data');
 
     res.json({
       success: true,
-      mode: process.env.VIETTEL_AI_MODE || 'mock',
+      mode: process.env.GEMINI_MODE || 'mock',
       config: {
-        hasToken: !!process.env.VIETTEL_AI_TOKEN,
+        hasToken: !!process.env.GEMINI_API_KEY,
       },
       input: textQuery,
       tests: {
-        diacriticsRestorer: {
-          description: "Khôi phục dấu tiếng Việt cho SMS không dấu",
-          output: restoredText
-        },
-        namedEntityRecognition: {
-          description: "Trích xuất thông tin khẩn cấp từ văn bản có dấu",
-          output: entities
-        },
-        textToSpeech: {
-          description: "Tạo file âm thanh cảnh báo bằng giọng đọc Viettel",
-          audioUrl: ttsUrl
+        geminiResult: {
+          description: "Khôi phục dấu tiếng Việt & Trích xuất thực thể khẩn cấp cứu nạn bằng Gemini 1.5 Flash",
+          output: geminiResult
         },
         speechToText: {
           description: "Dịch file ghi âm Voice SOS thành văn bản (mock)",
@@ -409,6 +395,12 @@ router.get('/debug-viettel-ai', async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+// Alias redirect for backward compatibility
+router.get('/debug-viettel-ai', (req, res) => {
+  const queryStr = req.query.text ? `?text=${encodeURIComponent(req.query.text)}` : '';
+  res.redirect(`/api/vqg/debug-gemini-ai${queryStr}`);
 });
 
 module.exports = router;
