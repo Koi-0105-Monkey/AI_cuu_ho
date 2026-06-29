@@ -32,6 +32,7 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
 *   **Tích Hợp Viettel AI**:
     *   Tích hợp dịch vụ [viettelAiService.js](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-backend/src/services/viettelAiService.js) xử lý Speech-to-Text (ASR) giải mã ghi âm Voice SOS, khôi phục dấu tiếng Việt cho SMS không dấu (Diacritics Restorer) và trích xuất thực thể khẩn cấp (NER).
     *   Tích hợp trình phát âm thanh và hiển thị phân tích AI cứu nạn trực quan trên Web Operator Dashboard.
+*   **Tích Hợp Photon Geocoder Server**: Hỗ trợ tích hợp máy chủ tìm kiếm địa điểm tự dựng bằng Photon (Elasticsearch) thông qua biến `PHOTON_URL` trong [.env](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-backend/.env) của backend, viết file hướng dẫn setup Docker [PHOTON_SETUP.md](file:///Users/khoihuynh/Documents/AI_cuu_ho/PHOTON_SETUP.md) cho người dùng.
 
 ---
 

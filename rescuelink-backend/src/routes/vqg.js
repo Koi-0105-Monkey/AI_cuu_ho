@@ -249,8 +249,41 @@ router.get('/search', protect, async (req, res, next) => {
     ];
 
     let searchResults = [];
+    const PHOTON_URL = process.env.PHOTON_URL || '';
 
-    if (VIETTEL_MAPS_KEY) {
+    if (PHOTON_URL) {
+      try {
+        const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+        const url = `${PHOTON_URL.replace(/\/$/, '')}/api?q=${encodeURIComponent(query)}&limit=10&lang=vi`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data && data.features && data.features.length > 0) {
+          searchResults = data.features.map(feat => {
+            const props = feat.properties;
+            const name = props.name || '';
+            const addressParts = [
+              props.street,
+              props.district,
+              props.city || props.state || props.county,
+              props.country
+            ].filter(Boolean);
+            const display_name = name + (addressParts.length > 0 ? `, ${addressParts.join(', ')}` : '');
+            
+            return {
+              display_name,
+              lat: String(feat.geometry.coordinates[1]),
+              lon: String(feat.geometry.coordinates[0]),
+              type: props.osm_value || 'address'
+            };
+          });
+        }
+      } catch (photonErr) {
+        console.warn('Photon search API error, falling back to Viettel/Local:', photonErr.message);
+      }
+    }
+
+    if (searchResults.length === 0 && VIETTEL_MAPS_KEY) {
       try {
         const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
         // Viettel Maps search API hỗ trợ tìm kiếm POI toàn quốc
