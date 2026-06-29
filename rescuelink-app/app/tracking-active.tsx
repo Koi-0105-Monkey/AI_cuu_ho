@@ -3,7 +3,7 @@ import { View, Text, Pressable, TextInput, ScrollView } from '@/tw';
 import { Alert, StyleSheet, ActivityIndicator, Platform, Share, Vibration } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import MapView, { Marker, Polyline, UrlTile, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { Marker, Polyline, UrlTile, Polygon, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as Battery from 'expo-battery';
 import * as SMS from 'expo-sms';
@@ -14,7 +14,7 @@ import { useGPS } from '@/hooks/useGPS';
 import api from '@/services/api';
 import { haversineDistance } from '@/utils/geo';
 import { flushOfflineQueue } from '@/services/queueService';
-import { downloadRouteTiles } from '@/utils/offlineMap';
+import { downloadRouteTiles, getTilesForBounds, downloadBoundsTiles } from '@/utils/offlineMap';
 import { buildCompressedSosMessage } from '@/utils/smsHelper';
 
 
@@ -84,6 +84,12 @@ export default function TrackingActiveScreen() {
   const [downloadProgress, setDownloadProgress] = useState(0);
 
   const [isDownloadingTiles, setIsDownloadingTiles] = useState(false);
+
+  // Advanced Offline Map states
+  const [isDownloadMode, setIsDownloadMode] = useState(false);
+  const [estimatedSize, setEstimatedSize] = useState({ tiles: 0, sizeMb: 0 });
+  const [downloadedRegions, setDownloadedRegions] = useState<any[]>([]);
+  const [currentRegion, setCurrentRegion] = useState<any>(null);
 
   const processForegroundLocation = async (loc: Location.LocationObject) => {
     try {
@@ -261,8 +267,102 @@ export default function TrackingActiveScreen() {
     return () => clearInterval(interval);
   }, [activeTrip?.startedAt]);
 
+  const seedDefaultOfflineDestinations = async () => {
+    try {
+      const cachedStr = await AsyncStorage.getItem('offline_destinations');
+      if (!cachedStr || JSON.parse(cachedStr).length <= 1) {
+        const defaultPOIs = [
+          {
+            name: "Hải đăng Tiên Sa, Bán đảo Sơn Trà, Đà Nẵng",
+            lat: 16.1389,
+            lng: 108.2831,
+            distanceKm: "0.0",
+            durationMin: 0,
+            routePoints: [{ lat: 16.1389, lng: 108.2831 }]
+          },
+          {
+            name: "Siêu thị GO! Đà Nẵng, 255-257 Hùng Vương, Vĩnh Trung, Thanh Khê, Đà Nẵng",
+            lat: 16.06782,
+            lng: 108.21405,
+            distanceKm: "0.0",
+            durationMin: 0,
+            routePoints: [{ lat: 16.06782, lng: 108.21405 }]
+          },
+          {
+            name: "Bán đảo Sơn Trà, Thọ Quang, Sơn Trà, Đà Nẵng",
+            lat: 16.12056,
+            lng: 108.27833,
+            distanceKm: "0.0",
+            durationMin: 0,
+            routePoints: [{ lat: 16.12056, lng: 108.27833 }]
+          },
+          {
+            name: "Đỉnh Fansipan, VQG Hoàng Liên, Sa Pa, Lào Cai",
+            lat: 22.30333,
+            lng: 103.775,
+            distanceKm: "0.0",
+            durationMin: 0,
+            routePoints: [{ lat: 22.30333, lng: 103.775 }]
+          },
+          {
+            name: "Vườn Quốc Gia Hoàng Liên, Sa Pa, Lào Cai",
+            lat: 22.35678,
+            lng: 103.78912,
+            distanceKm: "0.0",
+            durationMin: 0,
+            routePoints: [{ lat: 22.35678, lng: 103.78912 }]
+          },
+          {
+            name: "Trạm Kiểm lâm Núi Xẻ, VQG Hoàng Liên, Sa Pa, Lào Cai",
+            lat: 22.3489,
+            lng: 103.7782,
+            distanceKm: "0.0",
+            durationMin: 0,
+            routePoints: [{ lat: 22.3489, lng: 103.7782 }]
+          },
+          {
+            name: "Vườn Quốc gia Ba Vì, Tản Lĩnh, Ba Vì, Hà Nội",
+            lat: 21.0812,
+            lng: 105.3705,
+            distanceKm: "0.0",
+            durationMin: 0,
+            routePoints: [{ lat: 21.0812, lng: 105.3705 }]
+          },
+          {
+            name: "Khu di tích Tây Yên Tử, Sơn Động, Bắc Giang",
+            lat: 21.1785,
+            lng: 106.7212,
+            distanceKm: "0.0",
+            durationMin: 0,
+            routePoints: [{ lat: 21.1785, lng: 106.7212 }]
+          },
+          {
+            name: "Trạm Y tế xã Tả Van, Sa Pa, Lào Cai",
+            lat: 22.3021,
+            lng: 103.8894,
+            distanceKm: "0.0",
+            durationMin: 0,
+            routePoints: [{ lat: 22.3021, lng: 103.8894 }]
+          },
+          {
+            name: "Trạm Y tế xã Hoàng Liên, Sa Pa, Lào Cai",
+            lat: 22.3214,
+            lng: 103.8115,
+            distanceKm: "0.0",
+            durationMin: 0,
+            routePoints: [{ lat: 22.3214, lng: 103.8115 }]
+          }
+        ];
+        await AsyncStorage.setItem('offline_destinations', JSON.stringify(defaultPOIs));
+      }
+    } catch (e) {
+      console.warn('Failed to seed default offline destinations:', e);
+    }
+  };
+
   const loadInitialData = async () => {
     try {
+      await seedDefaultOfflineDestinations();
       // 1. Get active trip details
       const tripStr = await AsyncStorage.getItem('active_trip');
       if (tripStr) {
@@ -328,6 +428,16 @@ export default function TrackingActiveScreen() {
           console.warn('Failed to get initial coordinates:', e);
         }
       })();
+
+      // 5. Get downloaded map regions
+      try {
+        const regionsStr = await AsyncStorage.getItem('downloaded_map_regions');
+        if (regionsStr) {
+          setDownloadedRegions(JSON.parse(regionsStr));
+        }
+      } catch (e) {
+        console.warn('Failed to load downloaded map regions:', e);
+      }
 
 
 
@@ -692,21 +802,14 @@ export default function TrackingActiveScreen() {
 
     if (isOnline) {
       try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=json&limit=5&countrycodes=vn`,
-          {
-            headers: {
-              'User-Agent': 'RescueLinkApp/1.0',
-            },
-          }
-        );
-        const data = await response.json();
+        const response = await api.get(`/vqg/search?query=${encodeURIComponent(text)}`);
+        const data = response.data.data;
         if (data && data.length > 0) {
           setSearchResults(data);
         } else {
           setSearchResults([]);
           if (!isAutoSuggest) {
-            Alert.alert('Không tìm thấy', 'Không tìm thấy địa điểm nào trực tuyến khớp với từ khóa.');
+            Alert.alert('Không tìm thấy', 'Không tìm thấy địa điểm nào khớp với từ khóa.');
           }
         }
       } catch (error) {
@@ -889,6 +992,84 @@ export default function TrackingActiveScreen() {
     }
   };
 
+  // Estimate tile count and MB for current bounding box
+  const estimateDownloadSize = (region: any) => {
+    if (!region) return;
+    const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
+    const latMin = latitude - latitudeDelta / 2;
+    const latMax = latitude + latitudeDelta / 2;
+    const lngMin = longitude - longitudeDelta / 2;
+    const lngMax = longitude + longitudeDelta / 2;
+
+    const tiles = getTilesForBounds(latMin, latMax, lngMin, lngMax, [12, 13, 14, 15, 16]);
+    const count = tiles.length;
+    const sizeMb = parseFloat(((count * 20) / 1024).toFixed(1)); // ~20KB per tile
+    setEstimatedSize({ tiles: count, sizeMb });
+    setCurrentRegion({ latMin, latMax, lngMin, lngMax, latitude, longitude, latitudeDelta, longitudeDelta });
+  };
+
+  const handleRegionChangeComplete = (region: any) => {
+    if (isDownloadMode) {
+      estimateDownloadSize(region);
+    }
+  };
+
+  const handleConfirmDownloadRegion = async () => {
+    if (!currentRegion) return;
+    setIsDownloadingTiles(true);
+    setDownloadProgress(0);
+    
+    try {
+      const { latMin, latMax, lngMin, lngMax } = currentRegion;
+      
+      const result = await downloadBoundsTiles(latMin, latMax, lngMin, lngMax, (progress) => {
+        setDownloadProgress(progress);
+      });
+
+      const newRegion = {
+        id: 'region_' + Date.now(),
+        name: `Bản đồ vùng ${new Date().toLocaleDateString('vi-VN')}`,
+        latMin,
+        latMax,
+        lngMin,
+        lngMax,
+        createdAt: new Date().toISOString(),
+        tilesCount: result.total
+      };
+
+      const updatedRegions = [newRegion, ...downloadedRegions];
+      setDownloadedRegions(updatedRegions);
+      await AsyncStorage.setItem('downloaded_map_regions', JSON.stringify(updatedRegions));
+
+      Alert.alert('Thành công', `Đã tải xuống ${result.downloaded} mảnh bản đồ ngoại tuyến thành công!`);
+    } catch (e) {
+      console.warn('Failed to download bounds map:', e);
+      Alert.alert('Lỗi', 'Không thể tải vùng bản đồ đã chọn.');
+    } finally {
+      setIsDownloadingTiles(false);
+      setIsDownloadMode(false);
+    }
+  };
+
+  const handleDeleteRegion = async (id: string) => {
+    Alert.alert(
+      'Xoá bản đồ ngoại tuyến',
+      'Bạn có chắc chắn muốn xoá vùng bản đồ ngoại tuyến này?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xoá',
+          style: 'destructive',
+          onPress: async () => {
+            const updated = downloadedRegions.filter(r => r.id !== id);
+            setDownloadedRegions(updated);
+            await AsyncStorage.setItem('downloaded_map_regions', JSON.stringify(updated));
+          }
+        }
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View className="flex-1 bg-surface justify-center items-center">
@@ -927,6 +1108,7 @@ export default function TrackingActiveScreen() {
           latitudeDelta: 0.015,
           longitudeDelta: 0.015,
         }}
+        onRegionChangeComplete={handleRegionChangeComplete}
       >
         {/* Render Offline Local Map Tiles */}
         <UrlTile
@@ -934,6 +1116,37 @@ export default function TrackingActiveScreen() {
           offlineMode={true}
           zIndex={1}
         />
+
+        {/* Render Downloaded Regions Borders */}
+        {downloadedRegions.map((region) => {
+          const coords = [
+            { latitude: region.latMin, longitude: region.lngMin },
+            { latitude: region.latMin, longitude: region.lngMax },
+            { latitude: region.latMax, longitude: region.lngMax },
+            { latitude: region.latMax, longitude: region.lngMin },
+          ];
+          return (
+            <Polygon
+              key={region.id}
+              coordinates={coords}
+              strokeColor="#10b981"
+              fillColor="rgba(16, 185, 129, 0.08)"
+              strokeWidth={2}
+              lineDashPattern={[5, 5]}
+              tappable={true}
+              onPress={() => {
+                Alert.alert(
+                  region.name,
+                  `Tải ngày: ${new Date(region.createdAt).toLocaleDateString()}\nSố ô bản đồ: ${region.tilesCount}`,
+                  [
+                    { text: 'Đóng', style: 'cancel' },
+                    { text: 'Xoá vùng', style: 'destructive', onPress: () => handleDeleteRegion(region.id) }
+                  ]
+                );
+              }}
+            />
+          );
+        })}
 
         {/* Render Registered Route Points (Simulated registered line path) */}
         {routePoints.length >= 2 && (
@@ -1189,6 +1402,14 @@ export default function TrackingActiveScreen() {
             <Text className="text-white text-base">🧭</Text>
           </Pressable>
 
+          {/* Advanced Map Download Button */}
+          <Pressable
+            className={`w-12 h-12 rounded-2xl border items-center justify-center active:bg-surface-2 ${isDownloadMode ? 'bg-emerald-500/20 border-emerald-500' : 'bg-surface-1/95 border-surface-3'}`}
+            onPress={() => setIsDownloadMode(!isDownloadMode)}
+          >
+            <Text className="text-white text-base">💾</Text>
+          </Pressable>
+
           {/* Share Button */}
           <Pressable
             className="w-12 h-12 rounded-2xl bg-surface-1/95 border border-surface-3 items-center justify-center active:bg-surface-2"
@@ -1267,6 +1488,42 @@ export default function TrackingActiveScreen() {
                 </Text>
               </Pressable>
             </View>
+          </View>
+        </View>
+      )}
+      {/* 6. Advanced Offline Map UI Overlays */}
+      {isDownloadMode && (
+        <View pointerEvents="none" style={StyleSheet.absoluteFillObject} className="items-center justify-center z-30">
+          <View className="w-64 h-64 border-2 border-dashed border-emerald-500/70 bg-transparent rounded-3xl" />
+          <Text className="text-emerald-400 text-[10px] font-bold mt-2 bg-slate-900/80 px-2 py-0.5 rounded">Vùng chọn tải bản đồ</Text>
+        </View>
+      )}
+
+      {isDownloadMode && (
+        <View className="absolute bottom-[230px] left-5 right-5 z-25 bg-surface-1/95 border border-surface-3 p-5 rounded-3xl gap-3 shadow-2xl">
+          <Text className="text-white text-xs font-bold">Tải bản đồ ngoại tuyến</Text>
+          <Text className="text-muted text-[10px] leading-4">
+            Zoom/di chuyển bản đồ để điều chỉnh vùng cần tải. Bản đồ sẽ được tải ở mức độ chi tiết (zoom 12-16).
+          </Text>
+          <View className="flex-row justify-between items-center bg-surface-2 p-3.5 rounded-2xl border border-surface-3">
+            <Text className="text-xs text-muted">Dự tính:</Text>
+            <Text className="text-xs font-bold text-emerald-400 font-mono">
+              {estimatedSize.tiles} ô ({estimatedSize.sizeMb} MB)
+            </Text>
+          </View>
+          <View className="flex-row gap-3">
+            <Pressable
+              className="flex-1 h-11 rounded-2xl bg-surface-3 items-center justify-center"
+              onPress={() => setIsDownloadMode(false)}
+            >
+              <Text className="text-white font-bold text-xs">Hủy</Text>
+            </Pressable>
+            <Pressable
+              className="flex-1 h-11 rounded-2xl bg-emerald-600 items-center justify-center active:bg-emerald-700"
+              onPress={handleConfirmDownloadRegion}
+            >
+              <Text className="text-white font-bold text-xs">Tải xuống</Text>
+            </Pressable>
           </View>
         </View>
       )}

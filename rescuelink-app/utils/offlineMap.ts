@@ -1,4 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface TileCoordinate {
   z: number;
@@ -42,14 +43,13 @@ async function ensureTileDirExists(z: number, x: number): Promise<void> {
 // Get unique tiles needed for a given route across zoom levels
 export function getTilesForRoute(
   routePoints: GPSCoordinate[],
-  zoomLevels: number[] = [13, 14, 15],
+  zoomLevels: number[] = [13, 14, 15, 16],
   radius: number = 0
 ): TileCoordinate[] {
   const tileSet = new Set<string>();
   const tiles: TileCoordinate[] = [];
 
   for (const zoom of zoomLevels) {
-    // For lower zooms (like zoom 13), we expand radius slightly if radius > 0
     const currentRadius = (zoom === 13 && radius > 0) ? radius + 1 : radius;
 
     for (const point of routePoints) {
@@ -73,22 +73,68 @@ export function getTilesForRoute(
   return tiles;
 }
 
+// Get unique tiles needed for a bounding box bounds across zoom levels
+export function getTilesForBounds(
+  latMin: number,
+  latMax: number,
+  lngMin: number,
+  lngMax: number,
+  zoomLevels: number[] = [12, 13, 14, 15, 16]
+): TileCoordinate[] {
+  const tiles: TileCoordinate[] = [];
+
+  for (const zoom of zoomLevels) {
+    const xMin = lon2tile(lngMin, zoom);
+    const xMax = lon2tile(lngMax, zoom);
+    const yMin = lat2tile(latMax, zoom);
+    const yMax = lat2tile(latMin, zoom);
+
+    const startX = Math.min(xMin, xMax);
+    const endX = Math.max(xMin, xMax);
+    const startY = Math.min(yMin, yMax);
+    const endY = Math.max(yMin, yMax);
+
+    // Safety limit per zoom level
+    const width = endX - startX + 1;
+    const height = endY - startY + 1;
+    if (width * height > 4000) {
+      continue; // Skip zoom level if bounding box is way too wide
+    }
+
+    for (let x = startX; x <= endX; x++) {
+      for (let y = startY; y <= endY; y++) {
+        tiles.push({ z: zoom, x, y });
+      }
+    }
+  }
+
+  return tiles;
+}
+
 // Download a single tile if it does not already exist
 export async function downloadTile(z: number, x: number, y: number): Promise<boolean> {
   const localUri = getLocalTileUri(z, x, y);
   
   try {
     const tileInfo = await FileSystem.getInfoAsync(localUri);
-    // If already exists and has non-zero size, skip downloading
     if (tileInfo.exists && tileInfo.size > 0) {
       return true;
     }
 
     await ensureTileDirExists(z, x);
-    const osmUrl = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+
+    // Try to load Viettel Maps Key from storage
+    let key = '';
+    try {
+      key = await AsyncStorage.getItem('viettel_maps_key') || '';
+    } catch (e) { /* ignore */ }
+
+    // If key exists, download from Viettel Maps, else fallback to OSM
+    const url = key 
+      ? `https://maps.viettelmap.vn/api/v1/tile/${z}/${x}/${y}.png?key=${key}`
+      : `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
     
-    // Download from OSM
-    await FileSystem.downloadAsync(osmUrl, localUri);
+    await FileSystem.downloadAsync(url, localUri);
     return true;
   } catch (error) {
     console.warn(`Failed to download tile z=${z}, x=${x}, y=${y}:`, error);
@@ -97,7 +143,6 @@ export async function downloadTile(z: number, x: number, y: number): Promise<boo
 }
 
 // Download all tiles along a route with progress reporting
-// Limit maximum downloaded tiles to 1500 tiles (~30MB) to allow wider corridor coverage
 export async function downloadRouteTiles(
   routePoints: GPSCoordinate[],
   onProgress?: (progress: number) => void
@@ -107,11 +152,8 @@ export async function downloadRouteTiles(
     return { total: 0, downloaded: 0, skipped: 0, failed: 0 };
   }
 
-  // Get tiles with a radius of 1 to cover surrounding regions (3x3 grid around each point)
-  const allTiles = getTilesForRoute(routePoints, [13, 14, 15], 1);
+  const allTiles = getTilesForRoute(routePoints, [13, 14, 15, 16], 1);
   const maxTiles = 1500;
-  
-  // If tiles exceed limit, slice to respect maximum resource limit
   const tilesToDownload = allTiles.slice(0, maxTiles);
   const total = tilesToDownload.length;
   
@@ -119,8 +161,7 @@ export async function downloadRouteTiles(
   let skipped = 0;
   let failed = 0;
 
-  // Process tiles in batches of 5 to run concurrently but avoid overloading network
-  const batchSize = 5;
+  const batchSize = 6;
   for (let i = 0; i < total; i += batchSize) {
     const batch = tilesToDownload.slice(i, i + batchSize);
     await Promise.all(
@@ -150,7 +191,56 @@ export async function downloadRouteTiles(
     }
   }
 
-  // Ensure progress reaches 100%
+  if (onProgress) onProgress(1);
+
+  return { total, downloaded, skipped, failed };
+}
+
+// Download bounds tiles (custom selected region in bounding box selector)
+export async function downloadBoundsTiles(
+  latMin: number,
+  latMax: number,
+  lngMin: number,
+  lngMax: number,
+  onProgress?: (progress: number) => void
+): Promise<{ total: number; downloaded: number; skipped: number; failed: number }> {
+  const allTiles = getTilesForBounds(latMin, latMax, lngMin, lngMax, [12, 13, 14, 15, 16]);
+  const total = allTiles.length;
+  
+  let downloaded = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  const batchSize = 6;
+  for (let i = 0; i < total; i += batchSize) {
+    const batch = allTiles.slice(i, i + batchSize);
+    await Promise.all(
+      batch.map(async (tile) => {
+        const localUri = getLocalTileUri(tile.z, tile.x, tile.y);
+        try {
+          const tileInfo = await FileSystem.getInfoAsync(localUri);
+          if (tileInfo.exists && tileInfo.size > 0) {
+            skipped++;
+          } else {
+            const success = await downloadTile(tile.z, tile.x, tile.y);
+            if (success) {
+              downloaded++;
+            } else {
+              failed++;
+            }
+          }
+        } catch (e) {
+          failed++;
+        }
+      })
+    );
+    
+    const completed = i + batch.length;
+    if (onProgress) {
+      onProgress(completed / total);
+    }
+  }
+
   if (onProgress) onProgress(1);
 
   return { total, downloaded, skipped, failed };

@@ -47,11 +47,13 @@ router.post('/register', validate(registerSchema), async (req, res, next) => {
       res.status(201).json({
         success: true,
         token: generateToken(user._id),
+        viettelMapsKey: process.env.VITE_VIETTEL_MAPS_KEY || '',
         user: {
           id: user._id,
           name: user.name,
           phone: user.phone,
           role: user.role,
+          isRanger: user.isRanger || false,
           emergencyContacts: user.emergencyContacts
         }
       });
@@ -77,11 +79,13 @@ router.post('/login', validate(loginSchema), async (req, res, next) => {
       res.json({
         success: true,
         token: generateToken(user._id),
+        viettelMapsKey: process.env.VITE_VIETTEL_MAPS_KEY || '',
         user: {
           id: user._id,
           name: user.name,
           phone: user.phone,
           role: user.role,
+          isRanger: user.isRanger || false,
           emergencyContacts: user.emergencyContacts
         }
       });
@@ -100,11 +104,13 @@ router.get('/me', protect, async (req, res, next) => {
   try {
     res.json({
       success: true,
+      viettelMapsKey: process.env.VITE_VIETTEL_MAPS_KEY || '',
       user: {
         id: req.user._id,
         name: req.user.name,
         phone: req.user.phone,
         role: req.user.role,
+        isRanger: req.user.isRanger || false,
         emergencyContacts: req.user.emergencyContacts
       }
     });
@@ -127,11 +133,13 @@ router.patch('/profile', protect, async (req, res, next) => {
 
     res.json({
       success: true,
+      viettelMapsKey: process.env.VITE_VIETTEL_MAPS_KEY || '',
       user: {
         id: req.user._id,
         name: req.user.name,
         phone: req.user.phone,
         role: req.user.role,
+        isRanger: req.user.isRanger || false,
         emergencyContacts: req.user.emergencyContacts
       }
     });

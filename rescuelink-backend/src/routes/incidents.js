@@ -383,6 +383,11 @@ router.patch('/:id/status', protect, authorize('admin', 'rescuer'), async (req, 
       success: true,
       data: incident
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // @desc    Report incident via Voice SOS (audio recording)
 // @route   POST /api/incidents/report-voice-sos
 // @access  Private
@@ -578,6 +583,11 @@ router.post('/incoming-sms', async (req, res, next) => {
       message: 'Incoming SMS processed successfully',
       data: populatedIncident
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // @desc    Generate Text-to-Speech warning audio (Viettel TTS)
 // @route   POST /api/incidents/tts-warning
 // @access  Private (Admin/Authority only)

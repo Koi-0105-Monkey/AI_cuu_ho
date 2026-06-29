@@ -1,7 +1,9 @@
+require('./instrument');
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
+const Sentry = require('@sentry/node');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
@@ -73,10 +75,18 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to RescueLink Emergency API' });
 });
 
+// Sentry Debug Test Route
+app.get('/debug-sentry', (req, res) => {
+  throw new Error('RescueLink Backend Sentry Test Error!');
+});
+
 // 404 Route handler
 app.use((req, res, next) => {
   res.status(404).json({ success: false, message: 'Resource not found' });
 });
+
+// The Sentry error handler must be registered before any other error middleware and after all controllers
+Sentry.setupExpressErrorHandler(app);
 
 // Centralized error handling middleware
 app.use((err, req, res, next) => {

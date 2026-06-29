@@ -7,6 +7,13 @@ import * as Location from 'expo-location';
 import 'react-native-reanimated';
 import '../global.css';
 import '../tasks/backgroundTasks';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://d3ee23846fb124134d471a1a01e62ff3@o4510417905123328.ingest.us.sentry.io/4511646556094464',
+  enableInExpoDevelopment: true,
+  debug: false,
+});
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -21,7 +28,7 @@ export const unstable_settings = {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -84,3 +91,5 @@ function RootLayoutNav() {
     </Stack>
   );
 }
+
+export default Sentry.wrap(RootLayout);

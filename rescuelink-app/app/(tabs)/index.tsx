@@ -234,9 +234,12 @@ export default function HomeScreen() {
     try {
       const res = await api.post('/auth/login', { phone, password });
       if (res.data.success) {
-        const { token: userToken, user: userInfo } = res.data;
+        const { token: userToken, user: userInfo, viettelMapsKey } = res.data;
         await AsyncStorage.setItem('user_token', userToken);
         await AsyncStorage.setItem('user_info', JSON.stringify(userInfo));
+        if (viettelMapsKey) {
+          await AsyncStorage.setItem('viettel_maps_key', viettelMapsKey);
+        }
         setToken(userToken);
         setUser(userInfo);
         
@@ -269,9 +272,12 @@ export default function HomeScreen() {
       };
       const res = await api.post('/auth/register', payload);
       if (res.data.success) {
-        const { token: userToken, user: userInfo } = res.data;
+        const { token: userToken, user: userInfo, viettelMapsKey } = res.data;
         await AsyncStorage.setItem('user_token', userToken);
         await AsyncStorage.setItem('user_info', JSON.stringify(userInfo));
+        if (viettelMapsKey) {
+          await AsyncStorage.setItem('viettel_maps_key', viettelMapsKey);
+        }
         setToken(userToken);
         setUser(userInfo);
         Alert.alert('Thành công', 'Đăng ký tài khoản cứu hộ thành công!');

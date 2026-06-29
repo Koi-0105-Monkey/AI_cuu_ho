@@ -67,6 +67,9 @@ export default function ProfileScreen() {
         setEditName(userInfo.name);
         // Sync locally
         await AsyncStorage.setItem('user_info', JSON.stringify(userInfo));
+        if (res.data.viettelMapsKey) {
+          await AsyncStorage.setItem('viettel_maps_key', res.data.viettelMapsKey);
+        }
       }
     } catch (err: any) {
       console.warn('Backend profile fetch failed (offline fallback active). Loading local data.');
