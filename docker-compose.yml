@@ -1,0 +1,26 @@
+services:
+  # Dịch vụ Cơ sở dữ liệu MongoDB Local (Chạy cho Backend local)
+  mongodb:
+    image: mongo:6.0
+    container_name: rescuelink-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  # Dịch vụ Tìm kiếm địa điểm Geocoder Photon Local
+  photon:
+    image: rtuszik/photon-docker:latest
+    container_name: rescuelink-photon
+    restart: always
+    ports:
+      - "2322:2322"
+    volumes:
+      - photon_data:/photon/data
+
+volumes:
+  mongodb_data:
+    name: rescuelink_mongodb_data
+  photon_data:
+    name: rescuelink_photon_data

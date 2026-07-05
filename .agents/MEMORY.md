@@ -32,7 +32,7 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
 *   **Tích Hợp Google Gemini AI (Thay thế Viettel AI)**: 
     *   Tích hợp dịch vụ [geminiService.js](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-backend/src/services/geminiService.js) tích hợp mô hình **Gemini 1.5 Flash** (gói miễn phí của Google AI Studio) để giải mã âm thanh Voice SOS, khôi phục dấu tiếng Việt cho SMS không dấu và trích xuất thực thể JSON sự cố cứu hộ.
     *   Sử dụng **HTML5 SpeechSynthesis API** miễn phí trên trình duyệt của Web Operator Dashboard để đọc to tin nhắn, loại bỏ hoàn toàn các API tính phí TTS ở backend.
-*   **Tích Hợp Photon Geocoder Server**: Hỗ trợ tích hợp máy chủ tìm kiếm địa điểm tự dựng bằng Photon (Elasticsearch) thông qua biến `PHOTON_URL` trong [.env](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-backend/.env) của backend, viết file hướng dẫn setup Docker [PHOTON_SETUP.md](file:///Users/khoihuynh/Documents/AI_cuu_ho/PHOTON_SETUP.md) cho người dùng.
+*   **Tích Hợp Photon Geocoder Server & Docker Setup**: Hỗ trợ tích hợp máy chủ tìm kiếm địa điểm tự dựng bằng Photon (Elasticsearch) thông qua biến `PHOTON_URL` trong [.env](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-backend/.env) của backend, tạo file [docker-compose.yml](file:///Users/khoihuynh/Documents/AI_cuu_ho/docker-compose.yml) chạy sẵn MongoDB local & Photon container, đồng thời bổ sung file hướng dẫn [PHOTON_SETUP.md](file:///Users/khoihuynh/Documents/AI_cuu_ho/PHOTON_SETUP.md).
 
 ---
 
@@ -40,6 +40,7 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
 
 - `[ ]` Tích hợp Firebase service account key thật để thử nghiệm FCM Notification đầy đủ.
 - `[x]` Tối ưu hóa caching bản đồ ngoại tuyến trên ứng dụng di động (Đã hoàn thành co giãn bounding box tải offline và vẽ Polygon ranh giới).
+- `[x]` Cài đặt Docker Desktop và tạo file docker-compose.yml khởi chạy môi trường dịch vụ local.
 - `[ ]` Đăng ký API Key của Google Gemini (AI Studio miễn phí) điền vào file `.env` ở backend để chạy sản phẩm thật.
 - `[x]` Chạy lệnh dọn dẹp xóa thư mục [rescuelink-vqg/](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-vqg) khi có sự xác nhận của người dùng (Đã thực hiện).
 - `[x]` Cấu hình giám sát lỗi runtime Sentry cho cả 3 phân hệ (Đã thực hiện).

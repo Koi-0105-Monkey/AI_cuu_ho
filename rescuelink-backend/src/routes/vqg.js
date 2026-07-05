@@ -2,6 +2,7 @@ const express = require('express');
 const Threat = require('../models/Threat');
 const { protect, authorize } = require('../middleware/auth');
 const socketService = require('../services/socketService');
+const { searchAdministrativeUnits } = require('../utils/administrativeUnits');
 
 const router = express.Router();
 
@@ -327,6 +328,12 @@ router.get('/search', protect, async (req, res, next) => {
         const normalizedName = poi.display_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         return normalizedName.includes(normalizedQuery);
       });
+
+      // Tích hợp tìm kiếm Đơn vị Hành chính Việt Nam (Tỉnh, Quận/Huyện, Phường/Xã) chuẩn nhất
+      const adminMatches = searchAdministrativeUnits(query, 5);
+      if (adminMatches.length > 0) {
+        searchResults = [...searchResults, ...adminMatches];
+      }
 
       if (searchResults.length === 0) {
         try {
