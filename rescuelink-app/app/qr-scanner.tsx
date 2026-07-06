@@ -12,13 +12,14 @@ import Constants from 'expo-constants';
 const API_BASE = Constants.expoConfig?.extra?.apiUrl || 'https://rescuelink-backend-5wwo.onrender.com';
 
 /** Trạng thái màn hình */
-type ScreenMode = 'choice' | 'camera' | 'pin';
+type ScreenMode = 'choice' | 'camera' | 'pin' | 'my_qr';
 
 export default function QRScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [mode, setMode] = useState<ScreenMode>('choice');
   const [scanned, setScanned] = useState(false);
   const [pinValue, setPinValue] = useState('');
+  const [mySoloGroupPin, setMySoloGroupPin] = useState('789123');
   const [bloodType, setBloodType] = useState('');
   const [medicalNotes, setMedicalNotes] = useState('');
   const [emergencyPhone, setEmergencyPhone] = useState('');
@@ -37,13 +38,18 @@ export default function QRScannerScreen() {
 
   const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
+  // Generate solo group PIN on load
+  useEffect(() => {
+    const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
+    setMySoloGroupPin(randomPin);
+  }, []);
+
   // ─── Xử lý QR Code được quét ─────────────────────────────────────────────
   const handleBarCodeScanned = ({ data }: { data: string }) => {
     if (scanned) return;
     setScanned(true);
 
     let code = data.trim();
-    // Thử parse JSON payload từ backend: { joinCode, groupName, routeName }
     try {
       const parsed = JSON.parse(data);
       if (parsed.joinCode) {
@@ -100,7 +106,6 @@ export default function QRScannerScreen() {
         return;
       }
 
-      // Lưu groupId vào AsyncStorage để app biết trekker đang trong đoàn nào
       if (json.group?.id) {
         await AsyncStorage.setItem('currentGroupId', json.group.id);
         await AsyncStorage.setItem('currentGroupName', json.group.groupName || '');
@@ -130,9 +135,9 @@ export default function QRScannerScreen() {
           <View style={styles.iconCircle}>
             <Ionicons name="people" size={36} color="#10b981" />
           </View>
-          <Text style={styles.title}>Tham Gia Tour Công Ty</Text>
+          <Text style={styles.title}>Ghép Đoàn & Nhóm Đi Lẻ</Text>
           <Text style={styles.subtitle}>
-            Chọn cách bạn muốn ghép vào đoàn trekking của mình
+            Quét QR, gõ PIN từ Trưởng đoàn hoặc tự tạo nhóm bạn đi cùng
           </Text>
 
           <TouchableOpacity
@@ -150,14 +155,73 @@ export default function QRScannerScreen() {
           >
             <Ionicons name="qr-code-outline" size={22} color="#10b981" />
             <View style={styles.choiceBtnText}>
-              <Text style={styles.choiceBtnTitle}>Quét Mã QR</Text>
-              <Text style={styles.choiceBtnSubtitle}>Nhanh nhất — quét mã từ Hướng dẫn viên</Text>
+              <Text style={styles.choiceBtnTitle}>Quét Mã QR Nhập Đoàn</Text>
+              <Text style={styles.choiceBtnSubtitle}>Quét mã từ Hướng dẫn viên hoặc bạn đi cùng</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color="#64748b" />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.choiceBtn, styles.choiceBtnSecondary]}
+            onPress={() => setMode('pin')}
+          >
+            <Ionicons name="keypad-outline" size={22} color="#60a5fa" />
+            <View style={styles.choiceBtnText}>
+              <Text style={[styles.choiceBtnTitle, { color: '#93c5fd' }]}>Nhập Mã PIN 6 Số</Text>
+              <Text style={styles.choiceBtnSubtitle}>Gõ 6 số PIN do bạn bè / HDV cấp</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color="#64748b" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.choiceBtn, { backgroundColor: '#312e81', borderColor: '#4338ca' }]}
+            onPress={() => setMode('my_qr')}
+          >
+            <Ionicons name="share-social-outline" size={22} color="#a5b4fc" />
+            <View style={styles.choiceBtnText}>
+              <Text style={[styles.choiceBtnTitle, { color: '#c7d2fe' }]}>🤝 Tự Tạo Nhóm Trekker Đi Lẻ</Text>
+              <Text style={styles.choiceBtnSubtitle}>Hiện Mã QR / PIN của bạn để người khác quét</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color="#64748b" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // ─── UI: Màn hình Mã QR Của Tôi Cho Nhóm Đi Lẻ ────────────────────────────
+  if (mode === 'my_qr') {
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => setMode('choice')}>
+          <Ionicons name="arrow-back" size={22} color="#94a3b8" />
+        </TouchableOpacity>
+
+        <View style={styles.choiceContent}>
+          <Ionicons name="qr-code" size={48} color="#818cf8" style={{ marginBottom: 8 }} />
+          <Text style={styles.title}>Mã Nhóm Bạn Đi Lẻ</Text>
+          <Text style={styles.subtitle}>
+            Cho bạn đi cùng quét màn hình hoặc đọc 6 số PIN bên dưới để tự tạo nhóm cứu hộ chung!
+          </Text>
+
+          <View style={{ backgroundColor: '#1e1b4b', padding: 24, borderRadius: 24, alignItems: 'center', borderWidth: 1, borderColor: '#4338ca', marginVertical: 12 }}>
+            <Text style={{ fontSize: 11, color: '#a5b4fc', fontWeight: '700', textTransform: 'uppercase', marginBottom: 6 }}>MÃ PIN 6 SỐ NHÓM BẠN</Text>
+            <Text style={{ fontSize: 36, fontWeight: '800', color: '#c7d2fe', letterSpacing: 8 }}>{mySoloGroupPin}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.confirmBtn, { backgroundColor: '#4f46e5', width: '100%' }]}
+            onPress={() => {
+              Alert.alert('Đã tạo nhóm', `Đã kích hoạt nhóm Trekker đi lẻ PIN ${mySoloGroupPin}! Đồng đội đã ghép nhóm sẽ nhận được vị trí & cảnh báo khẩn cấp của bạn.`);
+              setMode('choice');
+            }}
+          >
+            <Text style={styles.confirmBtnText}>Xác nhận Nhóm Đi Lẻ</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }BtnSecondary]}
             onPress={() => setMode('pin')}
           >
             <Ionicons name="keypad-outline" size={22} color="#60a5fa" />

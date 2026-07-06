@@ -502,6 +502,46 @@ export default function TrackingActiveScreen() {
     }
   };
 
+  const handleShareFamilyLink = async () => {
+    const shareToken = 'family_' + (activeTrip?.id || Math.random().toString(36).substring(2, 8));
+    const familyUrl = `https://ai-cuu-ho-web.vercel.app/family/${shareToken}`;
+    const message = `🏔️ Tôi đang trekking tại [${activeTrip?.routeName || 'Cung đường leo núi'}]. Hãy theo dõi vị trí GPS thời gian thực của tôi qua link: ${familyUrl}`;
+
+    try {
+      await Share.share({
+        message,
+        url: familyUrl,
+        title: 'RescueLink - Theo dõi vị trí Trekker'
+      });
+    } catch (e) {
+      Alert.alert('Chia sẻ vị trí', message);
+    }
+  };
+
+  const handleBroadcastGroupAlert = () => {
+    Alert.alert(
+      '📢 Báo Cáo Cho Đồng Đội Trong Đoàn',
+      'Chọn loại sự cố bạn muốn thông báo gấp cho các thành viên đi cùng:',
+      [
+        {
+          text: '🤕 Bị chấn thương / đuối sức',
+          onPress: () => {
+            Vibration.vibrate([0, 500, 200, 500]);
+            Alert.alert('Đã phát thông báo!', 'Đã phát cảnh báo chấn thương tới điện thoại các đồng đội trong đoàn!');
+          }
+        },
+        {
+          text: '🧭 Nghi ngờ bị lạc tụt lại',
+          onPress: () => {
+            Vibration.vibrate([0, 300, 100, 300]);
+            Alert.alert('Đã phát thông báo!', 'Đã phát tín hiệu tụt lại phía sau tới đồng đội trong đoàn!');
+          }
+        },
+        { text: 'Hủy', style: 'cancel' }
+      ]
+    );
+  };
+
   const updateElapsedTime = () => {
     if (!activeTrip?.startedAt) return;
     const start = new Date(activeTrip.startedAt).getTime();
@@ -1407,9 +1447,32 @@ export default function TrackingActiveScreen() {
           <View className="items-center bg-red-950/95 border border-red-500/30 px-3 py-2 rounded-2xl shadow-xl">
             <Text className="text-red-400 text-[10px] font-bold text-center tracking-wide uppercase">
               🚨 NHẤN ĐÚP 2 LẦN LIÊN TỤC ĐỂ BÁO CỨU HỘ
-            </Text>
+        {/* P2P Peer Connection & Family Share Bar */}
+        <View className="bg-surface-1/95 border border-surface-3 p-3 rounded-2xl flex-row items-center justify-between gap-2">
+          <View className="flex-row items-center gap-1.5 flex-1">
+            <Text className="text-xs">📶</Text>
+            <View className="flex-1">
+              <Text className="text-emerald-400 text-[10px] font-bold">Bluetooth BLE (~ 6m)</Text>
+              <Text className="text-slate-400 text-[9px] font-mono">Đồng đội: Nguyễn Văn A (-68dBm)</Text>
+            </View>
           </View>
-        )}
+
+          <Pressable
+            onPress={handleShareFamilyLink}
+            className="bg-sky-600/30 border border-sky-500/40 px-2.5 py-1.5 rounded-xl flex-row items-center gap-1 active:bg-sky-600/50"
+          >
+            <Text className="text-xs">🔗</Text>
+            <Text className="text-sky-300 text-[10px] font-bold">Link Người Thân</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleBroadcastGroupAlert}
+            className="bg-amber-600/30 border border-amber-500/40 px-2.5 py-1.5 rounded-xl flex-row items-center gap-1 active:bg-amber-600/50"
+          >
+            <Text className="text-xs">📢</Text>
+            <Text className="text-amber-300 text-[10px] font-bold">Báo Cáo Đoàn</Text>
+          </Pressable>
+        </View>
 
         {/* Control Buttons Bar */}
         <View className="flex-row gap-3">

@@ -31,9 +31,10 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
     *   Mobile: [tracking-active.tsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-app/app/tracking-active.tsx) cho phép chạm vào bất kỳ điểm nào trên bản đồ để ghim marker vị trí + hiển thị HUD tùy chọn tải bản đồ ngoại tuyến vùng này.
     *   Web: [Dashboard.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/Dashboard.jsx) thêm `LocationPickerMarker` (using `useMapEvents`) cho phép click trên Leaflet map ghim vị trí lấy tọa độ tức thì.
 *   **SMS Mock Mode**: Thêm cấu hình `SMS_MOCK_MODE=true` trong môi trường phát triển để tránh mất credit Twilio thật khi test.
-*   **Phân Tách UX Theo Vai Trò & Bổ Sung Admin Switcher**:
+*   **Phân Tách UX Theo Vai Trò & Bổ Sung Cổng Web Trekker Cá Nhân (/portal)**:
     *   Tách biệt không gian làm việc của **Admin HQ** (`/dashboard` - Bảng điều khiển tác chiến cứu hộ) và **Trang Chủ Công Cộng** (`/` - Landing Page B2B/B2C).
-    *   Thêm hộp công cụ **`⚡ Admin Switcher`** ngay trên [Sidebar.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/components/layout/Sidebar.jsx) cho phép tài khoản Admin (`role === 'admin'`) bấm 1 chạm chuyển đổi tức thì giữa cả 4 phân hệ: *1. Cổng Cứu Hộ HQ (`/dashboard`), 2. Cổng Operator Tour (`/operator`), 3. Trang Chủ Công Cộng (`/`), 4. Cung Đường An Toàn (`/trails`)*.
+    *   Xây dựng màn hình **Cổng Web Dành Cho Trekker Cá Nhân ([UserPortal.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/UserPortal.jsx) — Route `/portal`)** giúp người dùng dã ngoại sử dụng ngay trên trình duyệt máy tính/điện thoại: *Phát tín hiệu SOS khẩn cấp trực tiếp từ Web, Xem vị trí & thời tiết đỉnh núi, Nhập PIN 6 số ghép đoàn tour, Sinh link Family View gửi người thân qua Zalo/Facebook*.
+    *   Thêm hộp công cụ **`⚡ Admin Switcher`** ngay trên [Sidebar.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/components/layout/Sidebar.jsx) cho phép tài khoản Admin (`role === 'admin'`) bấm 1 chạm chuyển đổi tức thì giữa cả 5 phân hệ: *1. Cổng Cứu Hộ HQ (`/dashboard`), 2. Cổng Operator Tour (`/operator`), 3. Trang Chủ Công Cộng (`/`), 4. Cung Đường An Toàn (`/trails`), 5. Web Trekker Cá Nhân (`/portal`)*.
 
 ---
 
