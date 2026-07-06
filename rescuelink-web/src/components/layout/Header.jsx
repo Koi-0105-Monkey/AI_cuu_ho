@@ -1,16 +1,27 @@
-import { Bell } from '@phosphor-icons/react';
+import { Bell, List } from '@phosphor-icons/react';
 import { useAuth } from '../../context/AuthContext';
+import { useLayout } from './AppLayout';
 
 export default function Header({ title, liveCount = 0 }) {
   const { user } = useAuth();
+  const { toggleMobileSidebar } = useLayout();
 
   return (
     <header className="h-14 border-b border-surface-4 bg-surface-1/80 backdrop-blur-md
-                       flex items-center justify-between px-6 sticky top-0 z-20">
+                       flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
       <div className="flex items-center gap-3">
-        <h1 className="text-white font-semibold text-base">{title}</h1>
+        {/* Hamburger Menu Toggle for Mobile */}
+        <button
+          onClick={toggleMobileSidebar}
+          className="md:hidden p-2 rounded-lg bg-surface-2 text-slate-200 hover:text-white hover:bg-surface-3 transition-colors"
+          title="Mở menu điều hướng"
+        >
+          <List size={20} weight="bold" />
+        </button>
+
+        <h1 className="text-white font-semibold text-sm sm:text-base truncate">{title}</h1>
         {liveCount > 0 && (
-          <span className="badge bg-emergency-600/20 text-emergency-400 border border-emergency-600/30 text-[11px]">
+          <span className="badge bg-emergency-600/20 text-emergency-400 border border-emergency-600/30 text-[11px] shrink-0">
             <span className="live-dot" />
             {liveCount} đang mở
           </span>
@@ -22,7 +33,7 @@ export default function Header({ title, liveCount = 0 }) {
           <Bell size={18} />
         </button>
         <div className="flex items-center gap-2 pl-3 border-l border-surface-4">
-          <div className="w-7 h-7 rounded-full bg-emergency-600/30 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-full bg-emergency-600/30 flex items-center justify-center shrink-0">
             <span className="text-emergency-400 text-xs font-bold">
               {user?.name?.[0]?.toUpperCase() || 'A'}
             </span>

@@ -24,6 +24,7 @@ const queryClient = new QueryClient({
 });
 
 const router = createBrowserRouter([
+  { path: '/', element: <LandingPage /> },
   { path: '/home', element: <LandingPage /> },
   { path: '/login', element: <Login /> },
   { path: '/family/:shareToken', element: <FamilyView /> }, // Public family route
@@ -31,6 +32,7 @@ const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       { index: true, element: <Dashboard /> },
+      { path: 'dashboard', element: <Dashboard /> },
       { path: 'incidents', element: <IncidentList /> },
       { path: 'incidents/:id', element: <IncidentDetail /> },
       { path: 'trails', element: <TrailSafety /> },

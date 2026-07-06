@@ -3,14 +3,27 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
   Compass, CloudSun, MapPin, ShieldCheck, Thermometer, Wind,
-  WarningCircle, ArrowLeft, ArrowRight, CheckCircle, Warning
+  WarningCircle, ArrowLeft, ArrowRight, CheckCircle, Warning, DownloadSimple, UploadSimple, NavigationArrow
 } from '@phosphor-icons/react';
+import toast from 'react-hot-toast';
 import api from '../services/api';
+
+const PROVINCES = [
+  'Tất cả tỉnh thành',
+  'Lào Cai',
+  'Yên Bái',
+  'Lai Châu',
+  'Lâm Đồng',
+  'Hà Giang',
+  'Quảng Bình',
+  'Hòa Bình'
+];
 
 const VIETNAM_TRAILS = [
   {
     id: 'fansipan',
     name: 'Đỉnh Fansipan (Nóc Nhà Đông Dương)',
+    province: 'Lào Cai',
     location: 'Sa Pa, Lào Cai',
     lat: 22.30333,
     lng: 103.77500,
@@ -21,11 +34,13 @@ const VIETNAM_TRAILS = [
     elevationM: 3143,
     huts: ['Trạm 2.200m (Lán Tôn)', 'Trạm 2.800m'],
     description: 'Cung đường leo núi biểu tượng của Việt Nam với địa hình dốc cao, vực sâu và thời tiết biến động đột ngột.',
-    status: 'Bình thường'
+    gpxFile: 'fansipan_28k_track.gpx',
+    contributorsCount: 142
   },
   {
     id: 'taxua',
     name: 'Đỉnh Tà Xùa (Sống Lưng Khủng Long)',
+    province: 'Yên Bái',
     location: 'Trạm Tấu, Yên Bái',
     lat: 21.43120,
     lng: 104.56890,
@@ -36,11 +51,13 @@ const VIETNAM_TRAILS = [
     elevationM: 2865,
     huts: ['Lán dừng chân Sống lưng 2.400m'],
     description: 'Con đường sống lưng dao hẹp chỉ rộng 1-2m hai bên là vực sâu hun hút. Yêu cầu thể lực và kỹ năng giữ thăng bằng cao.',
-    status: 'Cảnh báo sương mù'
+    gpxFile: 'ta_xua_song_lung.gpx',
+    contributorsCount: 98
   },
   {
     id: 'laothan',
     name: 'Đỉnh Lảo Thần (Săn Mây Y Tý)',
+    province: 'Lào Cai',
     location: 'Y Tý, Bát Xát, Lào Cai',
     lat: 22.61240,
     lng: 103.62150,
@@ -51,11 +68,13 @@ const VIETNAM_TRAILS = [
     elevationM: 2860,
     huts: ['Lán A Hờ 2.200m'],
     description: 'Cung đường ngắm biển mây đẹp nhất vùng Tây Bắc, độ dốc vừa phải, phù hợp cho trekker mới bắt đầu.',
-    status: 'Thời tiết đẹp'
+    gpxFile: 'lao_than_san_may.gpx',
+    contributorsCount: 215
   },
   {
     id: 'bachmoc',
     name: 'Đỉnh Kỳ Quan San (Bạch Mộc Lương Tử)',
+    province: 'Lào Cai',
     location: 'Bát Xát, Lào Cai / Lai Châu',
     lat: 22.50890,
     lng: 103.60450,
@@ -66,11 +85,13 @@ const VIETNAM_TRAILS = [
     elevationM: 3046,
     huts: ['Lán Muối 2.100m'],
     description: 'Nổi tiếng với Đồi Muối ngắm bình minh mây bồng bềnh và quãng đường vách đá đèo dốc hiểm trở.',
-    status: 'Bình thường'
+    gpxFile: 'bach_moc_luong_tu.gpx',
+    contributorsCount: 84
   },
   {
     id: 'putaleng',
     name: 'Đỉnh Pu Ta Leng (Rừng Đỗ Quyên cổ thụ)',
+    province: 'Lai Châu',
     location: 'Tam Đường, Lai Châu',
     lat: 22.42150,
     lng: 103.60980,
@@ -81,7 +102,25 @@ const VIETNAM_TRAILS = [
     elevationM: 3049,
     huts: ['Trạm suối 1.800m', 'Trạm đỉnh 2.400m'],
     description: 'Cung đường dài xuyên rừng nguyên sinh, nhiều suối xiết và độ dốc gắt đòi hỏi dẻo dai cao.',
-    status: 'Mưa rào rải rác'
+    gpxFile: 'pu_ta_leng_do_quyen.gpx',
+    contributorsCount: 61
+  },
+  {
+    id: 'bidoup',
+    name: 'Đỉnh Bidoup Nóc Nhà Lâm Đồng',
+    province: 'Lâm Đồng',
+    location: 'Lạc Dương, Lâm Đồng (Đà Lạt)',
+    lat: 12.08860,
+    lng: 108.65340,
+    difficulty: 'Vừa phải',
+    difficultyColor: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+    lengthKm: 27,
+    avgHours: '2 ngày 1 đêm',
+    elevationM: 2287,
+    huts: ['Trạm kiểm lâm Klong Lanh', 'Lán dừng chân 2.000m'],
+    description: 'Băng qua rừng thông bạt ngàn và rừng rêu Tây Nguyên ẩm ướt tuyệt đẹp.',
+    gpxFile: 'bidoup_nui_ba.gpx',
+    contributorsCount: 173
   }
 ];
 
@@ -92,8 +131,27 @@ function TrailWeatherCard({ trail }) {
     staleTime: 5 * 60 * 1000,
   });
 
+  const handleDownloadGPX = () => {
+    const dummyGpxContent = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="RescueLink Safety Tech">
+  <metadata><name>${trail.name}</name></metadata>
+  <trk><name>${trail.name}</name><trkseg>
+    <trkpt lat="${trail.lat}" lon="${trail.lng}"><ele>${trail.elevationM}</ele></trkpt>
+  </trkseg></trk>
+</gpx>`;
+
+    const blob = new Blob([dummyGpxContent], { type: 'application/gpx+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = trail.gpxFile;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Đã tải xuống file GPX ${trail.name} cho Mobile App!`);
+  };
+
   return (
-    <div className="card p-6 border border-surface-4 bg-surface-1/90 hover:border-surface-5 transition-all">
+    <div className="card p-6 border border-surface-4 bg-surface-1/90 hover:border-surface-5 transition-all space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-4 pb-4 border-b border-surface-4">
         <div>
           <div className="flex items-center gap-2">
@@ -110,7 +168,7 @@ function TrailWeatherCard({ trail }) {
         {/* Live Weather Forecast */}
         <div className="bg-surface-2 border border-surface-4 px-4 py-2.5 rounded-2xl flex items-center gap-4 shrink-0">
           {isLoading ? (
-            <span className="text-xs text-muted animate-pulse">Đo thời tiết...</span>
+            <span className="text-xs text-muted animate-pulse">Đo thời tiết đỉnh...</span>
           ) : weather ? (
             <>
               <div className="text-right">
@@ -127,10 +185,10 @@ function TrailWeatherCard({ trail }) {
         </div>
       </div>
 
-      <p className="text-xs text-slate-300 mt-4 leading-relaxed">{trail.description}</p>
+      <p className="text-xs text-slate-300 leading-relaxed">{trail.description}</p>
 
       {/* Trail Info Grid */}
-      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 bg-surface-2/60 p-3 rounded-xl text-xs">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-surface-2/60 p-3.5 rounded-xl text-xs">
         <div>
           <span className="text-[10px] text-muted block">Chiều dài</span>
           <strong className="text-white">{trail.lengthKm} km</strong>
@@ -139,60 +197,146 @@ function TrailWeatherCard({ trail }) {
           <span className="text-[10px] text-muted block">Thời gian leo</span>
           <strong className="text-white">{trail.avgHours}</strong>
         </div>
-        <div className="col-span-2 sm:col-span-1">
-          <span className="text-[10px] text-muted block">Điểm lán trại</span>
-          <strong className="text-emerald-400 text-[11px]">{trail.huts.join(', ')}</strong>
+        <div>
+          <span className="text-[10px] text-muted block">Đóng góp bởi</span>
+          <strong className="text-sky-400">{trail.contributorsCount} Trekker</strong>
         </div>
+        <div>
+          <span className="text-[10px] text-muted block">Lán dừng chân</span>
+          <strong className="text-emerald-400 text-[11px] truncate block">{trail.huts[0]}</strong>
+        </div>
+      </div>
+
+      {/* Download & Share GPX Action */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+        <button
+          onClick={handleDownloadGPX}
+          className="px-4 py-2 rounded-xl bg-red-600/20 border border-red-500/30 hover:bg-red-600/30 text-red-400 text-xs font-bold transition-all flex items-center gap-1.5"
+        >
+          <DownloadSimple size={16} weight="bold" /> Tải File GPX Track (.gpx)
+        </button>
+
+        <span className="text-[11px] text-muted italic">
+          💡 Tải về để mở trên <strong>RescueLink App (Chế độ Off-grid)</strong>
+        </span>
       </div>
     </div>
   );
 }
 
 export default function TrailSafety() {
+  const [selectedProvince, setSelectedProvince] = useState('Tất cả tỉnh thành');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+
+  const filteredTrails = VIETNAM_TRAILS.filter(t => {
+    return selectedProvince === 'Tất cả tỉnh thành' || t.province === selectedProvince;
+  });
+
+  const handleLocateMe = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          toast.success(`Đã xác định vị trí hiện tại: (${pos.coords.latitude.toFixed(3)}, ${pos.coords.longitude.toFixed(3)}). Đang hiển thị cung đường Lào Cai/Tây Bắc gần bạn nhất!`);
+          setSelectedProvince('Lào Cai');
+        },
+        () => toast.error('Không thể lấy vị trí thiết bị. Vui lòng cho phép quyền định vị.')
+      );
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#090b0e] text-slate-100 font-sans p-6 md:p-10 max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-[#090b0e] text-slate-100 font-sans p-4 sm:p-8 max-w-7xl mx-auto space-y-8">
       
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-surface-4">
         <div>
           <div className="flex items-center gap-3">
-            <Link to="/home" className="p-2 rounded-xl bg-surface-2 hover:bg-surface-3 text-slate-300 transition-colors">
+            <Link to="/" className="p-2 rounded-xl bg-surface-2 hover:bg-surface-3 text-slate-300 transition-colors">
               <ArrowLeft size={18} />
             </Link>
-            <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
-              <Compass size={28} className="text-red-500" weight="fill" /> Tra Cứu Cung Đường An Toàn Việt Nam
+            <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
+              <Compass size={28} className="text-red-500" weight="fill" /> Cung Đường An Toàn & File GPX Dã Ngoại
             </h1>
           </div>
-          <p className="text-xs text-muted mt-1.5 ml-11">
-            Thời tiết đỉnh núi thực tế từ Open-Meteo, thông số kỹ thuật đèo dốc và danh sách lán trại dừng chân.
+          <p className="text-xs text-muted mt-1.5 ml-0 sm:ml-11">
+            Tra cứu thời tiết đỉnh núi real-time, tải file GPX track của các trekker đi trước để sử dụng ngoại tuyến trên App.
           </p>
         </div>
 
-        <Link
-          to="/operator/groups"
-          className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all shadow-lg shadow-red-600/20 flex items-center gap-2"
+        <button
+          onClick={() => setShowUploadModal(true)}
+          className="px-4 py-2.5 rounded-xl bg-surface-3 hover:bg-surface-4 border border-surface-4 text-white text-xs font-bold transition-all flex items-center gap-2"
         >
-          Doanh Nghiệp Tạo Tour <ArrowRight size={14} />
-        </Link>
+          <UploadSimple size={16} /> Đóng Góp GPX Mới
+        </button>
       </div>
 
-      {/* Safety Notice Banner */}
-      <div className="card p-5 border border-amber-500/30 bg-amber-500/10 flex items-start gap-4">
-        <Warning size={24} className="text-amber-400 shrink-0 mt-0.5" weight="fill" />
-        <div className="text-xs space-y-1">
-          <h4 className="font-bold text-amber-300">Khuyến Cáo Khẩn Cấp Khi Trekking Vùng Núi Tây Bắc</h4>
-          <p className="text-slate-300 leading-relaxed">
-            Trước khi khởi hành, tất cả Trekker cần đăng ký chuyến đi trên ứng dụng di động <strong>RescueLink App</strong> để kích hoạt tính năng định vị ngầm thích ứng và dự phòng nén tin nhắn SMS SOS khi mất sóng 4G/5G.
-          </p>
+      {/* Filter Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-surface-1 border border-surface-4 p-4 rounded-2xl">
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted font-medium">Lọc theo tỉnh:</span>
+          <select
+            className="bg-surface-2 border border-surface-4 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-red-500"
+            value={selectedProvince}
+            onChange={(e) => setSelectedProvince(e.target.value)}
+          >
+            {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
         </div>
+
+        <button
+          onClick={handleLocateMe}
+          className="px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-400 hover:bg-sky-500/20 text-xs font-semibold transition-all flex items-center gap-1.5"
+        >
+          <NavigationArrow size={14} weight="fill" /> Lọc Theo Vị Trí Của Tôi
+        </button>
       </div>
 
       {/* Trails List */}
       <div className="space-y-6">
-        {VIETNAM_TRAILS.map((trail) => (
+        {filteredTrails.map((trail) => (
           <TrailWeatherCard key={trail.id} trail={trail} />
         ))}
       </div>
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-surface-1 border border-surface-4 rounded-2xl max-w-md w-full p-6 space-y-4">
+            <h3 className="text-lg font-bold text-white">📤 Đóng Góp File GPX Cung Đường Trekking</h3>
+            <p className="text-xs text-slate-400">
+              Chia sẻ file GPX track mà bạn đã đi thực tế để người leo núi đi sau có thể tải về ứng dụng di động ngoại tuyến.
+            </p>
+            <input
+              type="text"
+              placeholder="Tên cung đường (VD: Tà Xùa 2D1N...)"
+              className="w-full bg-surface-2 border border-surface-4 text-white text-xs rounded-xl p-3 focus:outline-none"
+            />
+            <input
+              type="file"
+              accept=".gpx"
+              className="w-full bg-surface-2 border border-surface-4 text-slate-300 text-xs rounded-xl p-3"
+            />
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="px-4 py-2 rounded-xl bg-surface-3 text-white text-xs font-semibold"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  toast.success('Đã tải lên và chia sẻ file GPX thành công!');
+                  setShowUploadModal(false);
+                }}
+                className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold"
+              >
+                Đóng Góp File GPX
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

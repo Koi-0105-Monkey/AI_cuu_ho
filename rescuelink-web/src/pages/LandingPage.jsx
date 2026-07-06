@@ -2,52 +2,142 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ShieldCheck, MapPin, PhoneCall, Heartbeat, Users, Lightning,
-  Compass, ArrowRight, CheckCircle, Warning, FileText
+  Compass, ArrowRight, CheckCircle, Warning, FileText, User, List, X
 } from '@phosphor-icons/react';
+import { useAuth } from '../context/AuthContext';
 
 export default function LandingPage() {
+  const { user } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-[#090b0e] text-slate-100 font-sans selection:bg-red-500/30">
       
       {/* ─── Top Public Navigation ─── */}
-      <nav className="border-b border-surface-4 bg-surface-1/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+      <nav className="border-b border-surface-4 bg-surface-1/80 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-500/20">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-500/20 shrink-0">
               <ShieldCheck size={24} className="text-white" weight="fill" />
             </div>
             <div>
-              <h1 className="font-extrabold text-lg text-white tracking-tight flex items-center gap-2">
+              <h1 className="font-extrabold text-base sm:text-lg text-white tracking-tight flex items-center gap-2">
                 RESCUELINK <span className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full font-semibold">SAFETY TECH</span>
               </h1>
-              <p className="text-[10px] text-muted tracking-wider uppercase">Nền Tảng Cứu Hộ Dã Ngoại #1 Việt Nam</p>
+              <p className="text-[9px] sm:text-[10px] text-muted tracking-wider uppercase">Nền Tảng Cứu Hộ Dã Ngoại #1 Việt Nam</p>
             </div>
           </div>
 
+          {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center gap-8 text-xs font-semibold text-slate-300">
-            <Link to="/home" className="text-red-400 font-bold">Trang Chủ</Link>
+            <Link to="/" className="text-red-400 font-bold">Trang Chủ</Link>
             <Link to="/trails" className="hover:text-white transition-colors flex items-center gap-1.5">
               <Compass size={16} /> Cung Đường An Toàn
             </Link>
-            <Link to="/" className="hover:text-white transition-colors">Trung Tâm Chỉ Huy HQ</Link>
+            <Link to="/dashboard" className="hover:text-white transition-colors">Trung Tâm Chỉ Huy HQ</Link>
             <Link to="/operator" className="hover:text-white transition-colors">Cổng Doanh Nghiệp Tour</Link>
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="px-4 py-2 rounded-xl bg-surface-3 hover:bg-surface-4 text-white text-xs font-semibold transition-all border border-surface-4"
+            <div className="hidden sm:flex items-center gap-3">
+              {user ? (
+                <Link
+                  to={user.role === 'operator' ? '/operator' : '/dashboard'}
+                  className="px-4 py-2 rounded-xl bg-surface-3 hover:bg-surface-4 text-emerald-400 text-xs font-bold transition-all border border-emerald-500/30 flex items-center gap-2"
+                >
+                  <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px]">
+                    {user.name?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                  Truy Cập Dashboard
+                </Link>
+              ) : (
+                <Link
+                  to="/login"
+                  className="px-4 py-2 rounded-xl bg-surface-3 hover:bg-surface-4 text-white text-xs font-semibold transition-all border border-surface-4"
+                >
+                  Đăng Nhập
+                </Link>
+              )}
+
+              <Link
+                to="/operator/groups"
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all shadow-lg shadow-red-600/30 flex items-center gap-1.5"
+              >
+                Dành Cho Doanh Nghiệp <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            {/* Mobile Hamburger Toggle Button */}
+            <button
+              onClick={() => setMobileMenuOpen(prev => !prev)}
+              className="md:hidden p-2 rounded-xl bg-surface-2 border border-surface-4 text-slate-200 hover:text-white transition-colors"
             >
-              Đăng Nhập
-            </Link>
-            <Link
-              to="/operator/groups"
-              className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all shadow-lg shadow-red-600/30 flex items-center gap-1.5"
-            >
-              Dành Cho Doanh Nghiệp <ArrowRight size={14} />
-            </Link>
+              {mobileMenuOpen ? <X size={22} /> : <List size={22} />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Slide-Down Menu Sheet */}
+        {mobileMenuOpen && (
+          <div className="md:hidden mt-4 pt-4 border-t border-surface-4 space-y-3 pb-2 text-xs">
+            <Link
+              to="/"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg bg-surface-2 text-red-400 font-bold"
+            >
+              Trang Chủ
+            </Link>
+            <Link
+              to="/trails"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg hover:bg-surface-2 text-slate-200 font-medium flex items-center gap-2"
+            >
+              <Compass size={16} /> Cung Đường An Toàn
+            </Link>
+            <Link
+              to="/dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg hover:bg-surface-2 text-slate-200 font-medium"
+            >
+              Trung Tâm Chỉ Huy HQ
+            </Link>
+            <Link
+              to="/operator"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg hover:bg-surface-2 text-slate-200 font-medium"
+            >
+              Cổng Doanh Nghiệp Tour
+            </Link>
+
+            <div className="pt-2 border-t border-surface-4 flex flex-col gap-2">
+              {user ? (
+                <Link
+                  to={user.role === 'operator' ? '/operator' : '/dashboard'}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-bold"
+                >
+                  Truy Cập Dashboard ({user.name})
+                </Link>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center px-4 py-2.5 rounded-xl bg-surface-3 text-white font-semibold border border-surface-4"
+                >
+                  Đăng Nhập
+                </Link>
+              )}
+
+              <Link
+                to="/operator/groups"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center px-4 py-2.5 rounded-xl bg-red-600 text-white font-bold flex items-center justify-center gap-2"
+              >
+                Dành Cho Doanh Nghiệp Tour <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* ─── Hero Section ─── */}

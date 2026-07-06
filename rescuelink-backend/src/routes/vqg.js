@@ -6,31 +6,7 @@ const { searchAdministrativeUnits } = require('../utils/administrativeUnits');
 
 const router = express.Router();
 
-// Mock VQG Hoang Lien Satellite Hotspots (MODIS/VIIRS)
-const MOCK_HOTSPOTS = [
-  {
-    id: "hs_001",
-    lat: 22.361,
-    lng: 103.785,
-    satellite: "VIIRS (NPP)",
-    confidence: "High",
-    frp: 28.5, // Fire Radiative Power (MW)
-    acqTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 mins ago
-    status: "Chưa xác minh"
-  },
-  {
-    id: "hs_002",
-    lat: 22.312,
-    lng: 103.845,
-    satellite: "MODIS (Aqua)",
-    confidence: "Medium",
-    frp: 12.3,
-    acqTime: new Date(Date.now() - 120 * 60 * 1000).toISOString(), // 2 hours ago
-    status: "Chưa xác minh"
-  }
-];
-
-// @desc    Get real satellite fire hotspots from NASA FIRMS (VIIRS/MODIS)
+// @desc    Get real satellite fire hotspots from NASA FIRMS & USGS Earthquakes
 // @route   GET /api/vqg/hotspots
 // @access  Private (Admin/Operator/Rescuer)
 router.get('/hotspots', protect, async (req, res, next) => {
@@ -38,11 +14,11 @@ router.get('/hotspots', protect, async (req, res, next) => {
     const nasaKey = process.env.NASA_FIRMS_KEY || 'f2f6d1fd3bf4dd2d3796ef510aac1322';
     let realHotspots = [];
 
+    // 1. Fetch real NASA FIRMS active fire hotspots (7-day range)
     if (nasaKey) {
       try {
-        // Fetch active fires for Vietnam bounding box (102,8,110,24) over last 24h
-        const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${nasaKey}/VIIRS_SNPP_NRT/102,8,110,24/1`;
-        const response = await fetch(url, { signal: AbortSignal.timeout(6000) });
+        const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${nasaKey}/VIIRS_SNPP_NRT/102,8,110,24/7`;
+        const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
         const csvText = await response.text();
 
         const lines = csvText.trim().split('\n');
@@ -75,23 +51,48 @@ router.get('/hotspots', protect, async (req, res, next) => {
                 confidence: conf,
                 frp: parseFloat(frp.toFixed(1)),
                 acqTime: `${acqDate}T${acqTime.slice(0, 2)}:${acqTime.slice(2, 4)}:00Z`,
-                status: 'Xác minh bởi NASA Vệ Tinh'
+                status: 'Cháy rừng xác minh bởi Vệ tinh NASA'
               });
             }
           }
         }
       } catch (nasaErr) {
-        console.warn('NASA FIRMS API fetch error, falling back to mock hotspots:', nasaErr.message);
+        console.warn('NASA FIRMS API error:', nasaErr.message);
       }
     }
 
-    const finalData = realHotspots.length > 0 ? realHotspots : MOCK_HOTSPOTS;
+    // 2. Fetch real USGS Earthquakes in SE Asia / Vietnam region
+    try {
+      const usgsUrl = 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minlatitude=0&maxlatitude=25&minlongitude=95&maxlongitude=115&minmagnitude=2.5&limit=10';
+      const eqResp = await fetch(usgsUrl, { signal: AbortSignal.timeout(6000) });
+      const eqData = await eqResp.json();
+
+      if (eqData.features && Array.isArray(eqData.features)) {
+        eqData.features.forEach((eq, idx) => {
+          const coords = eq.geometry?.coordinates || [];
+          if (coords.length >= 2) {
+            realHotspots.push({
+              id: `usgs_eq_${eq.id || idx}`,
+              lat: coords[1],
+              lng: coords[0],
+              satellite: 'USGS Động Đất Real-time',
+              confidence: 'High',
+              frp: eq.properties?.mag ? eq.properties.mag * 10 : 30.0,
+              acqTime: new Date(eq.properties?.time || Date.now()).toISOString(),
+              status: `Động đất M${eq.properties?.mag || '3.0'} - ${eq.properties?.place || 'Khu vực ĐNA'}`
+            });
+          }
+        });
+      }
+    } catch (eqErr) {
+      console.warn('USGS Earthquake API error:', eqErr.message);
+    }
 
     res.json({
       success: true,
-      source: realHotspots.length > 0 ? 'NASA_FIRMS_LIVE_SATELLITE' : 'MOCK_HOTSPOTS',
-      count: finalData.length,
-      data: finalData
+      source: 'REAL_SATELLITE_AND_USGS_DATA',
+      count: realHotspots.length,
+      data: realHotspots
     });
   } catch (error) {
     next(error);
