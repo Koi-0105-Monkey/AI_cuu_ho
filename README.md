@@ -13,6 +13,18 @@
 
 ---
 
+## 🔑 Danh Sách Tài Khoản Test & Các Phân Quyền (Actors & Credentials)
+
+Hệ thống **RescueLink** phân quyền tinh gọn gồm **3 Actor chính**:
+
+| Phân quyền (Actor) | Nền tảng / Ứng dụng | Quyền hạn chính | Tài khoản thử nghiệm (Test Account) |
+| :--- | :--- | :--- | :--- |
+| **`user`** (Trekker) | 📱 Mobile App ([`rescuelink-app`](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-app)) | Đăng ký cá nhân, xem thời tiết, theo dõi GPS, gửi SOS khẩn cấp, chọn vị trí trên Map, chia sẻ Family Link | Đăng ký tự do bằng bất kỳ SĐT nào trên App |
+| **`operator`** (Công ty Tour) | 🖥️ Web Portal ([`/operator`](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/operator)) & 📱 App | Tạo nhóm ghép đoàn trekking, sinh mã QR / PIN 6 số, xem thông tin y tế đoàn, xuất danh sách PDF | SĐT: **`0123456789`**<br>Pass: **`test123`** |
+| **`admin` / `rescuer`** (HQ & Cứu hộ) | 🖥️ Web Admin ([`rescuelink-web`](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web)) | Toàn quyền giám sát bản đồ sự cố khẩn cấp thời gian thực, điều phối cứu hộ, ghim vị trí chọn trên Leaflet Map, tìm kiếm địa điểm | SĐT: **`012345678`**<br>Pass: **`admin123`** |
+
+---
+
 ## 📸 Giao diện Hệ thống
 
 ### 1. 📱 Ứng dụng Di động (RescueLink Mobile App — Premium Deep Dark Redesign)
@@ -74,10 +86,10 @@ graph TD
 *   **Cổng Tour Operator B2B**: Quản lý hướng dẫn viên, phân đoàn và theo dõi đoàn trekking tập trung tại route `/operator`.
 *   **Trang Public Family View**: Người thân theo dõi trực tiếp vị trí thông qua share link `/family/:shareToken` mà không cần tài khoản.
 
-### 3. 🌲 Module Quản Lý Lâm Nghiệp & Kiểm Lâm (Tích hợp trong `rescuelink-web` & `rescuelink-app`)
-*   **Bản đồ Phân Khu VQG**: Vẽ ranh giới địa lý của Vườn Quốc Gia (Polygon Leaflet) để xác định trekker đang nằm trong hay ngoài phân khu bảo vệ nghiêm ngặt (Geofencing cảnh báo xâm nhập vùng cấm).
-*   **Điểm nóng cháy rừng vệ tinh (MODIS/VIIRS)**: Nhận đồng bộ điểm nóng cháy rừng theo thời gian thực từ FireWatch VN, hỗ trợ Operator giao việc nhanh cho đội tuần tra kiểm lâm đi xác thực thực địa.
-*   **Nhật ký đe dọa đa dạng sinh học (SMART)**: Cho phép kiểm lâm viên tuần tra báo cáo nhanh các trường hợp vi phạm rừng (bẫy thú hoang, gỗ lậu) trực tiếp từ ứng dụng di động kèm toạ độ GPS gửi về trung tâm chỉ huy.
+### 3. 🗺️ Module Tìm Kiếm Địa Điểm Bản Đồ & Google Gemini AI
+*   **Photon Geocoder (Docker & Komoot Fallback)**: Tích hợp công cụ geocoding tìm kiếm địa danh, đỉnh núi, lán trại leo núi toàn quốc (Fansipan, Tà Xùa, Lảo Thần, Bạch Mộc Lương Tử...) tự động fallback mượt mà từ Docker Photon local đến Komoot Photon public API.
+*   **Trực quan hóa Chọn Vị Trí Trên Bản Đồ (Tap-to-Select)**: Hỗ trợ nhấp/chạm trực tiếp vào bất kỳ đâu trên Leaflet Map (Web) hoặc MapView (Mobile) để ghim marker vị trí và tải bản đồ ngoại tuyến vùng tương ứng.
+*   **Google Gemini 1.5 Flash AI**: Tích hợp giải mã âm thanh Voice SOS, khôi phục dấu tiếng Việt cho tin nhắn SMS không dấu vùng sóng yếu và trích xuất thực thể tai nạn khẩn cấp.
 
 ### 4. ⚙️ Backend API Server (`rescuelink-backend`)
 *   **Công nghệ**: Node.js, Express 5, MongoDB & Mongoose.

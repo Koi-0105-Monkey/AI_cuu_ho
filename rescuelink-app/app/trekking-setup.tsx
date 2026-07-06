@@ -260,6 +260,25 @@ export default function TrekkingSetupScreen() {
           )}
         </Pressable>
 
+        {/* Divider */}
+        <View className="flex-row items-center gap-3 my-1">
+          <View className="flex-1 h-px bg-surface-3" />
+          <Text className="text-[10px] text-muted font-medium">HOẶC</Text>
+          <View className="flex-1 h-px bg-surface-3" />
+        </View>
+
+        {/* Join Tour Button (QR/PIN) */}
+        <Pressable
+          className="bg-surface-1 border border-emerald-800/60 active:bg-emerald-950 py-3.5 rounded-2xl items-center justify-center flex-row gap-2"
+          onPress={() => router.push('/qr-scanner')}
+        >
+          <Text className="text-lg">📱</Text>
+          <View>
+            <Text className="text-emerald-300 font-bold text-sm text-center">Tham Gia Tour Công Ty</Text>
+            <Text className="text-[10px] text-muted text-center mt-0.5">Quét mã QR hoặc nhập PIN từ Hướng dẫn viên</Text>
+          </View>
+        </Pressable>
+
         {/* Back button */}
         <Pressable
           className="py-2 items-center"
@@ -267,6 +286,7 @@ export default function TrekkingSetupScreen() {
         >
           <Text className="text-xs text-muted underline">Quay lại trang chủ</Text>
         </Pressable>
+
 
       </View>
     </ScrollView>

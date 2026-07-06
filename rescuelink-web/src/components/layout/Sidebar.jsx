@@ -1,20 +1,22 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  Gauge, Warning, MapPin, Users, SignOut, Tree
+  Gauge, Warning, MapPin, Users, SignOut, Compass, Heartbeat, House
 } from '@phosphor-icons/react';
 import { useAuth } from '../../context/AuthContext';
 
 const RESCUE_NAV_ITEMS = [
-  { to: '/',          icon: Gauge,   label: 'Dashboard' },
-  { to: '/incidents', icon: Warning, label: 'Sự cố' },
-  { to: '/users',     icon: Users,   label: 'Người dùng' },
-  { to: '/threats',   icon: Tree,    label: 'Vi phạm rừng' },
+  { to: '/home',       icon: House,     label: 'Trang Chủ' },
+  { to: '/',          icon: Gauge,     label: 'Dashboard HQ' },
+  { to: '/incidents', icon: Warning,   label: 'Sự Cố & Cứu Hộ' },
+  { to: '/trails',    icon: Compass,   label: 'Cung Đường An Toàn' },
+  { to: '/users',     icon: Users,     label: 'Người Dùng' },
 ];
 
 const OPERATOR_NAV_ITEMS = [
-  { to: '/operator',           icon: Gauge,   label: 'Dashboard' },
-  { to: '/operator/groups',    icon: Users,   label: 'Quản lý Đoàn' },
-  { to: '/operator/analytics', icon: Warning, label: 'Thống Kê' },
+  { to: '/operator',           icon: Gauge,     label: 'Dashboard' },
+  { to: '/operator/groups',    icon: Users,     label: 'Quản Lý Đoàn' },
+  { to: '/operator/manifests', icon: Heartbeat, label: 'Khai Báo Y Tế' },
+  { to: '/operator/analytics', icon: Warning,   label: 'Thống Kê' },
 ];
 
 export default function Sidebar() {

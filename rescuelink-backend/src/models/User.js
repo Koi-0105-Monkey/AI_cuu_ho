@@ -20,12 +20,11 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     // user: trekker cá nhân
-    // admin: quản trị viên hệ thống
-    // rescuer: nhân viên trung tâm cứu hộ
-    // guide: hướng dẫn viên của tour operator
-    // operator: tài khoản công ty tour
-    // authority: tài khoản VQG / SAR
-    enum: ['user', 'admin', 'rescuer', 'guide', 'operator', 'authority'],
+    // admin: quản trị viên hệ thống cứu hộ HQ
+    // rescuer: nhân viên cứu hộ thực địa
+    // guide: hướng dẫn viên dẫn đoàn
+    // operator: tài khoản công ty tour / nhóm dẫn đoàn
+    enum: ['user', 'admin', 'rescuer', 'guide', 'operator'],
     default: 'user'
   },
   // ID công ty tour (dành cho role: guide, user thuộc operator)
@@ -45,10 +44,6 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true, // cho phép null, không bắt unique với null
     default: () => crypto.randomBytes(20).toString('hex')
-  },
-  isRanger: {
-    type: Boolean,
-    default: false
   },
   createdAt: { type: Date, default: Date.now }
 });

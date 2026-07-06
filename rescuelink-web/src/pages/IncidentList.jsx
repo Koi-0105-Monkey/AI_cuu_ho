@@ -68,6 +68,15 @@ export default function IncidentList() {
               Xoá bộ lọc
             </button>
           )}
+
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => window.print()}
+              className="px-3 py-1.5 rounded-lg bg-red-600/20 border border-red-500/40 text-red-400 hover:bg-red-600/30 text-xs font-bold transition-all flex items-center gap-1.5"
+            >
+              📋 Xuất Hồ Sơ Xác Minh Cho 115/114
+            </button>
+          </div>
         </div>
 
         {/* ─── Table ───────────────────── */}

@@ -8,7 +8,9 @@ import Dashboard from './pages/Dashboard';
 import IncidentList from './pages/IncidentList';
 import IncidentDetail from './pages/IncidentDetail';
 import UserList from './pages/UserList';
-import ThreatList from './pages/ThreatList';
+import LandingPage from './pages/LandingPage';
+import TrailSafety from './pages/TrailSafety';
+import OperatorManifests from './pages/operator/OperatorManifests';
 
 import FamilyView from './pages/FamilyView';
 import OperatorDashboard from './pages/operator/OperatorDashboard';
@@ -22,6 +24,7 @@ const queryClient = new QueryClient({
 });
 
 const router = createBrowserRouter([
+  { path: '/home', element: <LandingPage /> },
   { path: '/login', element: <Login /> },
   { path: '/family/:shareToken', element: <FamilyView /> }, // Public family route
   {
@@ -30,12 +33,13 @@ const router = createBrowserRouter([
       { index: true, element: <Dashboard /> },
       { path: 'incidents', element: <IncidentList /> },
       { path: 'incidents/:id', element: <IncidentDetail /> },
+      { path: 'trails', element: <TrailSafety /> },
       { path: 'users', element: <UserList /> },
-      { path: 'threats', element: <ThreatList /> },
       
       // Operator Routes
       { path: 'operator', element: <OperatorDashboard /> },
       { path: 'operator/groups', element: <OperatorGroups /> },
+      { path: 'operator/manifests', element: <OperatorManifests /> },
       { path: 'operator/analytics', element: <OperatorAnalytics /> },
     ],
   },

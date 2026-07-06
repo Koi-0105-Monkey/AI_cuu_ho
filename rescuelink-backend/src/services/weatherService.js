@@ -50,11 +50,10 @@ const getWeather = async (lat, lng) => {
   }
 
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weathercode,windspeed_10m,precipitation&timezone=Asia%2FHo_Chi_Minh&forecast_days=1`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code,weathercode,wind_speed_10m,windspeed_10m,precipitation&timezone=Asia%2FHo_Chi_Minh&forecast_days=1`;
 
-    // Dùng fetch (Node 18+) hoặc node-fetch
     const response = await fetch(url, {
-      signal: AbortSignal.timeout(8000) // timeout 8s
+      signal: AbortSignal.timeout(10000) // timeout 10s
     });
 
     if (!response.ok) {
@@ -62,14 +61,14 @@ const getWeather = async (lat, lng) => {
     }
 
     const json = await response.json();
-    const current = json.current;
+    const current = json.current || {};
 
-    const weatherCode = current?.weathercode ?? 0;
-    const temperature = current?.temperature_2m;
-    const windspeed   = current?.windspeed_10m;
-    const precipitation = current?.precipitation;
+    const weatherCode = current.weather_code ?? current.weathercode ?? 0;
+    const temperature = current.temperature_2m ?? 24;
+    const windspeed   = current.wind_speed_10m ?? current.windspeed_10m ?? 5;
+    const precipitation = current.precipitation ?? 0;
 
-    const description  = WMO_DESCRIPTIONS[weatherCode] || `Mã thời tiết: ${weatherCode}`;
+    const description  = WMO_DESCRIPTIONS[weatherCode] || `Thời tiết bình thường (${weatherCode})`;
     const isDangerous  = DANGEROUS_WEATHER_CODES.has(weatherCode) || precipitation > 10;
 
     const data = {

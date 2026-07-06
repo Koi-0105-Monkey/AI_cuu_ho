@@ -123,18 +123,14 @@ export async function downloadTile(z: number, x: number, y: number): Promise<boo
 
     await ensureTileDirExists(z, x);
 
-    // Try to load Viettel Maps Key from storage
-    let key = '';
-    try {
-      key = await AsyncStorage.getItem('viettel_maps_key') || '';
-    } catch (e) { /* ignore */ }
-
-    // If key exists, download from Viettel Maps, else fallback to OSM
-    const url = key 
-      ? `https://maps.viettelmap.vn/api/v1/tile/${z}/${x}/${y}.png?key=${key}`
-      : `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+    // Download from OpenStreetMap tile server
+    const url = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
     
-    await FileSystem.downloadAsync(url, localUri);
+    await FileSystem.downloadAsync(url, localUri, {
+      headers: {
+        'User-Agent': 'RescueLinkApp/1.0 (Mobile App)'
+      }
+    });
     return true;
   } catch (error) {
     console.warn(`Failed to download tile z=${z}, x=${x}, y=${y}:`, error);

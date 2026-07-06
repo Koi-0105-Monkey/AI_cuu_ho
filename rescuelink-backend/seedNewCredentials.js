@@ -80,43 +80,16 @@ const seedNewCredentials = async () => {
     operUser.operatorId = operatorProfile._id;
     await operUser.save();
 
-    // 3. Tạo một tài khoản VQG (Authority) riêng biệt để bạn test thuần tuý
-    const vqgPhone = '0988888888';
-    const vqgPassword = 'test123';
-    const vqgSalt = await bcrypt.genSalt(10);
-    const vqgPasswordHash = await bcrypt.hash(vqgPassword, vqgSalt);
-
-    let vqgUser = await User.findOne({ phone: vqgPhone });
-    if (vqgUser) {
-      console.log(`Cập nhật VQG hiện tại có SĐT ${vqgPhone}...`);
-      vqgUser.role = 'authority';
-      vqgUser.passwordHash = vqgPasswordHash;
-      await vqgUser.save();
-    } else {
-      console.log(`Tạo mới VQG có SĐT ${vqgPhone}...`);
-      await User.create({
-        name: 'Trạm Kiểm Lâm Hoàng Liên',
-        phone: vqgPhone,
-        passwordHash: vqgPasswordHash,
-        role: 'authority'
-      });
-    }
-
     console.log('\n=============================================');
     console.log('🎉 ĐÃ KHỞI TẠO XONG THÔNG TIN TÀI KHOẢN TEST:');
     console.log('---------------------------------------------');
     console.log(`1. CỔNG ADMIN (HQ & CỨU HỘ):`);
     console.log(`   - SĐT: ${adminPhone}`);
     console.log(`   - Pass: ${adminPassword}`);
-    console.log(`   * Tài khoản này có thể vào cả Cổng Operator (qua nút chuyển đổi) và Cổng VQG.`);
     console.log('---------------------------------------------');
     console.log(`2. CỔNG OPERATOR (CÔNG TY TOUR):`);
     console.log(`   - SĐT: ${operPhone}`);
     console.log(`   - Pass: ${operPassword}`);
-    console.log('---------------------------------------------');
-    console.log(`3. CỔNG VQG (KIỂM LÂM THUẦN TUÝ):`);
-    console.log(`   - SĐT: ${vqgPhone}`);
-    console.log(`   - Pass: ${vqgPassword}`);
     console.log('=============================================\n');
 
   } catch (error) {

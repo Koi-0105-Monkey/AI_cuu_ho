@@ -90,6 +90,7 @@ export default function TrackingActiveScreen() {
   const [estimatedSize, setEstimatedSize] = useState({ tiles: 0, sizeMb: 0 });
   const [downloadedRegions, setDownloadedRegions] = useState<any[]>([]);
   const [currentRegion, setCurrentRegion] = useState<any>(null);
+  const [selectedMapPin, setSelectedMapPin] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const processForegroundLocation = async (loc: Location.LocationObject) => {
     try {
@@ -1109,6 +1110,7 @@ export default function TrackingActiveScreen() {
           longitudeDelta: 0.015,
         }}
         onRegionChangeComplete={handleRegionChangeComplete}
+        onPress={(e) => setSelectedMapPin(e.nativeEvent.coordinate)}
       >
         {/* Render Offline Local Map Tiles */}
         <UrlTile
@@ -1198,6 +1200,16 @@ export default function TrackingActiveScreen() {
               <View className="w-4 h-4 bg-emergency-500 rounded-full border-2 border-white" />
             </View>
           </Marker>
+        )}
+
+        {/* Selected Map Pin Marker (Tap to Select) */}
+        {selectedMapPin && (
+          <Marker
+            coordinate={selectedMapPin}
+            title="Vị trí đã chọn trên bản đồ"
+            description={`Lat: ${selectedMapPin.latitude.toFixed(5)}, Lng: ${selectedMapPin.longitude.toFixed(5)}`}
+            pinColor="#38bdf8"
+          />
         )}
       </MapView>
 
@@ -1523,6 +1535,48 @@ export default function TrackingActiveScreen() {
               onPress={handleConfirmDownloadRegion}
             >
               <Text className="text-white font-bold text-xs">Tải xuống</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {/* 7. Selected Map Pin Action Card */}
+      {selectedMapPin && !isDownloadMode && (
+        <View className="absolute bottom-[230px] left-5 right-5 z-25 bg-surface-1/95 border border-sky-500/50 p-4 rounded-3xl gap-2.5 shadow-2xl">
+          <View className="flex-row justify-between items-center">
+            <Text className="text-sky-400 font-bold text-xs">📍 Vị trí chọn trực tiếp trên bản đồ</Text>
+            <Pressable onPress={() => setSelectedMapPin(null)}>
+              <Text className="text-slate-400 text-xs font-bold px-2 py-0.5 bg-surface-3 rounded-full">✕ Bỏ ghim</Text>
+            </Pressable>
+          </View>
+
+          <Text className="text-white text-[11px] font-mono">
+            Tọa độ: {selectedMapPin.latitude.toFixed(5)}, {selectedMapPin.longitude.toFixed(5)}
+          </Text>
+
+          <View className="flex-row gap-2 mt-1">
+            <Pressable
+              className="flex-1 h-9 rounded-xl bg-sky-600/90 items-center justify-center active:bg-sky-700"
+              onPress={() => {
+                setIsDownloadMode(true);
+                estimateDownloadSize({
+                  latitude: selectedMapPin.latitude,
+                  longitude: selectedMapPin.longitude,
+                  latitudeDelta: 0.05,
+                  longitudeDelta: 0.05
+                });
+              }}
+            >
+              <Text className="text-white font-bold text-[11px]">📥 Tải bản đồ vùng này</Text>
+            </Pressable>
+
+            <Pressable
+              className="flex-1 h-9 rounded-xl bg-emerald-600/90 items-center justify-center active:bg-emerald-700"
+              onPress={() => {
+                Alert.alert('Tọa độ đã chọn', `Lat: ${selectedMapPin.latitude.toFixed(5)}\nLng: ${selectedMapPin.longitude.toFixed(5)}`);
+              }}
+            >
+              <Text className="text-white font-bold text-[11px]">📍 Xem tọa độ</Text>
             </Pressable>
           </View>
         </View>

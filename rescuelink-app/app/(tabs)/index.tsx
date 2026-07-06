@@ -573,6 +573,13 @@ export default function HomeScreen() {
             </Pressable>
           </Link>
 
+          <Link href="/qr-scanner" asChild>
+            <Pressable className="bg-emerald-950/40 border border-emerald-700/60 py-3.5 rounded-2xl items-center justify-center active:bg-emerald-900/60 flex-row gap-2">
+              <Text className="text-base">📱</Text>
+              <Text className="text-emerald-300 font-bold text-xs uppercase tracking-wide">Quét mã QR / Nhập PIN Ghép Đoàn Tour →</Text>
+            </Pressable>
+          </Link>
+
           <Link href="/tracking-active" asChild>
             <Pressable className="bg-surface-2 border border-surface-3 py-4 rounded-2xl items-center justify-center active:bg-surface-3">
               <Text className="text-white font-bold text-sm tracking-wide uppercase">Xem bản đồ & Khám phá →</Text>

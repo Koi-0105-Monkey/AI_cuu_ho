@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import toast from 'react-hot-toast';
@@ -12,6 +12,34 @@ import api from '../services/api';
 import {
   Warning, Users, CheckCircle, BellRinging, MapPin, Compass
 } from '@phosphor-icons/react';
+
+// Custom click listener component for Leaflet Map
+function LocationPickerMarker({ selectedPos, setSelectedPos }) {
+  useMapEvents({
+    click(e) {
+      setSelectedPos(e.latlng);
+      toast.success(`Đã ghim vị trí chọn: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`);
+    },
+  });
+
+  return selectedPos ? (
+    <Marker position={selectedPos}>
+      <Popup className="dark-popup">
+        <div className="text-slate-800 p-1 space-y-1 min-w-[180px]">
+          <span className="font-bold text-sky-600 text-xs flex items-center gap-1">📍 Vị trí chọn trực tiếp</span>
+          <p className="text-xs font-mono">Lat: {selectedPos.lat.toFixed(5)}</p>
+          <p className="text-xs font-mono">Lng: {selectedPos.lng.toFixed(5)}</p>
+          <button
+            onClick={() => setSelectedPos(null)}
+            className="w-full text-center text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-1 rounded transition-colors mt-1"
+          >
+            Bỏ chọn ghim ❌
+          </button>
+        </div>
+      </Popup>
+    </Marker>
+  ) : null;
+}
 
 // Fix default Leaflet icon for Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -124,13 +152,9 @@ const playBeep = () => {
 export default function Dashboard() {
   const [feed, setFeed] = useState([]);
   const [trips, setTrips] = useState([]);
+  const [selectedPos, setSelectedPos] = useState(null);
   const feedRef = useRef(null);
   const qc = useQueryClient();
-
-  const VIETTEL_MAPS_KEY = import.meta.env.VITE_VIETTEL_MAPS_KEY || '';
-  const TILE_URL = VIETTEL_MAPS_KEY 
-    ? `https://maps.viettelmap.vn/api/v1/tile/{z}/{x}/{y}.png?key=${VIETTEL_MAPS_KEY}`
-    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 
   // Load satellite hotspots
   const { data: hotspots = [] } = useQuery({
@@ -332,10 +356,13 @@ export default function Dashboard() {
               className="w-full h-full min-h-[350px] flex-1"
             >
               <TileLayer
-                url={TILE_URL}
-                attribution='&copy; <a href="https://viettelmap.vn/">Viettel Maps</a>'
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://carto.com/">CARTO</a> & OpenStreetMap'
                 maxZoom={19}
               />
+
+              {/* Tự chọn vị trí trực tiếp trên bản đồ qua Click */}
+              <LocationPickerMarker selectedPos={selectedPos} setSelectedPos={setSelectedPos} />
 
               {/* Vẽ Ranh giới VQG Hoàng Liên */}
               <Polygon

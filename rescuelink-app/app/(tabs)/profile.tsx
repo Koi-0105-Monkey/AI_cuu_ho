@@ -451,11 +451,6 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
-      {/* ─── Ranger Functions Panel ─── */}
-      {(user?.isRanger || user?.role === 'authority') && (
-        <RangerThreatReportPanel user={user} />
-      )}
-
       {/* ─── Device Status Panel ─── */}
       <View className="bg-surface-1 border border-surface-3 p-6 rounded-3xl gap-5">
         <View className="pb-4 border-b border-surface-3">
@@ -496,97 +491,3 @@ export default function ProfileScreen() {
   );
 }
 
-function RangerThreatReportPanel({ user }: { user: any }) {
-  const [type, setType] = useState('BẪY THÚ');
-  const [description, setDescription] = useState('');
-  const [reporting, setReporting] = useState(false);
-
-  const handleSubmitThreat = async () => {
-    setReporting(true);
-    try {
-      // 1. Request GPS permission
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Quyền định vị', 'Cần cấp quyền truy cập GPS để xác định tọa độ vi phạm.');
-        setReporting(false);
-        return;
-      }
-
-      // 2. Get current location
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const lat = loc.coords.latitude;
-      const lng = loc.coords.longitude;
-
-      // 3. Send threat report to backend
-      const res = await api.post('/vqg/threats', {
-        type,
-        lat,
-        lng,
-        severity: type === 'GỖ LẬU' || type === 'SĂN BẮT' ? 5 : 3,
-        description: description.trim() || `Báo cáo ${type} phát hiện khi đi tuần tra.`
-      });
-
-      if (res.data.success) {
-        Alert.alert('Thành công', `Đã gửi báo cáo mối đe dọa ${type} về trung tâm chỉ huy thành công.`);
-        setDescription('');
-      }
-    } catch (err: any) {
-      console.error(err);
-      Alert.alert('Lỗi báo cáo', err.response?.data?.message || 'Không thể lấy GPS hoặc gửi báo cáo.');
-    } finally {
-      setReporting(false);
-    }
-  };
-
-  return (
-    <View className="bg-surface-1 border border-surface-3 p-6 rounded-3xl gap-5">
-      <View className="pb-4 border-b border-surface-3">
-        <Text className="text-xs font-semibold text-emerald-400 tracking-wider">CHỨC NĂNG KIỂM LÂM (RANGER)</Text>
-      </View>
-      <Text className="text-xs text-muted leading-5">
-        Báo cáo nhanh các mối đe dọa lâm nghiệp phát hiện được trong quá trình tuần tra bảo vệ rừng.
-      </Text>
-
-      <View className="gap-3">
-        <Text className="text-[10px] text-muted-light font-bold">LOẠI VI PHẠM</Text>
-        <View className="flex-row flex-wrap gap-2">
-          {['BẪY THÚ', 'GỖ LẬU', 'LẤN CHIẾM', 'SĂN BẮT', 'KHÁC'].map((t) => (
-            <Pressable
-              key={t}
-              className={`px-3 py-2 rounded-xl border ${
-                type === t 
-                  ? 'bg-emerald-500/10 border-emerald-500' 
-                  : 'bg-surface-2 border-surface-3'
-              }`}
-              onPress={() => setType(t)}
-            >
-              <Text className={`text-[10px] font-bold ${type === t ? 'text-emerald-400' : 'text-slate-400'}`}>{t}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Text className="text-[10px] text-muted-light font-bold mt-2">MÔ TẢ CHI TIẾT</Text>
-        <TextInput
-          className="bg-surface-2 text-white rounded-xl px-4 py-3 text-xs min-h-[60px]"
-          placeholder="Nhập vị trí cụ thể hoặc tình trạng (Ví dụ: Tháo dỡ 3 bẫy dây thép nhỏ)..."
-          placeholderTextColor="#6b6b6b"
-          multiline={true}
-          value={description}
-          onChangeText={setDescription}
-        />
-
-        <Pressable 
-          className="bg-emerald-600 active:bg-emerald-700 py-3.5 rounded-2xl items-center mt-2 disabled:bg-slate-800"
-          onPress={handleSubmitThreat}
-          disabled={reporting}
-        >
-          {reporting ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text className="text-white text-xs font-bold uppercase tracking-wide">Gửi Báo Cáo Vi Phạm</Text>
-          )}
-        </Pressable>
-      </View>
-    </View>
-  );
-}

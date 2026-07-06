@@ -24,5 +24,6 @@ router.use('/family', familyRoutes);
 router.use('/weather', weatherRoutes);
 router.use('/notifications', notificationsRoutes);
 router.use('/vqg', vqgRoutes);
+router.use('/search', vqgRoutes);
 
 module.exports = router;
