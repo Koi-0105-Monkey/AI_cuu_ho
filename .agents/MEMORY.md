@@ -31,11 +31,9 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
     *   Mobile: [tracking-active.tsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-app/app/tracking-active.tsx) cho phép chạm vào bất kỳ điểm nào trên bản đồ để ghim marker vị trí + hiển thị HUD tùy chọn tải bản đồ ngoại tuyến vùng này.
     *   Web: [Dashboard.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/Dashboard.jsx) thêm `LocationPickerMarker` (using `useMapEvents`) cho phép click trên Leaflet map ghim vị trí lấy tọa độ tức thì.
 *   **SMS Mock Mode**: Thêm cấu hình `SMS_MOCK_MODE=true` trong môi trường phát triển để tránh mất credit Twilio thật khi test.
-*   **Nâng Cấp Web Platform Đa Phân Hệ (Multi-Portal)**:
-    *   Thêm [LandingPage.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/LandingPage.jsx) (`/home`) giới thiệu giải pháp cứu hộ cho Nhà đầu tư & Khách hàng doanh nghiệp B2B.
-    *   Thêm [TrailSafety.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/TrailSafety.jsx) (`/trails`) tra cứu độ khó cung đường & dự báo thời tiết đỉnh núi Việt Nam (Fansipan, Tà Xùa, Lảo Thần...).
-    *   Thêm [OperatorManifests.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/operator/OperatorManifests.jsx) (`/operator/manifests`) quản lý hồ sơ y tế thành viên (nhóm máu, tiền sử bệnh) và xuất báo cáo khai báo bảo hiểm tour.
-    *   Tích hợp **Cơ chế Xác minh 2 Lớp (Human-in-the-loop Protocol)** trên [IncidentList.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/IncidentList.jsx) hỗ trợ xuất Hồ sơ Cứu hộ Chuẩn Khai Báo 115/114, đảm bảo không tự động spammed báo động giả gây ảnh hưởng lực lượng cứu hộ công cộng tại Việt Nam.
+*   **Phân Tách UX Theo Vai Trò & Bổ Sung Admin Switcher**:
+    *   Tách biệt không gian làm việc của **Admin HQ** (`/dashboard` - Bảng điều khiển tác chiến cứu hộ) và **Trang Chủ Công Cộng** (`/` - Landing Page B2B/B2C).
+    *   Thêm hộp công cụ **`⚡ Admin Switcher`** ngay trên [Sidebar.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/components/layout/Sidebar.jsx) cho phép tài khoản Admin (`role === 'admin'`) bấm 1 chạm chuyển đổi tức thì giữa cả 4 phân hệ: *1. Cổng Cứu Hộ HQ (`/dashboard`), 2. Cổng Operator Tour (`/operator`), 3. Trang Chủ Công Cộng (`/`), 4. Cung Đường An Toàn (`/trails`)*.
 
 ---
 

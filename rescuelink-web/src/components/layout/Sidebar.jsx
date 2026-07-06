@@ -128,6 +128,17 @@ export default function Sidebar({ isOpen, onClose }) {
                 <Compass size={16} className="text-purple-400" />
                 <span>4. Cung Đường An Toàn</span>
               </NavLink>
+
+              <NavLink
+                to="/portal"
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 p-2 rounded-lg transition-colors ${isActive ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-300 hover:bg-surface-3'}`
+                }
+              >
+                <Users size={16} className="text-pink-400" />
+                <span>5. Web Trekker Cá Nhân</span>
+              </NavLink>
             </div>
           </div>
         )}

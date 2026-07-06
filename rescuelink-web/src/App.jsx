@@ -10,6 +10,7 @@ import IncidentDetail from './pages/IncidentDetail';
 import UserList from './pages/UserList';
 import LandingPage from './pages/LandingPage';
 import TrailSafety from './pages/TrailSafety';
+import UserPortal from './pages/UserPortal';
 import OperatorManifests from './pages/operator/OperatorManifests';
 
 import FamilyView from './pages/FamilyView';
@@ -26,6 +27,7 @@ const queryClient = new QueryClient({
 const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
   { path: '/home', element: <LandingPage /> },
+  { path: '/portal', element: <UserPortal /> },
   { path: '/login', element: <Login /> },
   { path: '/family/:shareToken', element: <FamilyView /> }, // Public family route
   {
