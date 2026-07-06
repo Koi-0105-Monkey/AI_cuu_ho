@@ -1112,11 +1112,18 @@ export default function TrackingActiveScreen() {
         onRegionChangeComplete={handleRegionChangeComplete}
         onPress={(e) => setSelectedMapPin(e.nativeEvent.coordinate)}
       >
+        {/* Render Online Synchronized CartoDB Voyager Map Tiles (Same as Web) */}
+        <UrlTile
+          urlTemplate="https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+          maximumZ={19}
+          zIndex={1}
+        />
+
         {/* Render Offline Local Map Tiles */}
         <UrlTile
           urlTemplate={`${FileSystem.documentDirectory}tiles/{z}/{x}/{y}.png`}
           offlineMode={true}
-          zIndex={1}
+          zIndex={2}
         />
 
         {/* Render Downloaded Regions Borders */}

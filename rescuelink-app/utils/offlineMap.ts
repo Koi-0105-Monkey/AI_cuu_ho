@@ -123,8 +123,8 @@ export async function downloadTile(z: number, x: number, y: number): Promise<boo
 
     await ensureTileDirExists(z, x);
 
-    // Download from OpenStreetMap tile server
-    const url = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+    // Download from synchronized CartoDB Voyager tile server (Same as Web)
+    const url = `https://c.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`;
     
     await FileSystem.downloadAsync(url, localUri, {
       headers: {
