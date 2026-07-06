@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Heartbeat, FilePdf, Users, ShieldCheck, Warning, Search,
+  Heartbeat, FilePdf, Users, ShieldCheck, Warning, MagnifyingGlass,
   CheckCircle, DownloadSimple, Printer
 } from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
@@ -102,7 +102,7 @@ export default function OperatorManifests() {
       {/* Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-surface-1 border border-surface-4 p-4 rounded-2xl">
         <div className="relative flex-1 min-w-[240px]">
-          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+          <MagnifyingGlass size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="text"
             placeholder="Tìm tên khách hàng, SĐT hoặc mã đoàn (VD: SP-1024)..."

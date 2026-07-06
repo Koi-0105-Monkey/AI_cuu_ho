@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
   Compass, CloudSun, MapPin, ShieldCheck, Thermometer, Wind,
-  WarningCheck, ArrowLeft, ArrowRight, CheckCircle, Warning
+  WarningCircle, ArrowLeft, ArrowRight, CheckCircle, Warning
 } from '@phosphor-icons/react';
 import api from '../services/api';
 
