@@ -186,7 +186,7 @@ router.patch('/threats/:id/status', protect, authorize('admin', 'operator', 'res
   }
 });
 
-// @desc    Search locations and POIs in Vietnam (Photon Geocoder with Fallbacks)
+// @desc    Search locations and POIs in Vietnam (Nominatim OpenStreetMap Engine + Photon + Local POIs)
 // @route   GET /api/vqg/search or /api/search/locations
 // @access  Private
 router.get('/search', protect, async (req, res, next) => {
@@ -196,70 +196,39 @@ router.get('/search', protect, async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Từ khóa tìm kiếm tối thiểu 2 ký tự' });
     }
 
-    const POI_DATABASE = [
-      { display_name: "Đỉnh Fansipan, VQG Hoàng Liên, Sa Pa, Lào Cai", lat: "22.30333", lon: "103.77500", type: "mountain" },
-      { display_name: "Đỉnh Tà Xùa, Trạm Tấu, Yên Bái", lat: "21.43120", lon: "104.56890", type: "mountain" },
-      { display_name: "Đỉnh Lảo Thần, Y Tý, Bát Xát, Lào Cai", lat: "22.61240", lon: "103.62150", type: "mountain" },
-      { display_name: "Đỉnh Bạch Mộc Lương Tử (Kỳ Quan San), Bát Xát, Lào Cai", lat: "22.50890", lon: "103.60450", type: "mountain" },
-      { display_name: "Đỉnh Pu Ta Leng, Tam Đường, Lai Châu", lat: "22.42150", lon: "103.60980", type: "mountain" },
-      { display_name: "Đỉnh Ngũ Chỉ Sơn, Sa Pa, Lào Cai", lat: "22.40890", lon: "103.73120", type: "mountain" },
-      { display_name: "Đỉnh Nhìu Cồ San, Bát Xát, Lào Cai", lat: "22.56450", lon: "103.58780", type: "mountain" },
-      { display_name: "Siêu thị GO! Đà Nẵng, 255-257 Hùng Vương, Vĩnh Trung, Thanh Khê, Đà Nẵng", lat: "16.06782", lon: "108.21405", type: "supermarket" },
-      { display_name: "Bán đảo Sơn Trà, Thọ Quang, Sơn Trà, Đà Nẵng", lat: "16.12056", lon: "108.27833", type: "nature_reserve" },
-      { display_name: "Thác Bạc, Sa Pa, Lào Cai", lat: "22.36012", lon: "103.77945", type: "waterfall" },
-      { display_name: "Đèo Ô Quy Hồ, Sa Pa, Lào Cai", lat: "22.35412", lon: "103.73812", type: "mountain_pass" },
-      { display_name: "Vườn Quốc gia Ba Vì, Tản Lĩnh, Ba Vì, Hà Nội", lat: "21.08120", lon: "105.37050", type: "national_park" },
-      { display_name: "Vườn Quốc gia Cúc Phương, Nho Quan, Ninh Bình", lat: "20.31667", lon: "105.60833", type: "national_park" },
-      { display_name: "Cầu Rồng, An Hải Tây, Sơn Trà, Đà Nẵng", lat: "16.06111", lon: "108.22639", type: "bridge" },
-      { display_name: "Ngũ Hành Sơn, Hòa Hải, Ngũ Hành Sơn, Đà Nẵng", lat: "16.00278", lon: "108.26389", type: "mountain" },
-      { display_name: "Cầu Vàng, Bà Nà Hills, Hòa Vang, Đà Nẵng", lat: "15.99500", lon: "107.99611", type: "tourist_attraction" },
-      { display_name: "Hồ Xuân Hương, Đà Lạt, Lâm Đồng", lat: "11.94167", lon: "108.44444", type: "lake" }
-    ];
-
     let searchResults = [];
 
-    // 1. Thử gọi Photon Server local (Docker PHOTON_URL hoặc default http://localhost:2322)
-    const localPhotonUrl = process.env.PHOTON_URL || 'http://localhost:2322';
+    // 1. Primary Engine: Nominatim OpenStreetMap Official API (Tìm kiếu cực nhạy mọi quán xá, địa danh, ngõ hẻm VN)
     try {
-      const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-      const url = `${localPhotonUrl.replace(/\/$/, '')}/api?q=${encodeURIComponent(query)}&limit=10&lang=vi`;
-      const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
-      const data = await response.json();
-      
-      if (data && data.features && data.features.length > 0) {
-        searchResults = data.features.map(feat => {
-          const props = feat.properties;
-          const name = props.name || '';
-          const addressParts = [
-            props.street,
-            props.district,
-            props.city || props.state || props.county,
-            props.country
-          ].filter(Boolean);
-          const display_name = name + (addressParts.length > 0 ? `, ${addressParts.join(', ')}` : '');
-          
-          return {
-            display_name,
-            lat: String(feat.geometry.coordinates[1]),
-            lon: String(feat.geometry.coordinates[0]),
-            type: props.osm_value || 'address'
-          };
-        });
+      const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&countrycodes=vn&format=json&addressdetails=1&limit=15`;
+      const nomResp = await fetch(nomUrl, {
+        headers: { 'User-Agent': 'RescueLinkSafetyTech/1.0 (Vietnam Search Engine)' },
+        signal: AbortSignal.timeout(5000)
+      });
+      const nomData = await nomResp.json();
+
+      if (Array.isArray(nomData) && nomData.length > 0) {
+        searchResults = nomData.map(item => ({
+          display_name: item.display_name,
+          lat: item.lat,
+          lon: item.lon,
+          type: item.type || item.class || 'poi'
+        }));
       }
-    } catch (photonLocalErr) {
-      // Local Photon container không phản hồi, thử Komoot Photon public API
+    } catch (nomErr) {
+      console.warn('Nominatim Search API fetch failed:', nomErr.message);
     }
 
-    // 2. Fallback Komoot Photon Public API (https://photon.komoot.io)
-    if (searchResults.length === 0) {
+    // 2. Secondary Engine: Local Docker Photon / Komoot Photon API
+    if (searchResults.length < 5) {
+      const localPhotonUrl = process.env.PHOTON_URL || 'http://localhost:2322';
       try {
-        const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-        const url = `https://photon.komoot.io/api?q=${encodeURIComponent(query)}&limit=10&lang=vi`;
-        const response = await fetch(url, { signal: AbortSignal.timeout(4000) });
+        const url = `${localPhotonUrl.replace(/\/$/, '')}/api?q=${encodeURIComponent(query)}&limit=10&lang=vi`;
+        const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
         const data = await response.json();
         
         if (data && data.features && data.features.length > 0) {
-          searchResults = data.features.map(feat => {
+          const photonResults = data.features.map(feat => {
             const props = feat.properties;
             const name = props.name || '';
             const addressParts = [
@@ -277,24 +246,6 @@ router.get('/search', protect, async (req, res, next) => {
               type: props.osm_value || 'address'
             };
           });
-        }
-      } catch (komootErr) {
-        console.warn('Komoot Photon public search error:', komootErr.message);
-      }
-    }
-
-    // 3. Fallback danh mục POI leo núi địa phương & Đơn vị hành chính Việt Nam
-    if (searchResults.length === 0) {
-      const normalizedQuery = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      
-      searchResults = POI_DATABASE.filter(poi => {
-        const normalizedName = poi.display_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        return normalizedName.includes(normalizedQuery);
-      });
-
-      const adminMatches = searchAdministrativeUnits(query, 5);
-      if (adminMatches.length > 0) {
-        searchResults = [...searchResults, ...adminMatches];
       }
     }
 

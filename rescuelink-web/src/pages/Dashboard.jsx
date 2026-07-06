@@ -13,28 +13,54 @@ import {
   Warning, Users, CheckCircle, BellRinging, MapPin, Compass
 } from '@phosphor-icons/react';
 
-// Custom click listener component for Leaflet Map
+import { LayersControl } from 'react-leaflet';
+
+// Custom click listener component for Leaflet Map with Reverse Geocoding
 function LocationPickerMarker({ selectedPos, setSelectedPos }) {
+  const [address, setAddress] = useState('Đang tìm tên địa điểm...');
+
   useMapEvents({
     click(e) {
       setSelectedPos(e.latlng);
-      toast.success(`Đã ghim vị trí chọn: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`);
+      setAddress('Đang tra cứu địa chỉ...');
+      api.get(`/search/reverse?lat=${e.latlng.lat}&lng=${e.latlng.lng}`)
+        .then(r => setAddress(r.data.display_name || `Tọa độ: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`))
+        .catch(() => setAddress(`Tọa độ: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`));
+      toast.success(`Đã ghim vị trí: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`);
     },
   });
+
+  const handleCopyCoords = () => {
+    if (selectedPos) {
+      navigator.clipboard.writeText(`${selectedPos.lat.toFixed(5)}, ${selectedPos.lng.toFixed(5)}`);
+      toast.success('Đã sao chép tọa độ GPS vào bộ nhớ tạm!');
+    }
+  };
 
   return selectedPos ? (
     <Marker position={selectedPos}>
       <Popup className="dark-popup">
-        <div className="text-slate-800 p-1 space-y-1 min-w-[180px]">
-          <span className="font-bold text-sky-600 text-xs flex items-center gap-1">📍 Vị trí chọn trực tiếp</span>
-          <p className="text-xs font-mono">Lat: {selectedPos.lat.toFixed(5)}</p>
-          <p className="text-xs font-mono">Lng: {selectedPos.lng.toFixed(5)}</p>
-          <button
-            onClick={() => setSelectedPos(null)}
-            className="w-full text-center text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-1 rounded transition-colors mt-1"
-          >
-            Bỏ chọn ghim ❌
-          </button>
+        <div className="text-slate-800 p-2 space-y-1.5 min-w-[220px]">
+          <span className="font-bold text-sky-600 text-xs flex items-center gap-1">📍 Vị trí ghim chọn trực tiếp</span>
+          <p className="text-[11px] font-semibold text-slate-700 leading-tight border-b pb-1">{address}</p>
+          <div className="font-mono text-[11px] text-slate-600 space-y-0.5">
+            <p>Vĩ độ (Lat): <strong>{selectedPos.lat.toFixed(5)}</strong></p>
+            <p>Kinh độ (Lng): <strong>{selectedPos.lng.toFixed(5)}</strong></p>
+          </div>
+          <div className="flex gap-1.5 pt-1">
+            <button
+              onClick={handleCopyCoords}
+              className="flex-1 text-center text-[10px] bg-sky-500 hover:bg-sky-600 text-white font-bold py-1 px-2 rounded transition-colors"
+            >
+              📋 Sao chép
+            </button>
+            <button
+              onClick={() => setSelectedPos(null)}
+              className="text-center text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-1 px-2 rounded transition-colors"
+            >
+              Bỏ chọn ❌
+            </button>
+          </div>
         </div>
       </Popup>
     </Marker>
@@ -355,11 +381,29 @@ export default function Dashboard() {
               zoom={6}
               className="w-full h-full min-h-[350px] flex-1"
             >
-              <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://carto.com/">CARTO</a> & OpenStreetMap'
-                maxZoom={19}
-              />
+              <LayersControl position="topright">
+                <LayersControl.BaseLayer checked name="🗺️ OpenStreetMap Chi Tiết (Full Quán xá, ngõ hẻm)">
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    maxZoom={19}
+                  />
+                </LayersControl.BaseLayer>
+                <LayersControl.BaseLayer name="🛰️ Ảnh Vệ Tinh Siêu Nét (Esri World Imagery)">
+                  <TileLayer
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                    attribution='&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                    maxZoom={18}
+                  />
+                </LayersControl.BaseLayer>
+                <LayersControl.BaseLayer name="🏔️ Bản Đồ Địa Hình Topo (OpenTopoMap)">
+                  <TileLayer
+                    url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
+                    maxZoom={17}
+                  />
+                </LayersControl.BaseLayer>
+              </LayersControl>
 
               {/* Tự chọn vị trí trực tiếp trên bản đồ qua Click */}
               <LocationPickerMarker selectedPos={selectedPos} setSelectedPos={setSelectedPos} />
