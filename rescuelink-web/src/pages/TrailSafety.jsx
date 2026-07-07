@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -126,7 +126,19 @@ const VIETNAM_TRAILS = [
   }
 ];
 
-function TrailWeatherCard({ trail }) {
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function TrailWeatherCard({ trail, userCoords }) {
+  const distance = userCoords ? getDistance(userCoords.lat, userCoords.lng, trail.lat, trail.lng) : null;
   const { data: weather, isLoading } = useQuery({
     queryKey: ['trail-weather', trail.id],
     queryFn: () => api.get(`/weather?lat=${trail.lat}&lng=${trail.lng}`).then(r => r.data.weather),
@@ -156,11 +168,16 @@ function TrailWeatherCard({ trail }) {
     <div className="card p-6 border border-surface-4 bg-surface-1/90 hover:border-surface-5 transition-all space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-4 pb-4 border-b border-surface-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-lg font-bold text-white">{trail.name}</h3>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${trail.difficultyColor}`}>
               {trail.difficulty}
             </span>
+            {distance !== null && (
+              <span className="text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">
+                📍 Cách bạn {distance.toFixed(1)} km
+              </span>
+            )}
           </div>
           <p className="text-xs text-muted flex items-center gap-1 mt-1">
             <MapPin size={14} className="text-red-400" /> {trail.location} • Độ cao: <strong className="text-slate-200">{trail.elevationM}m</strong>
@@ -229,20 +246,77 @@ function TrailWeatherCard({ trail }) {
 export default function TrailSafety() {
   const [selectedProvince, setSelectedProvince] = useState('Tất cả tỉnh thành');
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [userCoords, setUserCoords] = useState(null);
+  const [userAddress, setUserAddress] = useState('Vị trí của bạn');
+
+  // Auto locate user on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setUserCoords(coords);
+          toast.success('Đã xác định vị trí của bạn. Đang sắp xếp cung đường gần bạn nhất!');
+        },
+        (err) => console.log('Autolocation declined or failed:', err.message)
+      );
+    }
+  }, []);
+
+  // Fetch address for user location
+  useEffect(() => {
+    if (!userCoords) return;
+    api.get(`/search/reverse?lat=${userCoords.lat}&lng=${userCoords.lng}`)
+      .then(r => {
+        if (r.data.success) {
+          const addr = r.data.address;
+          const name = addr.city || addr.town || addr.quarter || addr.suburb || addr.state || addr.country || 'Vị trí của bạn';
+          setUserAddress(name);
+        }
+      })
+      .catch(() => setUserAddress('Vị trí của bạn'));
+  }, [userCoords]);
+
+  // Fetch user location weather
+  const { data: userWeather } = useQuery({
+    queryKey: ['user-weather', userCoords],
+    queryFn: () => {
+      if (!userCoords) return null;
+      return api.get(`/weather?lat=${userCoords.lat}&lng=${userCoords.lng}`).then(r => r.data.weather);
+    },
+    enabled: !!userCoords,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const filteredTrails = VIETNAM_TRAILS.filter(t => {
     return selectedProvince === 'Tất cả tỉnh thành' || t.province === selectedProvince;
   });
 
+  // Sort by distance if userCoords is available
+  const sortedTrails = [...filteredTrails].sort((a, b) => {
+    if (!userCoords) return 0;
+    const distA = getDistance(userCoords.lat, userCoords.lng, a.lat, a.lng);
+    const distB = getDistance(userCoords.lat, userCoords.lng, b.lat, b.lng);
+    return distA - distB;
+  });
+
   const handleLocateMe = () => {
     if (navigator.geolocation) {
+      toast.loading('Đang xác định vị trí...', { id: 'locate' });
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          toast.success(`Đã xác định vị trí hiện tại: (${pos.coords.latitude.toFixed(3)}, ${pos.coords.longitude.toFixed(3)}). Đang hiển thị cung đường Lào Cai/Tây Bắc gần bạn nhất!`);
-          setSelectedProvince('Lào Cai');
+          toast.dismiss('locate');
+          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setUserCoords(coords);
+          toast.success(`Đã định vị thành công: (${pos.coords.latitude.toFixed(3)}, ${pos.coords.longitude.toFixed(3)})`);
         },
-        () => toast.error('Không thể lấy vị trí thiết bị. Vui lòng cho phép quyền định vị.')
+        () => {
+          toast.dismiss('locate');
+          toast.error('Không thể định vị. Vui lòng bật quyền định vị trình duyệt.');
+        }
       );
+    } else {
+      toast.error('Trình duyệt không hỗ trợ định vị.');
     }
   };
 
@@ -306,18 +380,27 @@ export default function TrailSafety() {
           </select>
         </div>
 
-        <button
-          onClick={handleLocateMe}
-          className="px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-400 hover:bg-sky-500/20 text-xs font-semibold transition-all flex items-center gap-1.5"
-        >
-          <NavigationArrow size={14} weight="fill" /> Lọc Theo Vị Trí Của Tôi
-        </button>
+        {userCoords && userWeather ? (
+          <div className="flex items-center gap-2.5 bg-emerald-950/40 border border-emerald-500/20 px-3 py-2 rounded-xl text-xs">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></div>
+            <span className="text-slate-300 font-medium">Thời tiết tại {userAddress}:</span>
+            <span className="font-bold text-emerald-400 font-mono">{userWeather.temperature}°C</span>
+            <span className="text-[10px] text-slate-400">({userWeather.description})</span>
+          </div>
+        ) : (
+          <button
+            onClick={handleLocateMe}
+            className="px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-400 hover:bg-sky-500/20 text-xs font-semibold transition-all flex items-center gap-1.5"
+          >
+            <NavigationArrow size={14} weight="fill" /> Định Vị Của Tôi
+          </button>
+        )}
       </div>
 
       {/* Trails List */}
       <div className="space-y-6">
-        {filteredTrails.map((trail) => (
-          <TrailWeatherCard key={trail.id} trail={trail} />
+        {sortedTrails.map((trail) => (
+          <TrailWeatherCard key={trail.id} trail={trail} userCoords={userCoords} />
         ))}
       </div>
 
