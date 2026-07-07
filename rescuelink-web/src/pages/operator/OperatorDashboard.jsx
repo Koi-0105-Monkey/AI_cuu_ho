@@ -1,30 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Users, Warning, Compass, MapPin } from '@phosphor-icons/react';
 import api from '../../services/api';
+import Header from '../../components/layout/Header';
+import { setupLeafletIcons, tripIcon as activeTrekkerIcon, emergencyTrekkerIcon } from '../../utils/leafletIcons';
 
-const activeTrekkerIcon = L.divIcon({
-  html: `<div class="relative flex items-center justify-center w-6 h-6">
-    <div class="absolute w-full h-full bg-emerald-500 rounded-full opacity-40 animate-pulse"></div>
-    <div class="w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white z-10 shadow-lg"></div>
-  </div>`,
-  className: 'custom-leaflet-icon',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12]
-});
+setupLeafletIcons();
 
-const emergencyTrekkerIcon = L.divIcon({
-  html: `<div class="relative flex items-center justify-center w-6 h-6">
-    <div class="absolute w-full h-full bg-red-500 rounded-full opacity-60 animate-ping"></div>
-    <div class="w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white z-10 shadow-lg"></div>
-  </div>`,
-  className: 'custom-leaflet-icon',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12]
-});
 
 export default function OperatorDashboard() {
   const [activeTrips, setActiveTrips] = useState([]);
@@ -63,7 +48,9 @@ export default function OperatorDashboard() {
   const emergencyCount = activeTrips.filter(t => t.status === 'emergency').length;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden space-y-6 p-6">
+    <div className="flex flex-col h-full overflow-hidden">
+      <Header title="Dashboard Nhà Điều Hành Tour" />
+      <div className="flex-1 overflow-auto p-6 space-y-6 flex flex-col min-h-0">
       <div className="shrink-0 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-white">Bảng điều khiển Nhà điều hành</h1>
@@ -141,10 +128,22 @@ export default function OperatorDashboard() {
             zoom={6}
             className="w-full h-full min-h-[300px]"
           >
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-              attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-            />
+            <LayersControl position="topright">
+              <LayersControl.BaseLayer checked name="🗺️ OpenStreetMap Chi Tiết">
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; OpenStreetMap contributors'
+                  maxZoom={19}
+                />
+              </LayersControl.BaseLayer>
+              <LayersControl.BaseLayer name="🛰️ Ảnh Vệ Tinh (Esri)">
+                <TileLayer
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                  attribution='&copy; Esri'
+                  maxZoom={18}
+                />
+              </LayersControl.BaseLayer>
+            </LayersControl>
             {activeTrips.map(trip => {
               const [lng, lat] = trip.lastKnownLocation?.coordinates || [];
               if (!lat || !lng) return null;
@@ -170,6 +169,7 @@ export default function OperatorDashboard() {
               );
             })}
           </MapContainer>
+        </div>
         </div>
       </div>
     </div>

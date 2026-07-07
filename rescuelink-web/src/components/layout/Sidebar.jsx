@@ -78,11 +78,8 @@ export default function Sidebar({ isOpen, onClose }) {
 
         {/* Dedicated Admin Portal Switcher Box */}
         {user?.role === 'admin' && (
-          <div className="mt-6 pt-4 border-t border-surface-4 space-y-2">
-            <div className="flex items-center justify-between px-2">
-              <span className="text-[10px] text-amber-400 font-extrabold uppercase tracking-wider">⚡ Admin Switcher</span>
-              <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded font-mono">TEST MODE</span>
-            </div>
+          <div className="mt-6 pt-4 border-t border-surface-4 space-y-1.5">
+            <p className="text-[10px] text-muted-light font-bold uppercase tracking-wider px-2 mb-2">⚡ Portal Switcher</p>
 
             <div className="grid grid-cols-1 gap-1.5 bg-surface-2/60 p-2 rounded-xl border border-surface-4 text-xs font-medium">
               <NavLink

@@ -26,14 +26,12 @@ const queryClient = new QueryClient({
 
 const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
-  { path: '/home', element: <LandingPage /> },
   { path: '/portal', element: <UserPortal /> },
   { path: '/login', element: <Login /> },
   { path: '/family/:shareToken', element: <FamilyView /> }, // Public family route
   {
     element: <AppLayout />,
     children: [
-      { index: true, element: <Dashboard /> },
       { path: 'dashboard', element: <Dashboard /> },
       { path: 'incidents', element: <IncidentList /> },
       { path: 'incidents/:id', element: <IncidentDetail /> },

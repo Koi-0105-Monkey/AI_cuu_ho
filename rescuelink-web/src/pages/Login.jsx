@@ -30,7 +30,7 @@ export default function Login() {
       if (userRole === 'operator') {
         navigate('/operator');
       } else {
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Đăng nhập thất bại');

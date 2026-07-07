@@ -31,10 +31,11 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
     *   Mobile: [tracking-active.tsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-app/app/tracking-active.tsx) cho phép chạm vào bất kỳ điểm nào trên bản đồ để ghim marker vị trí + hiển thị HUD tùy chọn tải bản đồ ngoại tuyến vùng này.
     *   Web: [Dashboard.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/Dashboard.jsx) thêm `LocationPickerMarker` (using `useMapEvents`) cho phép click trên Leaflet map ghim vị trí lấy tọa độ tức thì.
 *   **SMS Mock Mode**: Thêm cấu hình `SMS_MOCK_MODE=true` trong môi trường phát triển để tránh mất credit Twilio thật khi test.
-*   **Phân Tách UX Theo Vai Trò & Bổ Sung Cổng Web Trekker Cá Nhân (/portal)**:
-    *   Tách biệt không gian làm việc của **Admin HQ** (`/dashboard` - Bảng điều khiển tác chiến cứu hộ) và **Trang Chủ Công Cộng** (`/` - Landing Page B2B/B2C).
-    *   Xây dựng màn hình **Cổng Web Dành Cho Trekker Cá Nhân ([UserPortal.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/UserPortal.jsx) — Route `/portal`)** giúp người dùng dã ngoại sử dụng ngay trên trình duyệt máy tính/điện thoại: *Phát tín hiệu SOS khẩn cấp trực tiếp từ Web, Xem vị trí & thời tiết đỉnh núi, Nhập PIN 6 số ghép đoàn tour, Sinh link Family View gửi người thân qua Zalo/Facebook*.
-    *   Thêm hộp công cụ **`⚡ Admin Switcher`** ngay trên [Sidebar.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/components/layout/Sidebar.jsx) cho phép tài khoản Admin (`role === 'admin'`) bấm 1 chạm chuyển đổi tức thì giữa cả 5 phân hệ: *1. Cổng Cứu Hộ HQ (`/dashboard`), 2. Cổng Operator Tour (`/operator`), 3. Trang Chủ Công Cộng (`/`), 4. Cung Đường An Toàn (`/trails`), 5. Web Trekker Cá Nhân (`/portal`)*.
+*   **Nâng Cấp Tính Năng Peer-to-Peer & Bluetooth Trên Mobile App (`rescuelink-app`)**:
+    *   Thêm tính năng **🤝 Tự Tạo Nhóm Trekker Đi Lẻ ([qr-scanner.tsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-app/app/qr-scanner.tsx))**: Tự động sinh mã QR & mã PIN 6 số trên màn hình điện thoại để những người đi trekking tự phát quét màn hình ghép nhóm cứu hộ chung.
+    *   Thêm tính năng **📢 Cảnh Báo & Báo Cáo Sự Cố Cho Đồng Đội ([tracking-active.tsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-app/app/tracking-active.tsx))**: Phát báo động rung/chuông và vị trí tới toàn bộ điện thoại các thành viên trong nhóm khi có người chấn thương hoặc đi lạc.
+    *   Tích hợp module **📶 Bluetooth BLE RSSI Beacon ([bleBeacon.ts](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-app/utils/bleBeacon.ts))**: Đo cường độ tín hiệu Bluetooth để xác định cự ly khoảng cách 5-10m giữa các đồng đội khi mất hoàn toàn sóng 4G/GPS.
+    *   Tích hợp nút **🔗 Chia Sẻ Link Người Thân (1-Tap Share Zalo/FB)** trên [index.tsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-app/app/(tabs)/index.tsx) và [tracking-active.tsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-app/app/tracking-active.tsx).
 
 ---
 

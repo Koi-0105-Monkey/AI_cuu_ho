@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMapEvents, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import toast from 'react-hot-toast';
@@ -12,8 +12,9 @@ import api from '../services/api';
 import {
   Warning, Users, CheckCircle, BellRinging, MapPin, Compass
 } from '@phosphor-icons/react';
+import { setupLeafletIcons, incidentIcon, tripIcon, fireHotspotIcon, rangerIcon, islandIcon } from '../utils/leafletIcons';
 
-import { LayersControl } from 'react-leaflet';
+setupLeafletIcons();
 
 // Custom click listener component for Leaflet Map with Reverse Geocoding
 function LocationPickerMarker({ selectedPos, setSelectedPos }) {
@@ -67,54 +68,6 @@ function LocationPickerMarker({ selectedPos, setSelectedPos }) {
   ) : null;
 }
 
-// Fix default Leaflet icon for Vite
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
-
-// Custom pulsing icons for high-end look
-const incidentIcon = L.divIcon({
-  html: `<div class="relative flex items-center justify-center w-6 h-6">
-    <div class="absolute w-full h-full bg-red-500 rounded-full opacity-60 animate-ping"></div>
-    <div class="w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white z-10 shadow-lg"></div>
-  </div>`,
-  className: 'custom-leaflet-icon',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12]
-});
-
-const tripIcon = L.divIcon({
-  html: `<div class="relative flex items-center justify-center w-6 h-6">
-    <div class="absolute w-full h-full bg-emerald-500 rounded-full opacity-40 animate-pulse"></div>
-    <div class="w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white z-10 shadow-lg"></div>
-  </div>`,
-  className: 'custom-leaflet-icon',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12]
-});
-
-const fireHotspotIcon = L.divIcon({
-  html: `<div class="relative flex items-center justify-center w-6 h-6">
-    <div class="absolute w-full h-full bg-red-600 rounded-full opacity-60 animate-ping"></div>
-    <div class="w-3.5 h-3.5 bg-orange-500 rounded-full border-2 border-white z-10 shadow-lg flex items-center justify-center text-[9px] font-bold">🔥</div>
-  </div>`,
-  className: 'custom-leaflet-icon',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12]
-});
-
-const rangerIcon = L.divIcon({
-  html: `<div class="relative flex items-center justify-center w-6 h-6">
-    <div class="absolute w-full h-full bg-emerald-500 rounded-full opacity-40 animate-pulse"></div>
-    <div class="w-3.5 h-3.5 bg-emerald-700 rounded-full border-2 border-white z-10 shadow-lg flex items-center justify-center text-[8px]">👮</div>
-  </div>`,
-  className: 'custom-leaflet-icon',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12]
-});
 
 const VQG_BOUNDS = [
   [22.38, 103.75],
@@ -130,18 +83,7 @@ const FORBIDDEN_ZONE = [
   [22.32, 103.76]
 ];
 
-// Custom island labels for Hoang Sa & Truong Sa
-const islandIcon = (name) => L.divIcon({
-  html: `<div class="flex flex-col items-center justify-center">
-    <div class="w-2.5 h-2.5 bg-yellow-500 rounded-full border border-red-600 shadow-md"></div>
-    <div class="bg-slate-900/90 border border-slate-700 text-white font-bold text-[9px] px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap mt-1">
-      ${name} (VN)
-    </div>
-  </div>`,
-  className: 'custom-leaflet-island-icon',
-  iconSize: [100, 36],
-  iconAnchor: [50, 18]
-});
+
 
 // ─── Stat Card ────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, color = 'text-muted-light', loading }) {

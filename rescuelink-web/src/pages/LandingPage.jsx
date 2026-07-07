@@ -1,253 +1,530 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ShieldCheck, MapPin, PhoneCall, Heartbeat, Users, Lightning,
-  Compass, ArrowRight, CheckCircle, Warning, FileText, User, List, X
+  Compass, ArrowRight, CheckCircle, ArrowUpRight, X, List
 } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 
+// ─── Animated counter hook ────────────────────────────────
+function useCounter(target, duration = 1800, start = false) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!start) return;
+    let startTime;
+    const tick = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      // easeOutQuart
+      const eased = 1 - Math.pow(1 - progress, 4);
+      setCount(Math.floor(eased * target));
+      if (progress < 1) requestAnimationFrame(tick);
+      else setCount(target);
+    };
+    requestAnimationFrame(tick);
+  }, [target, duration, start]);
+  return count;
+}
+
+// ─── Metric Card ─────────────────────────────────────────
+function MetricCard({ value, suffix = '', label, color = 'text-white', delay = 0, inView }) {
+  const num = useCounter(value, 1600, inView);
+  return (
+    <div
+      className="relative bg-surface-2 border border-surface-4 rounded-2xl p-5 overflow-hidden group"
+      style={{
+        animationDelay: `${delay}ms`,
+        boxShadow: '0 2px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+        transition: 'transform 0.3s cubic-bezier(0.32,0.72,0,1), box-shadow 0.3s cubic-bezier(0.32,0.72,0,1)',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'perspective(600px) rotateX(3deg) rotateY(-2deg) translateZ(6px)';
+        e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'perspective(600px) rotateX(0) rotateY(0) translateZ(0)';
+        e.currentTarget.style.boxShadow = '0 2px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)';
+      }}
+    >
+      {/* Corner glow */}
+      <div className="absolute top-0 right-0 w-20 h-20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{ background: 'radial-gradient(circle at top right, rgba(255,255,255,0.06) 0%, transparent 70%)' }}
+      />
+      <span className={`text-3xl sm:text-4xl font-black tabular-nums ${color} block`}>
+        {num}{suffix}
+      </span>
+      <p className="text-xs text-muted font-medium mt-1.5 leading-relaxed">{label}</p>
+    </div>
+  );
+}
+
+// ─── Pillar Card ─────────────────────────────────────────
+function PillarCard({ icon: Icon, title, description, accent, delay }) {
+  const cardRef = useRef(null);
+
+  const handleMouseMove = (e) => {
+    const el = cardRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    el.style.transform = `perspective(800px) rotateX(${-y * 8}deg) rotateY(${x * 8}deg) translateZ(8px)`;
+  };
+
+  const handleMouseLeave = () => {
+    if (cardRef.current) {
+      cardRef.current.style.transform = 'perspective(800px) rotateX(0) rotateY(0) translateZ(0)';
+    }
+  };
+
+  return (
+    <div
+      ref={cardRef}
+      className="relative bg-surface-2 border border-surface-4 rounded-2xl p-8 overflow-hidden cursor-default"
+      style={{
+        transition: 'transform 0.2s cubic-bezier(0.32,0.72,0,1)',
+        boxShadow: '0 2px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+        animationDelay: `${delay}ms`,
+        transformStyle: 'preserve-3d',
+      }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Gradient spot light behind icon */}
+      <div
+        className="absolute -top-8 -left-8 w-32 h-32 rounded-full blur-2xl opacity-20"
+        style={{ background: accent }}
+      />
+
+      <div
+        className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 relative"
+        style={{ background: `${accent}18`, border: `1px solid ${accent}30` }}
+      >
+        <Icon size={28} weight="fill" style={{ color: accent }} />
+      </div>
+
+      <h4 className="text-base font-bold text-white mb-3">{title}</h4>
+      <p className="text-sm text-muted-light leading-relaxed">{description}</p>
+
+      {/* Bottom gradient line */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-px opacity-40"
+        style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }}
+      />
+    </div>
+  );
+}
+
+// ─── Main LandingPage ─────────────────────────────────────
 export default function LandingPage() {
   const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [metricsInView, setMetricsInView] = useState(false);
+  const metricsRef = useRef(null);
+
+  // IntersectionObserver for counter animation
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setMetricsInView(true); },
+      { threshold: 0.3 }
+    );
+    if (metricsRef.current) observer.observe(metricsRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Close mobile menu on resize
+  useEffect(() => {
+    const handler = () => { if (window.innerWidth >= 768) setMobileMenuOpen(false); };
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#090b0e] text-slate-100 font-sans selection:bg-red-500/30">
-      
-      {/* ─── Top Public Navigation ─── */}
-      <nav className="border-b border-surface-4 bg-surface-1/80 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <div className="min-h-dvh text-slate-100 font-sans selection:bg-emergency-600/30" style={{ background: '#080c12' }}>
+
+      {/* ─── Ambient background orbs (fixed, GPU safe) ─── */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[500px] rounded-full blur-[120px] opacity-20"
+          style={{ background: 'radial-gradient(circle, rgba(225,29,72,1) 0%, transparent 70%)' }} />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[400px] rounded-full blur-[100px] opacity-10"
+          style={{ background: 'radial-gradient(circle, rgba(16,185,129,1) 0%, transparent 70%)' }} />
+      </div>
+
+      {/* ─── Floating Navbar (glass pill) ─── */}
+      <div className="sticky top-0 z-50 flex justify-center px-4 pt-4">
+        <nav
+          className="w-full max-w-6xl rounded-2xl px-4 sm:px-6 py-3 flex items-center justify-between"
+          style={{
+            background: 'rgba(13, 17, 23, 0.8)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+          }}
+        >
+          {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-500/20 shrink-0">
-              <ShieldCheck size={24} className="text-white" weight="fill" />
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: 'linear-gradient(135deg, #e11d48, #be123c)', boxShadow: '0 0 20px rgba(225,29,72,0.4)' }}>
+              <ShieldCheck size={20} className="text-white" weight="fill" />
             </div>
             <div>
-              <h1 className="font-extrabold text-base sm:text-lg text-white tracking-tight flex items-center gap-2">
-                RESCUELINK <span className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full font-semibold">SAFETY TECH</span>
-              </h1>
-              <p className="text-[9px] sm:text-[10px] text-muted tracking-wider uppercase">Nền Tảng Cứu Hộ Dã Ngoại #1 Việt Nam</p>
+              <p className="font-black text-sm text-white tracking-tight leading-none">RESCUELINK</p>
+              <p className="text-[9px] text-muted tracking-widest uppercase leading-none mt-0.5">Safety Tech Vietnam</p>
             </div>
           </div>
 
-          {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center gap-8 text-xs font-semibold text-slate-300">
-            <Link to="/" className="text-red-400 font-bold">Trang Chủ</Link>
-            <Link to="/trails" className="hover:text-white transition-colors flex items-center gap-1.5">
-              <Compass size={16} /> Cung Đường An Toàn
-            </Link>
-            <Link to="/dashboard" className="hover:text-white transition-colors">Trung Tâm Chỉ Huy HQ</Link>
-            <Link to="/operator" className="hover:text-white transition-colors">Cổng Doanh Nghiệp Tour</Link>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-3">
-              {user ? (
-                <Link
-                  to={user.role === 'operator' ? '/operator' : '/dashboard'}
-                  className="px-4 py-2 rounded-xl bg-surface-3 hover:bg-surface-4 text-emerald-400 text-xs font-bold transition-all border border-emerald-500/30 flex items-center gap-2"
-                >
-                  <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px]">
-                    {user.name?.[0]?.toUpperCase() || 'U'}
-                  </div>
-                  Truy Cập Dashboard
-                </Link>
-              ) : (
-                <Link
-                  to="/login"
-                  className="px-4 py-2 rounded-xl bg-surface-3 hover:bg-surface-4 text-white text-xs font-semibold transition-all border border-surface-4"
-                >
-                  Đăng Nhập
-                </Link>
-              )}
-
+          {/* Desktop links */}
+          <div className="hidden md:flex items-center gap-1">
+            {[
+              { to: '/', label: 'Trang chủ', active: true },
+              { to: '/trails', label: 'Cung Đường' },
+              { to: '/portal', label: 'Trekker Portal' },
+              { to: '/dashboard', label: 'HQ Dashboard' },
+            ].map(({ to, label, active }) => (
               <Link
-                to="/operator/groups"
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all shadow-lg shadow-red-600/30 flex items-center gap-1.5"
+                key={to}
+                to={to}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${
+                  active
+                    ? 'text-emergency-400 bg-emergency-600/10'
+                    : 'text-muted-light hover:text-white hover:bg-surface-3'
+                }`}
               >
-                Dành Cho Doanh Nghiệp <ArrowRight size={14} />
+                {label}
               </Link>
-            </div>
+            ))}
+          </div>
 
-            {/* Mobile Hamburger Toggle Button */}
-            <button
-              onClick={() => setMobileMenuOpen(prev => !prev)}
-              className="md:hidden p-2 rounded-xl bg-surface-2 border border-surface-4 text-slate-200 hover:text-white transition-colors"
+          {/* Right actions */}
+          <div className="flex items-center gap-2">
+            {user ? (
+              <Link
+                to={user.role === 'operator' ? '/operator' : '/dashboard'}
+                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-emerald-400 transition-all duration-200"
+                style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}
+              >
+                <div className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center text-[9px]">
+                  {user.name?.[0]?.toUpperCase()}
+                </div>
+                Dashboard
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="hidden sm:block px-4 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white transition-all duration-200"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                Đăng nhập
+              </Link>
+            )}
+
+            <Link
+              to="/operator/groups"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all duration-200"
+              style={{
+                background: 'linear-gradient(135deg, #e11d48, #be123c)',
+                boxShadow: '0 0 16px rgba(225,29,72,0.3)',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 28px rgba(225,29,72,0.5)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 16px rgba(225,29,72,0.3)'; e.currentTarget.style.transform = ''; }}
             >
-              {mobileMenuOpen ? <X size={22} /> : <List size={22} />}
+              Doanh Nghiệp <ArrowUpRight size={13} weight="bold" />
+            </Link>
+
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMobileMenuOpen(v => !v)}
+              className="md:hidden p-2 rounded-xl text-slate-300 hover:text-white transition-colors"
+              style={{ background: 'rgba(255,255,255,0.05)' }}
+            >
+              {mobileMenuOpen ? <X size={20} weight="bold" /> : <List size={20} weight="bold" />}
             </button>
           </div>
-        </div>
+        </nav>
 
-        {/* Mobile Slide-Down Menu Sheet */}
+        {/* Mobile dropdown menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-4 pt-4 border-t border-surface-4 space-y-3 pb-2 text-xs">
-            <Link
-              to="/"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg bg-surface-2 text-red-400 font-bold"
-            >
-              Trang Chủ
-            </Link>
-            <Link
-              to="/trails"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg hover:bg-surface-2 text-slate-200 font-medium flex items-center gap-2"
-            >
-              <Compass size={16} /> Cung Đường An Toàn
-            </Link>
-            <Link
-              to="/dashboard"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg hover:bg-surface-2 text-slate-200 font-medium"
-            >
-              Trung Tâm Chỉ Huy HQ
-            </Link>
-            <Link
-              to="/operator"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg hover:bg-surface-2 text-slate-200 font-medium"
-            >
-              Cổng Doanh Nghiệp Tour
-            </Link>
-
+          <div
+            className="md:hidden absolute top-full left-4 right-4 mt-2 rounded-2xl p-4 space-y-1"
+            style={{
+              background: 'rgba(13,17,23,0.96)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(20px)',
+              animation: 'menu-open 0.35s cubic-bezier(0.32,0.72,0,1) both',
+            }}
+          >
+            {[
+              { to: '/', label: 'Trang Chủ' },
+              { to: '/trails', label: 'Cung Đường An Toàn', icon: Compass },
+              { to: '/portal', label: 'Trekker Cá Nhân' },
+              { to: '/dashboard', label: 'Trung Tâm HQ' },
+            ].map(({ to, label, icon: Icon }) => (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-slate-200 hover:text-white hover:bg-surface-3 transition-all duration-200"
+              >
+                {Icon && <Icon size={16} className="text-muted-light" />}
+                {label}
+              </Link>
+            ))}
             <div className="pt-2 border-t border-surface-4 flex flex-col gap-2">
               {user ? (
-                <Link
-                  to={user.role === 'operator' ? '/operator' : '/dashboard'}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-bold"
+                <Link to={user.role === 'operator' ? '/operator' : '/dashboard'} onClick={() => setMobileMenuOpen(false)}
+                  className="text-center py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors"
                 >
-                  Truy Cập Dashboard ({user.name})
+                  Dashboard ({user.name})
                 </Link>
               ) : (
-                <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center px-4 py-2.5 rounded-xl bg-surface-3 text-white font-semibold border border-surface-4"
+                <Link to="/login" onClick={() => setMobileMenuOpen(false)}
+                  className="text-center py-2.5 rounded-xl text-sm font-semibold text-white"
+                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
                 >
-                  Đăng Nhập
+                  Đăng nhập
                 </Link>
               )}
-
-              <Link
-                to="/operator/groups"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center px-4 py-2.5 rounded-xl bg-red-600 text-white font-bold flex items-center justify-center gap-2"
+              <Link to="/operator/groups" onClick={() => setMobileMenuOpen(false)}
+                className="text-center py-2.5 rounded-xl text-sm font-bold text-white"
+                style={{ background: 'linear-gradient(135deg, #e11d48, #be123c)', boxShadow: '0 0 16px rgba(225,29,72,0.3)' }}
               >
-                Dành Cho Doanh Nghiệp Tour <ArrowRight size={14} />
+                Dành Cho Doanh Nghiệp →
               </Link>
             </div>
           </div>
         )}
-      </nav>
+      </div>
 
       {/* ─── Hero Section ─── */}
-      <section className="relative pt-20 pb-24 overflow-hidden border-b border-surface-4">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-red-600/10 blur-[140px] rounded-full pointer-events-none" />
-        
-        <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold mb-8">
-            <Lightning size={16} weight="fill" /> GIẢI PHÁP AN TOÀN DU LỊCH MẠO HIỂM THẾ HỆ MỚI
+      <section className="relative z-10 pt-20 pb-28 px-4 overflow-hidden" style={{ minHeight: '85dvh' }}>
+        <div className="max-w-5xl mx-auto text-center flex flex-col items-center">
+
+          {/* Eyebrow badge */}
+          <div
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold mb-8 animate-fade-up"
+            style={{
+              background: 'rgba(225,29,72,0.1)',
+              border: '1px solid rgba(225,29,72,0.25)',
+              color: '#fb7185',
+              animationDelay: '0ms',
+            }}
+          >
+            <Lightning size={14} weight="fill" />
+            Nền Tảng Cứu Hộ Dã Ngoại #1 Việt Nam
           </div>
 
-          <h2 className="text-4xl sm:text-6xl font-extrabold text-white tracking-tight leading-tight max-w-4xl mx-auto">
-            Bảo Vệ Tính Mạng <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-amber-300">Người Leo Núi & Thám Hiểm</span> Tại Việt Nam
-          </h2>
+          {/* Hero headline */}
+          <h1
+            className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05] max-w-4xl animate-fade-up"
+            style={{ animationDelay: '80ms', textWrap: 'balance' }}
+          >
+            Bảo Vệ Tính Mạng{' '}
+            <span
+              style={{
+                background: 'linear-gradient(135deg, #fb7185 0%, #e11d48 40%, #f97316 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              Người Leo Núi
+            </span>
+            {' '}Tại Việt Nam
+          </h1>
 
-          <p className="mt-6 text-base sm:text-lg text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed">
-            Hệ sinh thái cứu hộ dã ngoại thông minh kết hợp định vị ngầm thích ứng, bản đồ ngoại tuyến nén SMS 7-bit và trợ lý AI Gemini 1.5 Flash cứu nạn khẩn cấp.
+          <p
+            className="mt-6 text-base sm:text-lg text-muted-light max-w-2xl leading-relaxed animate-fade-up"
+            style={{ animationDelay: '160ms' }}
+          >
+            Hệ sinh thái cứu hộ thông minh: định vị thích ứng, bản đồ ngoại tuyến, nén SMS 7-bit một segment,
+            và điều phối khẩn cấp AI thời gian thực.
           </p>
 
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+          {/* CTA buttons */}
+          <div
+            className="mt-10 flex flex-wrap items-center justify-center gap-4 animate-fade-up"
+            style={{ animationDelay: '240ms' }}
+          >
+            {/* Primary CTA — Button-in-Button pattern */}
             <Link
               to="/trails"
-              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-sm shadow-xl shadow-red-600/30 flex items-center gap-2 transition-all"
+              className="group flex items-center gap-2 px-6 py-3.5 rounded-full text-sm font-bold text-white"
+              style={{
+                background: 'linear-gradient(135deg, #e11d48, #be123c)',
+                boxShadow: '0 0 24px rgba(225,29,72,0.35)',
+                transition: 'all 0.25s cubic-bezier(0.32,0.72,0,1)',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.boxShadow = '0 0 40px rgba(225,29,72,0.55)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.boxShadow = '0 0 24px rgba(225,29,72,0.35)';
+                e.currentTarget.style.transform = '';
+              }}
             >
-              <Compass size={18} weight="bold" /> Khám Phá Cung Đường An Toàn
+              <Compass size={18} weight="bold" />
+              Khám Phá Cung Đường
+              <span className="w-7 h-7 rounded-full flex items-center justify-center transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                style={{ background: 'rgba(0,0,0,0.2)' }}>
+                <ArrowUpRight size={14} weight="bold" />
+              </span>
             </Link>
+
+            {/* Secondary CTA */}
             <Link
-              to="/operator/groups"
-              className="px-6 py-3.5 rounded-2xl bg-surface-2 border border-surface-4 hover:border-slate-500 text-white font-semibold text-sm transition-all"
+              to="/portal"
+              className="flex items-center gap-2 px-6 py-3.5 rounded-full text-sm font-semibold text-slate-200 transition-all duration-200 hover:text-white"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                transition: 'all 0.25s cubic-bezier(0.32,0.72,0,1)',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                e.currentTarget.style.transform = '';
+              }}
             >
-              Giải Pháp Cho Công Ty Tour B2B
+              <PhoneCall size={16} weight="fill" className="text-emergency-400" />
+              Trekker Cá Nhân
             </Link>
           </div>
 
-          {/* Key Metrics Banner */}
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto text-left">
-            <div className="card p-5 border border-surface-4 bg-surface-1/60">
-              <span className="text-2xl sm:text-3xl font-extrabold text-white tabular-nums">99.9%</span>
-              <p className="text-xs text-muted font-medium mt-1">Định vị chính xác vùng mất sóng</p>
-            </div>
-            <div className="card p-5 border border-surface-4 bg-surface-1/60">
-              <span className="text-2xl sm:text-3xl font-extrabold text-red-400 tabular-nums">&lt; 15 Phút</span>
-              <p className="text-xs text-muted font-medium mt-1">Thời gian phản hồi chỉ huy HQ</p>
-            </div>
-            <div className="card p-5 border border-surface-4 bg-surface-1/60">
-              <span className="text-2xl sm:text-3xl font-extrabold text-emerald-400 tabular-nums">100%</span>
-              <p className="text-xs text-muted font-medium mt-1">Hồ sơ y tế xác minh an toàn</p>
-            </div>
-            <div className="card p-5 border border-surface-4 bg-surface-1/60">
-              <span className="text-2xl sm:text-3xl font-extrabold text-amber-400 tabular-nums">50+</span>
-              <p className="text-xs text-muted font-medium mt-1">Cung đường leo núi phủ sóng</p>
+          {/* Floating shield graphic (3D CSS) */}
+          <div
+            className="mt-16 animate-float relative"
+            style={{ animationDelay: '0ms', perspective: '800px' }}
+          >
+            <div
+              className="w-28 h-28 rounded-3xl flex items-center justify-center mx-auto relative"
+              style={{
+                background: 'linear-gradient(135deg, rgba(225,29,72,0.2) 0%, rgba(30,20,50,0.8) 100%)',
+                border: '1px solid rgba(225,29,72,0.3)',
+                boxShadow: '0 0 60px rgba(225,29,72,0.3), 0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)',
+                transform: 'perspective(800px) rotateX(8deg)',
+              }}
+            >
+              <ShieldCheck size={56} weight="fill" className="text-emergency-400" />
+
+              {/* Orbiting ping */}
+              <div className="absolute -top-2 -right-2 w-5 h-5">
+                <div className="w-full h-full bg-emerald-500 rounded-full opacity-80 animate-ping" />
+                <div className="absolute inset-0 w-3 h-3 m-auto bg-emerald-400 rounded-full" />
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── 3 Pillars Section ─── */}
-      <section className="py-20 max-w-7xl mx-auto px-6">
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-red-400">CÔNG NGHỆ ĐỘT PHÁ</h3>
-          <p className="text-3xl font-extrabold text-white mt-2">3 Trụ Cột An Toàn Cứu Hộ Toàn Diện</p>
+      {/* ─── Metrics Row ─── */}
+      <section className="relative z-10 pb-20 px-4" ref={metricsRef}>
+        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
+          <MetricCard value={47} suffix="+" label="Cung đường leo núi phủ sóng" color="stat-number" inView={metricsInView} delay={0} />
+          <MetricCard value={15} suffix=" phút" label="Thời gian phản hồi HQ" color="stat-number-red" inView={metricsInView} delay={100} />
+          <MetricCard value={1247} suffix="+" label="Trekker đang sử dụng App" color="stat-number-green" inView={metricsInView} delay={200} />
+          <MetricCard value={53} suffix=" ký tự" label="SMS SOS tối thiểu gửi được" color="stat-number-amber" inView={metricsInView} delay={300} />
         </div>
+      </section>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Pillar 1 */}
-          <div className="card p-8 border border-surface-4 bg-surface-1 hover:border-red-500/50 transition-all group">
-            <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <PhoneCall size={30} weight="fill" />
+      {/* ─── 3 Pillars Section ─── */}
+      <section className="relative z-10 py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-xl mx-auto mb-14">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold mb-4 uppercase tracking-widest"
+              style={{ background: 'rgba(225,29,72,0.1)', border: '1px solid rgba(225,29,72,0.2)', color: '#fb7185' }}>
+              Công Nghệ Cốt Lõi
             </div>
-            <h4 className="text-lg font-bold text-white mb-3">1. Nén SMS SOS Single Segment</h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Thuật toán nén tọa độ GPS xuống 53 ký tự ASCII GSM 7-bit, gửi thành công 100% chỉ với 1 vạch sóng chập chờn mà không cần kết nối 4G/5G.
-            </p>
+            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight" style={{ textWrap: 'balance' }}>
+              3 Trụ Cột An Toàn Toàn Diện
+            </h2>
           </div>
 
-          {/* Pillar 2 */}
-          <div className="card p-8 border border-surface-4 bg-surface-1 hover:border-amber-500/50 transition-all group">
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <MapPin size={30} weight="fill" />
-            </div>
-            <h4 className="text-lg font-bold text-white mb-3">2. Geocoding Photon & Off-grid Map</h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Tích hợp Photon Geocoder local Docker và Komoot Public API tìm kiếm tức thì mọi lán trại, đỉnh núi Việt Nam (Fansipan, Tà Xùa, Lảo Thần...).
-            </p>
+          <div className="grid md:grid-cols-3 gap-6">
+            <PillarCard
+              icon={PhoneCall}
+              title="Nén SMS SOS Single Segment"
+              description="Thuật toán nén tọa độ GPS xuống 53 ký tự ASCII GSM 7-bit, gửi thành công chỉ với 1 vạch sóng chập chờn — không cần 4G/5G."
+              accent="#e11d48"
+              delay={0}
+            />
+            <PillarCard
+              icon={MapPin}
+              title="Geocoding Photon & Off-grid Map"
+              description="Nominatim OpenStreetMap + Photon Geocoder tìm kiếm tức thì mọi lán trại, đỉnh núi Việt Nam. Bản đồ ngoại tuyến lưu trực tiếp trên thiết bị."
+              accent="#f59e0b"
+              delay={80}
+            />
+            <PillarCard
+              icon={Heartbeat}
+              title="Khai Báo Y Tế & 2-Tier Protocol"
+              description="Quản lý tiền sử bệnh lý (tim mạch, huyết áp, nhóm máu). Xác minh 2 lớp Human-in-the-loop tránh báo động giả cho 115/114."
+              accent="#10b981"
+              delay={160}
+            />
           </div>
+        </div>
+      </section>
 
-          {/* Pillar 3 */}
-          <div className="card p-8 border border-surface-4 bg-surface-1 hover:border-emerald-500/50 transition-all group">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <Heartbeat size={30} weight="fill" />
+      {/* ─── B2B CTA Banner ─── */}
+      <section className="relative z-10 py-16 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div
+            className="relative rounded-3xl p-8 sm:p-12 overflow-hidden text-center"
+            style={{
+              background: 'rgba(225,29,72,0.08)',
+              border: '1px solid rgba(225,29,72,0.2)',
+              boxShadow: '0 0 80px rgba(225,29,72,0.15), inset 0 1px 0 rgba(255,255,255,0.06)',
+            }}
+          >
+            {/* Radial glow behind */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-80 h-40 rounded-full blur-[80px] opacity-30"
+                style={{ background: '#e11d48' }} />
             </div>
-            <h4 className="text-lg font-bold text-white mb-3">3. Khai Báo Y Tế & 2-Tier Protocol</h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Quản lý tiền sử bệnh lý (tim mạch, huyết áp, nhóm máu). Cơ chế xác minh 2 lớp (Human-in-the-loop) đảm bảo không gây quá tải báo động giả cho 115/114.
-            </p>
+
+            <div className="relative z-10">
+              <Users size={40} className="text-emergency-400 mx-auto mb-4" weight="fill" />
+              <h3 className="text-2xl sm:text-3xl font-black text-white mb-3">Giải Pháp Cho Công Ty Tour B2B</h3>
+              <p className="text-sm text-muted-light max-w-lg mx-auto mb-8">
+                Dashboard điều hành toàn bộ đoàn trekking, khai báo y tế, theo dõi GPS realtime và cảnh báo khẩn cấp tức thì.
+              </p>
+              <Link
+                to="/operator/groups"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-black text-white"
+                style={{
+                  background: 'linear-gradient(135deg, #e11d48, #be123c)',
+                  boxShadow: '0 0 32px rgba(225,29,72,0.4)',
+                  transition: 'all 0.25s cubic-bezier(0.32,0.72,0,1)',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 48px rgba(225,29,72,0.6)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 32px rgba(225,29,72,0.4)'; e.currentTarget.style.transform = ''; }}
+              >
+                Bắt Đầu Dùng Miễn Phí <ArrowRight size={16} weight="bold" />
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ─── Footer ─── */}
-      <footer className="border-t border-surface-4 bg-surface-1/50 py-12 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-slate-500">
+      <footer className="relative z-10 border-t border-surface-4 py-10 px-4"
+        style={{ background: 'rgba(13,17,23,0.6)', backdropFilter: 'blur(8px)' }}>
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-muted">
           <div className="flex items-center gap-3">
-            <ShieldCheck size={20} className="text-red-500" />
-            <span className="font-bold text-slate-300">RescueLink Safety Tech Vietnam © 2026</span>
+            <ShieldCheck size={18} className="text-emergency-500" />
+            <span className="font-bold text-slate-400">RescueLink Safety Tech © 2026</span>
           </div>
           <div className="flex gap-6">
-            <Link to="/trails" className="hover:text-slate-300">Cung Đường An Toàn</Link>
-            <Link to="/login" className="hover:text-slate-300">Cổng Nội Bộ</Link>
-            <Link to="/operator" className="hover:text-slate-300">Doanh Nghiệp Tour</Link>
+            <Link to="/trails" className="hover:text-slate-300 transition-colors">Cung Đường</Link>
+            <Link to="/portal" className="hover:text-slate-300 transition-colors">Trekker Portal</Link>
+            <Link to="/login" className="hover:text-slate-300 transition-colors">Nội Bộ</Link>
+            <Link to="/operator" className="hover:text-slate-300 transition-colors">Doanh Nghiệp</Link>
           </div>
         </div>
       </footer>
