@@ -52,9 +52,14 @@ const getWeather = async (lat, lng) => {
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code,weathercode,wind_speed_10m,windspeed_10m,precipitation&timezone=Asia%2FHo_Chi_Minh&forecast_days=1`;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch(url, {
-      signal: AbortSignal.timeout(10000) // timeout 10s
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`Open-Meteo API error: ${response.status}`);

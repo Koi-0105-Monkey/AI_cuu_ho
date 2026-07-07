@@ -26,6 +26,7 @@ const queryClient = new QueryClient({
 
 const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
+  { path: '/trails', element: <TrailSafety /> },
   { path: '/portal', element: <UserPortal /> },
   { path: '/login', element: <Login /> },
   { path: '/family/:shareToken', element: <FamilyView /> }, // Public family route
@@ -35,7 +36,8 @@ const router = createBrowserRouter([
       { path: 'dashboard', element: <Dashboard /> },
       { path: 'incidents', element: <IncidentList /> },
       { path: 'incidents/:id', element: <IncidentDetail /> },
-      { path: 'trails', element: <TrailSafety /> },
+      { path: 'dashboard/trails', element: <TrailSafety /> },
+      { path: 'dashboard/portal', element: <UserPortal /> },
       { path: 'users', element: <UserList /> },
       
       // Operator Routes
@@ -43,6 +45,8 @@ const router = createBrowserRouter([
       { path: 'operator/groups', element: <OperatorGroups /> },
       { path: 'operator/manifests', element: <OperatorManifests /> },
       { path: 'operator/analytics', element: <OperatorAnalytics /> },
+      { path: 'operator/trails', element: <TrailSafety /> },
+      { path: 'operator/portal', element: <UserPortal /> },
     ],
   },
 ]);

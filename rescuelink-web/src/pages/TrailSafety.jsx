@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Compass, CloudSun, MapPin, ShieldCheck, Thermometer, Wind,
   WarningCircle, ArrowLeft, ArrowRight, CheckCircle, Warning, DownloadSimple, UploadSimple, NavigationArrow
@@ -8,6 +8,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../services/api';
 import Header from '../components/layout/Header';
+import PublicNavbar from '../components/layout/PublicNavbar';
 
 const PROVINCES = [
   'Tất cả tỉnh thành',
@@ -245,10 +246,28 @@ export default function TrailSafety() {
     }
   };
 
+  const { pathname } = useLocation();
+  const isAdminView = pathname.startsWith('/dashboard') || pathname.startsWith('/operator');
+
   return (
-    <div className="flex flex-col h-full">
-      <Header title="Cung Đường An Toàn & GPX Track" />
-      <div className="flex-1 overflow-auto p-4 sm:p-6 max-w-6xl w-full mx-auto space-y-6">
+    <div className={`flex flex-col h-full ${!isAdminView ? 'min-h-dvh' : ''}`} style={!isAdminView ? { background: '#080c12' } : undefined}>
+      {/* Dynamic Header / Navigation */}
+      {isAdminView ? (
+        <Header title="Cung Đường An Toàn & GPX Track" />
+      ) : (
+        <PublicNavbar />
+      )}
+
+      {/* Ambient background orbs for public view */}
+      {!isAdminView && (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+          <div className="absolute top-[-20%] left-[10%] w-[600px] h-[500px] rounded-full blur-[120px] opacity-15"
+            style={{ background: 'radial-gradient(circle, rgba(225,29,72,1) 0%, transparent 70%)' }} />
+        </div>
+      )}
+
+      <div className={`flex-1 overflow-auto p-4 sm:p-6 max-w-6xl w-full mx-auto space-y-6 relative z-10 ${!isAdminView ? 'pt-8' : ''}`}>
+
 
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-surface-4">

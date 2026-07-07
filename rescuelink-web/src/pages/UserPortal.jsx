@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -9,14 +9,11 @@ import {
 } from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
+import Header from '../components/layout/Header';
+import PublicNavbar from '../components/layout/PublicNavbar';
+import { setupLeafletIcons } from '../utils/leafletIcons';
 
-// Fix default Leaflet icon
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+setupLeafletIcons();
 
 export default function UserPortal() {
   const [userLocation, setUserLocation] = useState({ lat: 21.02851, lng: 105.85417 });
@@ -70,9 +67,28 @@ export default function UserPortal() {
     toast.success('Đã sao chép link Family View! Hãy gửi cho Người thân qua Zalo/Facebook.');
   };
 
+  const { pathname } = useLocation();
+  const isAdminView = pathname.startsWith('/dashboard') || pathname.startsWith('/operator');
+
   return (
-    <div className="min-h-screen bg-[#090b0e] text-slate-100 font-sans p-4 sm:p-8 max-w-7xl mx-auto space-y-8">
-      
+    <div className={`flex flex-col h-full ${!isAdminView ? 'min-h-dvh' : ''}`} style={!isAdminView ? { background: '#080c12' } : undefined}>
+      {/* Dynamic Header / Navigation */}
+      {isAdminView ? (
+        <Header title="Cổng Web Trekker Cá Nhân" />
+      ) : (
+        <PublicNavbar />
+      )}
+
+      {/* Ambient background orbs for public view */}
+      {!isAdminView && (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+          <div className="absolute top-[-20%] left-[10%] w-[600px] h-[500px] rounded-full blur-[120px] opacity-15"
+            style={{ background: 'radial-gradient(circle, rgba(225,29,72,1) 0%, transparent 70%)' }} />
+        </div>
+      )}
+
+      <div className={`flex-1 overflow-auto p-4 sm:p-6 max-w-6xl w-full mx-auto space-y-6 relative z-10 ${!isAdminView ? 'pt-8' : ''}`}>
+
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-surface-4">
         <div>
@@ -237,7 +253,7 @@ export default function UserPortal() {
         </div>
 
       </div>
-
     </div>
+  </div>
   );
 }

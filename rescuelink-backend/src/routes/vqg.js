@@ -198,13 +198,17 @@ router.get('/search', protect, async (req, res, next) => {
 
     let searchResults = [];
 
-    // 1. Primary Engine: Nominatim OpenStreetMap Official API (Tìm kiếu cực nhạy mọi quán xá, địa danh, ngõ hẻm VN)
+    // 1. Primary Engine: Nominatim OpenStreetMap Official API
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&countrycodes=vn&format=json&addressdetails=1&limit=15`;
       const nomResp = await fetch(nomUrl, {
         headers: { 'User-Agent': 'RescueLinkSafetyTech/1.0 (Vietnam Search Engine)' },
-        signal: AbortSignal.timeout(5000)
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       const nomData = await nomResp.json();
 
       if (Array.isArray(nomData) && nomData.length > 0) {
@@ -223,8 +227,12 @@ router.get('/search', protect, async (req, res, next) => {
     if (searchResults.length < 5) {
       const localPhotonUrl = process.env.PHOTON_URL || 'http://localhost:2322';
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+
         const url = `${localPhotonUrl.replace(/\/$/, '')}/api?q=${encodeURIComponent(query)}&limit=10&lang=vi`;
-        const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
         const data = await response.json();
         
         if (data && data.features && data.features.length > 0) {
@@ -246,17 +254,27 @@ router.get('/search', protect, async (req, res, next) => {
               type: props.osm_value || 'address'
             };
           });
+          searchResults = [...searchResults, ...photonResults];
+        }
+      } catch (photonErr) {
+        console.warn('Photon Search API fetch failed:', photonErr.message);
       }
     }
 
-    // 4. Fallback cuối cùng OpenStreetMap Nominatim
+    // 3. Fallback cuối cùng OpenStreetMap Nominatim Public (nếu chưa có gì)
     if (searchResults.length === 0) {
       try {
-        const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
         const response = await fetch(
           `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=vn`,
-          { headers: { 'User-Agent': 'RescueLinkApp/1.0' } }
+          { 
+            headers: { 'User-Agent': 'RescueLinkApp/1.0' },
+            signal: controller.signal
+          }
         );
+        clearTimeout(timeoutId);
         const data = await response.json();
         if (data && data.length > 0) {
           searchResults = data.map(item => ({
@@ -280,6 +298,48 @@ router.get('/search', protect, async (req, res, next) => {
     next(error);
   }
 });
+
+// @desc    Reverse geocode coordinates to get address name
+// @route   GET /api/vqg/reverse or /api/search/reverse
+// @access  Public
+router.get('/reverse', async (req, res, next) => {
+  try {
+    const { lat, lng } = req.query;
+    if (!lat || !lng) {
+      return res.status(400).json({ success: false, message: 'Thiếu tham số lat/lng' });
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const nomUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`;
+    const response = await fetch(nomUrl, {
+      headers: { 'User-Agent': 'RescueLinkSafetyTech/1.0' },
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Nominatim reverse error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    res.json({
+      success: true,
+      display_name: data.display_name,
+      address: data.address
+    });
+  } catch (error) {
+    console.error('[Reverse Geocode Error]:', error.message);
+    res.json({
+      success: false,
+      display_name: `Tọa độ: ${req.query.lat}, ${req.query.lng}`,
+      address: {}
+    });
+  }
+});
+
 
 // @desc    Debug & Test Google Gemini AI Services (Mock or Production)
 // @route   GET /api/vqg/debug-gemini-ai

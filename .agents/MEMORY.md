@@ -53,4 +53,13 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
 *   **Photon Geocoder**: Khi máy chủ Docker Photon local chưa khởi chạy, hệ thống tự động nhảy sang Komoot Photon public API (`https://photon.komoot.io`) để đảm bảo việc tìm kiếm tên các đỉnh núi, địa danh leo núi không bị gián đoạn.
 *   **SMS Auto-Parser vs AI**: Tin nhắn Panic tự động khẩn cấp dùng Regex Parser để trích xuất vị trí lập tức. Tin nhắn mô tả chi tiết tai nạn (custom text không dấu) sử dụng Gemini 1.5 Flash để khôi phục dấu tiếng Việt và phân tích mức độ nguy hiểm.
 *   **Chạm Bản Đồ Chớp Nổi HUD**: Sự kiện chạm trực tiếp trên bản đồ mang lại trải nghiệm UX linh hoạt hơn nhiều so với việc bắt buộc phải gõ thanh tìm kiếm khi trekking ngoài thực địa.
+*   **Leaflet Icon Fix**: Đã extract thành utility [leafletIcons.js](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/utils/leafletIcons.js) — không được duplicate `L.divIcon` definitions nữa.
+*   **Routing Bug**: Đã fix `App.jsx` (xóa `index: true` khỏi AppLayout children) và `Login.jsx` (navigate về `/dashboard` thay vì `/`).
+*   **Premium UI Redesign (07/07/2026)**:
+    *   LandingPage mới: floating glass pill navbar, 3D card tilt (CSS perspective + mousemove), animated counter (useCounter hook easeOutQuart), radial ambient orbs background, Button-in-Button CTA, floating hero shield animate-float.
+    *   `index.css` mới: grain overlay (fixed pseudo-element), true glassmorphism, `.card-3d`, gradient border via CSS mask, holographic gradient text `.stat-number-*`, border-severity thicker (4px), nav-active glow.
+    *   `tailwind.config.js` mới: navy-tinted surface palette, glow shadows, mesh-gradient backgrounds, spring easing, new keyframes.
+    *   `TrailSafety.jsx`: thêm Header, fix layout inside AppLayout, đổi GPX button sang emerald.
+    *   `OperatorDashboard.jsx`: thêm Header, LayersControl OSM.
+    *   Sidebar: bỏ "TEST MODE" badge.
 

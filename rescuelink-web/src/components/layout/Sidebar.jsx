@@ -5,10 +5,10 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 const RESCUE_NAV_ITEMS = [
-  { to: '/dashboard', icon: Gauge,     label: 'Dashboard HQ' },
-  { to: '/incidents', icon: Warning,   label: 'Sự Cố & Cứu Hộ' },
-  { to: '/trails',    icon: Compass,   label: 'Cung Đường An Toàn' },
-  { to: '/users',     icon: Users,     label: 'Người Dùng' },
+  { to: '/dashboard',        icon: Gauge,     label: 'Dashboard HQ' },
+  { to: '/incidents',        icon: Warning,   label: 'Sự Cố & Cứu Hộ' },
+  { to: '/dashboard/trails', icon: Compass,   label: 'Cung Đường An Toàn' },
+  { to: '/users',            icon: Users,     label: 'Người Dùng' },
 ];
 
 const OPERATOR_NAV_ITEMS = [
@@ -16,6 +16,7 @@ const OPERATOR_NAV_ITEMS = [
   { to: '/operator/groups',    icon: Users,     label: 'Quản Lý Đoàn' },
   { to: '/operator/manifests', icon: Heartbeat, label: 'Khai Báo Y Tế' },
   { to: '/operator/analytics', icon: Warning,   label: 'Thống Kê Tour' },
+  { to: '/operator/trails',    icon: Compass,   label: 'Cung Đường An Toàn' },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -116,7 +117,7 @@ export default function Sidebar({ isOpen, onClose }) {
               </NavLink>
 
               <NavLink
-                to="/trails"
+                to="/dashboard/trails"
                 onClick={onClose}
                 className={({ isActive }) =>
                   `flex items-center gap-2 p-2 rounded-lg transition-colors ${isActive ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-300 hover:bg-surface-3'}`
@@ -127,7 +128,7 @@ export default function Sidebar({ isOpen, onClose }) {
               </NavLink>
 
               <NavLink
-                to="/portal"
+                to="/dashboard/portal"
                 onClick={onClose}
                 className={({ isActive }) =>
                   `flex items-center gap-2 p-2 rounded-lg transition-colors ${isActive ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-300 hover:bg-surface-3'}`
