@@ -221,19 +221,6 @@ export default function QRScannerScreen() {
         </View>
       </View>
     );
-  }BtnSecondary]}
-            onPress={() => setMode('pin')}
-          >
-            <Ionicons name="keypad-outline" size={22} color="#60a5fa" />
-            <View style={styles.choiceBtnText}>
-              <Text style={[styles.choiceBtnTitle, { color: '#93c5fd' }]}>Nhập Mã PIN 6 Số</Text>
-              <Text style={styles.choiceBtnSubtitle}>HDV cung cấp mã PIN qua Zalo/Tin nhắn</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color="#64748b" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
   }
 
   // ─── UI: Màn hình Camera Quét QR ─────────────────────────────────────────
