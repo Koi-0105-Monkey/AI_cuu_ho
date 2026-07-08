@@ -1474,6 +1474,10 @@ export default function TrackingActiveScreen() {
           <View className="items-center bg-red-950/95 border border-red-500/30 px-3 py-2 rounded-2xl shadow-xl">
             <Text className="text-red-400 text-[10px] font-bold text-center tracking-wide uppercase">
               🚨 NHẤN ĐÚP 2 LẦN LIÊN TỤC ĐỂ BÁO CỨU HỘ
+            </Text>
+          </View>
+        )}
+
         {/* P2P Peer Connection & Family Share Bar */}
         <View className="bg-surface-1/95 border border-surface-3 p-3 rounded-2xl flex-row items-center justify-between gap-2">
           <View className="flex-row items-center gap-1.5 flex-1">

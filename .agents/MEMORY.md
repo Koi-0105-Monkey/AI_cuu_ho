@@ -45,11 +45,17 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
 - `[ ]` Đăng ký API Key của Google Gemini (AI Studio miễn phí) điền vào file `.env` ở backend để chạy sản phẩm thật.
 - `[x]` Chạy lệnh dọn dẹp xóa thư mục [rescuelink-vqg/](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-vqg) khi có sự xác nhận của người dùng (Đã thực hiện).
 - `[x]` Loại bỏ hoàn toàn vai trò `authority` / VQG và xóa mọi vết tích Viettel AI khỏi hệ thống (Đã thực hiện).
+- `[x]` Triển khai mã hóa dữ liệu y khoa (AES-256-CBC) và bảng nhật ký Audit Log bảo mật (Nghị định 13/2023) (Đã thực hiện).
 
 ---
 
 ## 💡 4. Bài Học Kinh Kinh Nghiệm & Lưu Ý Đặc Biệt (Lessons Learned & Gotchas)
 
+*   **Mã hóa Y khoa & Access Control (Nghị định 13/2023)**:
+    *   Hồ sơ y khoa được mã hóa đối xứng bằng khóa bí mật 32-byte thông qua getters/setters của Mongoose.
+    *   Thông tin y tế đầy đủ bị lọc bỏ khỏi mọi route xem danh sách (incidents list, users list) và chỉ trả về duy nhất trong chi tiết Incident `GET /api/incidents/:id` nếu người xem vượt qua bộ lọc ACL (là Admin, Chủ sở hữu hoặc Cứu hộ viên được phân công ca đó).
+    *   Mỗi lượt truy cập được giải mã thành công đều lưu vết bảo mật vào bảng `MedicalAuditLog` để lưu trữ đối soát bảo mật.
+*   **Rate Limiting chống Spam**: SOS endpoint được bảo vệ bởi rate limiter giới hạn 3 lượt tạo incident/5 phút để tránh quá tải do báo động giả hoặc tấn công DDoS.
 *   **Photon Geocoder**: Khi máy chủ Docker Photon local chưa khởi chạy, hệ thống tự động nhảy sang Komoot Photon public API (`https://photon.komoot.io`) để đảm bảo việc tìm kiếm tên các đỉnh núi, địa danh leo núi không bị gián đoạn.
 *   **SMS Auto-Parser vs AI**: Tin nhắn Panic tự động khẩn cấp dùng Regex Parser để trích xuất vị trí lập tức. Tin nhắn mô tả chi tiết tai nạn (custom text không dấu) sử dụng Gemini 1.5 Flash để khôi phục dấu tiếng Việt và phân tích mức độ nguy hiểm.
 *   **Chạm Bản Đồ Chớp Nổi HUD**: Sự kiện chạm trực tiếp trên bản đồ mang lại trải nghiệm UX linh hoạt hơn nhiều so với việc bắt buộc phải gõ thanh tìm kiếm khi trekking ngoài thực địa.
@@ -62,4 +68,3 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
     *   `TrailSafety.jsx`: thêm Header, fix layout inside AppLayout, đổi GPX button sang emerald.
     *   `OperatorDashboard.jsx`: thêm Header, LayersControl OSM.
     *   Sidebar: bỏ "TEST MODE" badge.
-
