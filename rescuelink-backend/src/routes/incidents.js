@@ -83,7 +83,7 @@ router.post('/', protect, validate(createIncidentSchema), async (req, res, next)
     });
 
     // Populate user info for socket payload
-    const populatedIncident = await Incident.findById(incident._id).populate('userId', 'name phone');
+    const populatedIncident = await Incident.findById(incident._id).populate('userId', 'name phone medicalProfile');
 
     // Notify web dashboard via Socket.io
     socketService.emitIncidentNew(populatedIncident);
@@ -216,7 +216,7 @@ router.post('/fire', protect, upload.single('image'), async (req, res, next) => 
       source: 'app'
     });
 
-    const populatedIncident = await Incident.findById(incident._id).populate('userId', 'name phone');
+    const populatedIncident = await Incident.findById(incident._id).populate('userId', 'name phone medicalProfile');
 
     // Notify Dashboard
     socketService.emitIncidentNew(populatedIncident);
@@ -280,7 +280,7 @@ router.get('/', protect, authorize('admin', 'rescuer'), async (req, res, next) =
 
     const total = await Incident.countDocuments(query);
     const incidents = await Incident.find(query)
-      .populate('userId', 'name phone')
+      .populate('userId', 'name phone medicalProfile')
       .populate('tripId', 'routeName expectedReturn')
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -304,7 +304,7 @@ router.get('/', protect, authorize('admin', 'rescuer'), async (req, res, next) =
 router.get('/:id', protect, async (req, res, next) => {
   try {
     const incident = await Incident.findById(req.params.id)
-      .populate('userId', 'name phone emergencyContacts')
+      .populate('userId', 'name phone emergencyContacts medicalProfile')
       .populate('tripId', 'routeName startedAt expectedReturn status');
 
     if (!incident) {
@@ -370,7 +370,7 @@ router.patch('/:id/status', protect, authorize('admin', 'rescuer'), async (req, 
       req.params.id,
       { status },
       { new: true }
-    ).populate('userId', 'name phone');
+    ).populate('userId', 'name phone medicalProfile');
 
     if (!incident) {
       return res.status(404).json({ success: false, message: 'Incident not found' });
@@ -468,7 +468,7 @@ router.post('/report-voice-sos', protect, uploadAudio.single('audio'), async (re
     });
 
     // Populate user info for socket
-    const populatedIncident = await Incident.findById(incident._id).populate('userId', 'name phone');
+    const populatedIncident = await Incident.findById(incident._id).populate('userId', 'name phone medicalProfile');
 
     // Emit event to Dashboard
     socketService.emitIncidentNew(populatedIncident);
@@ -595,7 +595,7 @@ router.post('/incoming-sms', async (req, res, next) => {
       source: 'sms'
     });
 
-    const populatedIncident = await Incident.findById(incident._id).populate('userId', 'name phone');
+    const populatedIncident = await Incident.findById(incident._id).populate('userId', 'name phone medicalProfile');
     socketService.emitIncidentNew(populatedIncident);
 
     res.json({

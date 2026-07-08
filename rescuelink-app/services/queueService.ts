@@ -40,6 +40,9 @@ export async function flushOfflineQueue() {
     // Try to sync pending end trip first
     await syncPendingEndTrip();
 
+    // Sync any pending offline SOS alerts next
+    await flushSOSQueue();
+
     const queueStr = await AsyncStorage.getItem('gps_queue');
     if (!queueStr) return { success: true, count: 0 };
 
@@ -72,5 +75,88 @@ export async function flushOfflineQueue() {
     return { success: false, reason: err.message };
   } finally {
     isFlushing = false;
+  }
+}
+
+export interface SOSQueueItem {
+  id: string;
+  lat: number;
+  lng: number;
+  type: string;
+  message: string;
+  battery?: number;
+  queuedAt: number;
+}
+
+// Lưu SOS xuống hàng đợi offline
+export async function enqueueSOS(payload: { lat: number; lng: number; type: string; message: string; battery?: number }) {
+  try {
+    const queueStr = await AsyncStorage.getItem('sos_queue');
+    const queue: SOSQueueItem[] = queueStr ? JSON.parse(queueStr) : [];
+    
+    const newItem: SOSQueueItem = {
+      id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+      ...payload,
+      queuedAt: Date.now()
+    };
+    
+    queue.push(newItem);
+    await AsyncStorage.setItem('sos_queue', JSON.stringify(queue));
+    console.log('[Queue Service] SOS queued offline:', newItem.id);
+    return true;
+  } catch (err: any) {
+    console.error('[Queue Service] Failed to queue SOS offline:', err.message);
+    return false;
+  }
+}
+
+// Đồng bộ hàng đợi SOS lên server
+export async function flushSOSQueue(): Promise<{ sent: number; remaining: number }> {
+  try {
+    const queueStr = await AsyncStorage.getItem('sos_queue');
+    if (!queueStr) return { sent: 0, remaining: 0 };
+    
+    const queue: SOSQueueItem[] = JSON.parse(queueStr);
+    if (queue.length === 0) return { sent: 0, remaining: 0 };
+    
+    console.log(`[Queue Service] Found ${queue.length} pending offline SOS. Flushing...`);
+    
+    const token = await AsyncStorage.getItem('user_token');
+    if (!token) return { sent: 0, remaining: queue.length };
+    
+    const successfulIds: string[] = [];
+    
+    for (const item of queue) {
+      try {
+        const response = await api.post('/incidents', {
+          type: item.type,
+          severity: 5, // SOS mặc định là cấp 5 khẩn cấp
+          lat: item.lat,
+          lng: item.lng,
+          message: `${item.message} (Gửi lại từ hàng đợi offline, tạo lúc ${new Date(item.queuedAt).toLocaleTimeString()})`,
+          batteryAtTime: item.battery
+        });
+        
+        if (response.data?.success) {
+          successfulIds.push(item.id);
+        }
+      } catch (err: any) {
+        console.warn(`[Queue Service] Failed to flush SOS ${item.id}:`, err.message);
+        // Dừng lại không gửi tiếp các SOS sau nếu mạng vẫn lỗi
+        break;
+      }
+    }
+    
+    if (successfulIds.length > 0) {
+      const remainingQueue = queue.filter(item => !successfulIds.includes(item.id));
+      await AsyncStorage.setItem('sos_queue', JSON.stringify(remainingQueue));
+      console.log(`[Queue Service] Successfully flushed ${successfulIds.length} SOS reports.`);
+      return { sent: successfulIds.length, remaining: remainingQueue.length };
+    }
+    
+    return { sent: 0, remaining: queue.length };
+  } catch (err: any) {
+    console.error('[Queue Service] Error flushing SOS queue:', err.message);
+    return { sent: 0, remaining: 0 };
   }
 }

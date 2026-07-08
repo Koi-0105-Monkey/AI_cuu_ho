@@ -21,6 +21,13 @@ export default function ProfileScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
 
+  // Medical Profile Fields
+  const [bloodType, setBloodType] = useState('unknown');
+  const [allergies, setAllergies] = useState('');
+  const [medications, setMedications] = useState('');
+  const [chronicConditions, setChronicConditions] = useState('');
+  const [notes, setNotes] = useState('');
+
   // Add Contact Form State
   const [showAddForm, setShowAddForm] = useState(false);
   const [newContactName, setNewContactName] = useState('');
@@ -65,6 +72,13 @@ export default function ProfileScreen() {
         const userInfo = res.data.user;
         setUser(userInfo);
         setEditName(userInfo.name);
+        if (userInfo.medicalProfile) {
+          setBloodType(userInfo.medicalProfile.bloodType || 'unknown');
+          setAllergies(userInfo.medicalProfile.allergies || '');
+          setMedications(userInfo.medicalProfile.medications || '');
+          setChronicConditions(userInfo.medicalProfile.chronicConditions || '');
+          setNotes(userInfo.medicalProfile.notes || '');
+        }
         // Sync locally
         await AsyncStorage.setItem('user_info', JSON.stringify(userInfo));
         if (res.data.viettelMapsKey) {
@@ -79,6 +93,13 @@ export default function ProfileScreen() {
         const localUser = JSON.parse(localUserStr);
         setUser(localUser);
         setEditName(localUser.name);
+        if (localUser.medicalProfile) {
+          setBloodType(localUser.medicalProfile.bloodType || 'unknown');
+          setAllergies(localUser.medicalProfile.allergies || '');
+          setMedications(localUser.medicalProfile.medications || '');
+          setChronicConditions(localUser.medicalProfile.chronicConditions || '');
+          setNotes(localUser.medicalProfile.notes || '');
+        }
       }
     } finally {
       setLoading(false);
@@ -110,12 +131,21 @@ export default function ProfileScreen() {
 
     setUpdating(true);
     try {
-      const res = await api.patch('/auth/profile', { name: editName.trim() });
+      const res = await api.patch('/auth/profile', { 
+        name: editName.trim(),
+        medicalProfile: {
+          bloodType,
+          allergies: allergies.trim(),
+          medications: medications.trim(),
+          chronicConditions: chronicConditions.trim(),
+          notes: notes.trim()
+        }
+      });
       if (res.data.success) {
         setUser(res.data.user);
         await AsyncStorage.setItem('user_info', JSON.stringify(res.data.user));
         setIsEditing(false);
-        Alert.alert('Thành công', 'Đã cập nhật họ tên thành công.');
+        Alert.alert('Thành công', 'Đã cập nhật thông tin cá nhân và hồ sơ y tế thành công.');
       }
     } catch (err: any) {
       console.error(err);
@@ -313,6 +343,138 @@ export default function ProfileScreen() {
             </Text>
           </View>
         </View>
+      </View>
+
+      {/* ─── Medical Profile Panel ─── */}
+      <View className="bg-surface-1 border border-surface-3 p-6 rounded-3xl gap-5">
+        <View className="flex-row justify-between items-center pb-4 border-b border-surface-3">
+          <Text className="text-xs font-semibold text-emergency-400 tracking-wider">🩺 HỒ SƠ Y TẾ SƠ CỨU</Text>
+          <View className="bg-emergency-500/10 px-2 py-0.5 rounded-full border border-emergency-500/20">
+            <Text className="text-[8px] font-bold text-emergency-400">KHẨN CẤP</Text>
+          </View>
+        </View>
+
+        {isEditing ? (
+          <View className="gap-4">
+            {/* Blood Type Selection Grid */}
+            <View className="gap-2">
+              <Text className="text-[10px] text-muted">Nhóm máu</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'unknown'].map((type) => (
+                  <Pressable
+                    key={type}
+                    onPress={() => setBloodType(type)}
+                    className={`px-3 py-2 rounded-xl border ${
+                      bloodType === type
+                        ? 'bg-emergency-500 border-emergency-500'
+                        : 'bg-surface-2 border-surface-3'
+                    }`}
+                  >
+                    <Text className={`text-xs font-bold ${bloodType === type ? 'text-white' : 'text-muted-light'}`}>
+                      {type === 'unknown' ? 'Chưa rõ' : type}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View className="gap-1.5">
+              <Text className="text-[10px] text-muted">Dị ứng thuốc / thức ăn</Text>
+              <TextInput
+                className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-xs"
+                value={allergies}
+                onChangeText={setAllergies}
+                placeholder="Ví dụ: Penicillin, hải sản (để trống nếu không)"
+                placeholderTextColor="#6b6b6b"
+              />
+            </View>
+
+            <View className="gap-1.5">
+              <Text className="text-[10px] text-muted">Thuốc đang sử dụng thường xuyên</Text>
+              <TextInput
+                className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-xs"
+                value={medications}
+                onChangeText={setMedications}
+                placeholder="Ví dụ: Insulin, thuốc huyết áp"
+                placeholderTextColor="#6b6b6b"
+              />
+            </View>
+
+            <View className="gap-1.5">
+              <Text className="text-[10px] text-muted">Tiền sử bệnh nền</Text>
+              <TextInput
+                className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-xs"
+                value={chronicConditions}
+                onChangeText={setChronicConditions}
+                placeholder="Ví dụ: Hen suyễn, tim mạch"
+                placeholderTextColor="#6b6b6b"
+              />
+            </View>
+
+            <View className="gap-1.5">
+              <Text className="text-[10px] text-muted">Ghi chú y tế đặc biệt cho cứu hộ</Text>
+              <TextInput
+                className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-xs"
+                value={notes}
+                onChangeText={setNotes}
+                placeholder="Thông tin khẩn cấp khác cần lưu ý"
+                placeholderTextColor="#6b6b6b"
+                multiline
+                numberOfLines={3}
+                style={{ textAlignVertical: 'top' }}
+              />
+            </View>
+          </View>
+        ) : (
+          <View className="gap-4">
+            <View className="flex-row items-center gap-4">
+              <View className="w-14 h-14 rounded-2xl bg-emergency-500/10 border border-emergency-500/20 items-center justify-center">
+                <Text className="text-xl font-black text-emergency-500 font-mono">
+                  {bloodType === 'unknown' ? '?' : bloodType}
+                </Text>
+                <Text className="text-[8px] font-bold text-muted uppercase">NHÓM MÁU</Text>
+              </View>
+              <View className="flex-1 gap-1">
+                <Text className="text-white text-xs font-bold">Thông tin y khoa sơ cứu</Text>
+                <Text className="text-[10px] text-muted leading-4">
+                  Cung cấp thông tin chính xác giúp nhân viên y tế phản ứng đúng và kịp thời trong trường hợp khẩn cấp.
+                </Text>
+              </View>
+            </View>
+
+            <View className="gap-3 pt-2 border-t border-surface-3">
+              <View className="flex-row justify-between">
+                <Text className="text-xs text-muted">Dị ứng:</Text>
+                <Text className="text-xs text-white font-medium text-right flex-1 ml-4">
+                  {allergies.trim() || 'Không phát hiện'}
+                </Text>
+              </View>
+
+              <View className="flex-row justify-between">
+                <Text className="text-xs text-muted">Thuốc đang dùng:</Text>
+                <Text className="text-xs text-white font-medium text-right flex-1 ml-4">
+                  {medications.trim() || 'Không có'}
+                </Text>
+              </View>
+
+              <View className="flex-row justify-between">
+                <Text className="text-xs text-muted">Bệnh nền:</Text>
+                <Text className="text-xs text-white font-medium text-right flex-1 ml-4">
+                  {chronicConditions.trim() || 'Không có'}
+                </Text>
+              </View>
+
+              {notes.trim() ? (
+                <View className="gap-1 mt-1 bg-surface-2 p-3 rounded-2xl border border-surface-3">
+                  <Text className="text-[10px] font-bold text-emergency-400">GHI CHÚ SƠ CỨU:</Text>
+                  <Text className="text-xs text-slate-300 leading-5 italic">
+                    "{notes}"
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        )}
       </View>
 
       {/* ─── Emergency Contacts List ─── */}

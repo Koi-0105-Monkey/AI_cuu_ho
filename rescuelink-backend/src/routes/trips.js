@@ -103,6 +103,36 @@ router.patch('/:id/end', protect, async (req, res, next) => {
   }
 });
 
+// @desc    Check-in manually to confirm safety (resets overdue timer)
+// @route   PATCH /api/trips/:id/checkin
+// @access  Private
+router.patch('/:id/checkin', protect, async (req, res, next) => {
+  try {
+    const trip = await Trip.findOne({ _id: req.params.id, userId: req.user._id });
+
+    if (!trip) {
+      return res.status(404).json({ success: false, message: 'Trip not found' });
+    }
+
+    trip.lastCheckinAt = new Date();
+    trip.lastSeen = new Date();
+    trip.checkinWarningSent = false;
+    // Restore status if it was set to overdue
+    if (trip.status === 'overdue') {
+      trip.status = 'active';
+    }
+    await trip.save();
+
+    res.json({
+      success: true,
+      message: 'Check-in recorded successfully',
+      trip
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // @desc    Update trip battery and last known location
 // @route   PATCH /api/trips/:id/battery
 // @access  Private

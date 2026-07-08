@@ -13,7 +13,7 @@ import { Audio } from 'expo-av';
 import { useGPS } from '@/hooks/useGPS';
 import api from '@/services/api';
 import { haversineDistance } from '@/utils/geo';
-import { flushOfflineQueue } from '@/services/queueService';
+import { flushOfflineQueue, enqueueSOS } from '@/services/queueService';
 import { downloadRouteTiles, getTilesForBounds, downloadBoundsTiles } from '@/utils/offlineMap';
 import { buildCompressedSosMessage } from '@/utils/smsHelper';
 
@@ -481,6 +481,13 @@ export default function TrackingActiveScreen() {
       if (lastBatterySos && parseInt(lastBatterySos) <= 20) {
         activeWarnings.push(`Pin cực yếu (${lastBatterySos}%)`);
       }
+      
+      const sosQueueStr = await AsyncStorage.getItem('sos_queue');
+      const sosQueue = sosQueueStr ? JSON.parse(sosQueueStr) : [];
+      if (sosQueue.length > 0) {
+        activeWarnings.push(`Có ${sosQueue.length} SOS chưa gửi (Không có mạng) — Sẽ tự gửi khi có sóng`);
+      }
+      
       setWarnings(activeWarnings);
 
       // 4. Refresh check-in warning banner
@@ -582,6 +589,16 @@ export default function TrackingActiveScreen() {
       await AsyncStorage.removeItem('checkin_failed_triggered');
       await AsyncStorage.removeItem('checkin_lost_incident_created');
       
+      const tripId = activeTrip?.id || activeTrip?._id;
+      if (tripId) {
+        try {
+          await api.patch(`/trips/${tripId}/checkin`);
+          console.log('[Check-in] Checked in successfully on server.');
+        } catch (err: any) {
+          console.warn('[Check-in] Server check-in failed, fallback to local only:', err.message);
+        }
+      }
+      
       setCheckinWarning(false);
       Alert.alert('Thành công', 'RescueLink đã ghi nhận trạng thái an toàn của bạn.');
     } catch (e) {
@@ -673,13 +690,23 @@ export default function TrackingActiveScreen() {
         severity: 5,
         lat,
         lng,
-        message: 'PANIC SOS triggered manually by member.'
+        message: 'PANIC SOS triggered manually by member.',
+        batteryAtTime: batteryLevel
       });
-      if (res.data.success) {
+      if (res.data?.success) {
         onlineIncidentSuccess = true;
+      } else {
+        throw new Error('Server returned unsuccessful status');
       }
     } catch (err) {
-      console.log('Server is offline or unreachable for PANIC SOS.');
+      console.log('Server is offline or unreachable for PANIC SOS. Queuing SOS offline.');
+      await enqueueSOS({
+        lat,
+        lng,
+        type: 'MANUAL',
+        message: 'PANIC SOS triggered manually by member.',
+        battery: batteryLevel
+      });
     }
 
     // 2. Queue SMS fallback to emergency contact (using the new compressed SMS helper)

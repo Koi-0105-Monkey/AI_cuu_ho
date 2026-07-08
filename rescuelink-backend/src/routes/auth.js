@@ -19,7 +19,7 @@ const generateToken = (id) => {
 // @access  Public
 router.post('/register', validate(registerSchema), async (req, res, next) => {
   try {
-    const { name, phone, password, emergencyContacts } = req.body;
+    const { name, phone, password, emergencyContacts, medicalProfile } = req.body;
 
     // Check if user already exists
     const userExists = await User.findOne({ phone });
@@ -40,7 +40,8 @@ router.post('/register', validate(registerSchema), async (req, res, next) => {
       name,
       phone,
       passwordHash,
-      emergencyContacts: emergencyContacts || []
+      emergencyContacts: emergencyContacts || [],
+      medicalProfile: medicalProfile || {}
     });
 
     if (user) {
@@ -54,7 +55,8 @@ router.post('/register', validate(registerSchema), async (req, res, next) => {
           phone: user.phone,
           role: user.role,
           isRanger: user.isRanger || false,
-          emergencyContacts: user.emergencyContacts
+          emergencyContacts: user.emergencyContacts,
+          medicalProfile: user.medicalProfile
         }
       });
     } else {
@@ -86,7 +88,8 @@ router.post('/login', validate(loginSchema), async (req, res, next) => {
           phone: user.phone,
           role: user.role,
           isRanger: user.isRanger || false,
-          emergencyContacts: user.emergencyContacts
+          emergencyContacts: user.emergencyContacts,
+          medicalProfile: user.medicalProfile || {}
         }
       });
     } else {
@@ -111,7 +114,8 @@ router.get('/me', protect, async (req, res, next) => {
         phone: req.user.phone,
         role: req.user.role,
         isRanger: req.user.isRanger || false,
-        emergencyContacts: req.user.emergencyContacts
+        emergencyContacts: req.user.emergencyContacts,
+        medicalProfile: req.user.medicalProfile || {}
       }
     });
   } catch (error) {
@@ -124,10 +128,16 @@ router.get('/me', protect, async (req, res, next) => {
 // @access  Private
 router.patch('/profile', protect, async (req, res, next) => {
   try {
-    const { name, emergencyContacts } = req.body;
+    const { name, emergencyContacts, medicalProfile } = req.body;
 
     if (name) req.user.name = name;
     if (emergencyContacts) req.user.emergencyContacts = emergencyContacts;
+    if (medicalProfile) {
+      req.user.medicalProfile = {
+        ...req.user.medicalProfile,
+        ...medicalProfile
+      };
+    }
 
     await req.user.save();
 
@@ -140,7 +150,8 @@ router.patch('/profile', protect, async (req, res, next) => {
         phone: req.user.phone,
         role: req.user.role,
         isRanger: req.user.isRanger || false,
-        emergencyContacts: req.user.emergencyContacts
+        emergencyContacts: req.user.emergencyContacts,
+        medicalProfile: req.user.medicalProfile
       }
     });
   } catch (error) {

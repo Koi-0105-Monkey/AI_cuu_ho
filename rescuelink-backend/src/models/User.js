@@ -45,6 +45,17 @@ const userSchema = new mongoose.Schema({
     sparse: true, // cho phép null, không bắt unique với null
     default: () => crypto.randomBytes(20).toString('hex')
   },
+  medicalProfile: {
+    bloodType: { 
+      type: String, 
+      enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'unknown'],
+      default: 'unknown'
+    },
+    allergies: { type: String, default: '' },
+    medications: { type: String, default: '' },
+    chronicConditions: { type: String, default: '' },
+    notes: { type: String, default: '' }
+  },
   createdAt: { type: Date, default: Date.now }
 });
 

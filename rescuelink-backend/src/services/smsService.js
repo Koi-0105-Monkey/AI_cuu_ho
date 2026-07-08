@@ -127,6 +127,18 @@ const sendEmergencySMS = async (user, data) => {
   const cleanName = removeVietnameseTones(user.name);
   let smsContent = '';
 
+  let medStr = '';
+  if (user.medicalProfile) {
+    const { bloodType, allergies } = user.medicalProfile;
+    if (bloodType && bloodType !== 'unknown') {
+      medStr += `|Mau:${bloodType}`;
+    }
+    if (allergies && allergies.trim()) {
+      const cleanAllergies = removeVietnameseTones(allergies.trim()).substring(0, 15);
+      medStr += `|DiUng:${cleanAllergies}`;
+    }
+  }
+
   if (type === 'BATTERY') {
     smsContent = removeVietnameseTones(
       `[SOS RescueLink] CANH BAO PIN YEU ${battery}% tu ${cleanName}. Vi tri cuoi GPS:${lat},${lng}. Hay lien lac ngay!`
@@ -134,7 +146,7 @@ const sendEmergencySMS = async (user, data) => {
   } else {
     const cleanMsg = message ? removeVietnameseTones(message) : '';
     smsContent = removeVietnameseTones(
-      `[SOS RescueLink] KHAN CAP: ${type} tu ${cleanName}. GPS:${lat},${lng}. Pin:${battery || 'N/A'}%. "${cleanMsg}"`
+      `[SOS RescueLink] KHAN CAP: ${type} tu ${cleanName}. GPS:${lat},${lng}. Pin:${battery || 'N/A'}%${medStr}. "${cleanMsg}"`
     );
   }
 

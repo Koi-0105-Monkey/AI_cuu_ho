@@ -30,8 +30,10 @@ connectDB();
 if (process.env.NODE_ENV !== 'test') {
   const { initGpsCronJob } = require('./jobs/compressGps');
   const { initWeatherCronJob } = require('./jobs/weatherCheck');
+  const { initCheckinCronJob } = require('./jobs/checkinJob');
   initGpsCronJob();
   initWeatherCronJob();
+  initCheckinCronJob();
 }
 
 // Middlewares

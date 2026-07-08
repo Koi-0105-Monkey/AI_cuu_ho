@@ -49,7 +49,16 @@ const tripSchema = new mongoose.Schema({
     alertedAt: { type: Date },
     weatherCode: { type: Number },
     description: { type: String }
-  }]
+  }],
+  
+  // Thời điểm check-in thủ công cuối
+  lastCheckinAt: { type: Date, default: null },
+  
+  // Khoảng cách check-in bắt buộc (phút, mặc định 120 phút = 2 giờ)
+  checkinIntervalMin: { type: Number, default: 120 },
+
+  // Cờ đánh dấu đã gửi cảnh báo check-in trễ đến app (tránh gửi lặp)
+  checkinWarningSent: { type: Boolean, default: false }
 });
 
 tripSchema.index({ lastKnownLocation: '2dsphere' });
