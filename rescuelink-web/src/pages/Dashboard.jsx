@@ -1,7 +1,8 @@
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMapEvents, LayersControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMapEvents, LayersControl, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import toast from 'react-hot-toast';
@@ -10,7 +11,8 @@ import IncidentCard from '../components/incidents/IncidentCard';
 import { useSocket } from '../hooks/useSocket';
 import api from '../services/api';
 import {
-  Warning, Users, CheckCircle, BellRinging, MapPin, Compass
+  Warning, Users, CheckCircle, BellRinging, MapPin, Compass,
+  BatteryHigh, BatteryLow, BatteryWarning, X, Robot, FirstAid, Clock, NavigationArrow
 } from '@phosphor-icons/react';
 import { setupLeafletIcons, incidentIcon, tripIcon, fireHotspotIcon, rangerIcon, islandIcon } from '../utils/leafletIcons';
 
@@ -116,11 +118,205 @@ const playBeep = () => {
   } catch { /* ignore */ }
 };
 
+// ─── Battery prediction helper ─────────────────────────────
+// ~10% battery ≈ 1h of active GPS tracking (conservative)
+function batteryEstimate(pct) {
+  if (pct == null) return null;
+  const minutes = Math.round((pct / 10) * 60);
+  if (minutes < 60) return `~${minutes} phút`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `~${h}h${m.toString().padStart(2, '0')}p` : `~${h} giờ`;
+}
+
+// ─── Severity metadata ─────────────────────────────────────
+const SEVERITY_META = {
+  1: { label: 'Cấp 1 – Nhẹ',          color: 'text-emerald-400', bg: 'bg-emerald-950/60 border-emerald-700/40' },
+  2: { label: 'Cấp 2 – Thấp',          color: 'text-sky-400',     bg: 'bg-sky-950/60 border-sky-700/40' },
+  3: { label: 'Cấp 3 – Trung bình',    color: 'text-amber-400',   bg: 'bg-amber-950/60 border-amber-700/40' },
+  4: { label: 'Cấp 4 – Nghiêm trọng', color: 'text-orange-400',  bg: 'bg-orange-950/60 border-orange-700/40' },
+  5: { label: 'Cấp 5 – Nguy kịch ❗',  color: 'text-red-400',     bg: 'bg-red-950/60 border-red-700/40' },
+};
+
+// ─── First-aid triage tips per incident type ───────────────
+const TRIAGE_TIPS = {
+  CRASH:  'Kiểm tra tình trạng bất tỉnh. Không di chuyển nạn nhân nếu nghi ngờ chấn thương cột sống. Cầm máu bằng băng ép trực tiếp.',
+  LOST:   'Yêu cầu nạn nhân đứng yên tại chỗ, gõ vào cây/đá tạo tiếng động. Bật đèn pin lên cao. Tiết kiệm pin — tắt wifi, Bluetooth.',
+  FIRE:   'Thoát ngược chiều gió. Tìm vùng trống hoặc đất trống. Che miệng mũi bằng vải ướt, cúi thấp dưới làn khói.',
+  MED:    'Kiểm tra đường thở, hơi thở, mạch đập. Đặt nằm ngửa, kê đầu cao nếu bất tỉnh. Giữ ấm cơ thể. Không cho ăn uống nếu có thể phẫu thuật.',
+  VEH:    'Tắt máy phương tiện, đặt cọc cảnh báo. Không hút thuốc gần hiện trường. Gọi 115 ngay lập tức.',
+  MANUAL: 'Theo dõi tình trạng và giữ liên lạc với nạn nhân. Ghi lại tọa độ GPS cuối cùng (Last Known Position).',
+};
+
+// ─── Incident Detail Side Panel ───────────────────────────
+function IncidentDetailPanel({ incident, onClose }) {
+  const [track, setTrack] = useState([]);
+  const sev  = SEVERITY_META[incident.severity] || SEVERITY_META[3];
+  const tip  = TRIAGE_TIPS[incident.type] || TRIAGE_TIPS.MANUAL;
+  const ent  = incident.extractedEntities;
+  const bat  = incident.batteryAtTime;
+  const est  = batteryEstimate(bat);
+
+  useEffect(() => {
+    if (!incident._id) return;
+    api.get(`/incidents/${incident._id}/track`)
+      .then(r => { if (r.data.success) setTrack(r.data.data || []); })
+      .catch(() => {});
+  }, [incident._id]);
+
+  // Build timeline from raw GPS track + incident timestamps
+  const events = [];
+  const startTime = incident.tripId?.startedAt || incident.createdAt;
+  if (startTime) events.push({ time: new Date(startTime), label: '🟢 Bắt đầu hành trình', dot: 'bg-emerald-500' });
+  if (track.length > 2) {
+    const mid = track[Math.floor(track.length / 2)];
+    if (mid?.recordedAt) events.push({ time: new Date(mid.recordedAt), label: '🔵 Đang di chuyển trên cung đường', dot: 'bg-sky-500' });
+    const preSOS = track[track.length - 2];
+    if (preSOS?.recordedAt) events.push({ time: new Date(preSOS.recordedAt), label: '🟡 Tín hiệu GPS cuối trước SOS', dot: 'bg-amber-500' });
+  }
+  events.push({ time: new Date(incident.createdAt), label: `🚨 Kích hoạt SOS — ${incident.type}`, dot: 'bg-red-500' });
+  if (bat != null && bat <= 20) events.push({ time: new Date(incident.createdAt), label: `🔋 Pin thấp cảnh báo: ${bat}%`, dot: 'bg-orange-500' });
+  events.sort((a, b) => a.time - b.time);
+
+  return (
+    <div className="fixed top-0 right-0 h-full w-[340px] z-[2000] bg-[#0b0f18] border-l border-slate-800 flex flex-col shadow-2xl overflow-hidden animate-fade-in">
+      {/* Panel header */}
+      <div className={`px-4 py-3 flex items-center justify-between border-b border-slate-800 ${sev.bg}`}>
+        <div>
+          <span className={`text-[10px] font-black uppercase tracking-widest ${sev.color}`}>{sev.label}</span>
+          <p className="text-white font-bold text-sm mt-0.5">
+            {incident.userId?.name || 'Ẩn danh'} — {incident.type}
+          </p>
+        </div>
+        <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
+          <X size={18} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+        {/* Battery card */}
+        <div className="bg-slate-900 border border-slate-700/60 rounded-xl p-3">
+          <div className="flex items-center gap-2 mb-2">
+            {bat != null && bat <= 15 ? <BatteryLow size={15} className="text-red-400" />
+              : bat != null && bat <= 30 ? <BatteryWarning size={15} className="text-amber-400" />
+              : <BatteryHigh size={15} className="text-emerald-400" />}
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trạng thái Pin</span>
+          </div>
+          {bat != null ? (
+            <>
+              <div className="flex items-end gap-3">
+                <span className={`text-3xl font-black tabular-nums ${bat <= 15 ? 'text-red-400' : bat <= 30 ? 'text-amber-400' : 'text-emerald-400'}`}>{bat}%</span>
+                {est && (
+                  <div className="pb-1">
+                    <p className="text-[10px] text-slate-500">Ước tính còn</p>
+                    <p className="text-sm font-bold text-slate-200">{est} hoạt động</p>
+                  </div>
+                )}
+              </div>
+              <div className="mt-2 h-1.5 w-full bg-slate-700 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full ${bat <= 15 ? 'bg-red-500' : bat <= 30 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${bat}%` }} />
+              </div>
+            </>
+          ) : (
+            <p className="text-xs text-slate-500 italic">Không có dữ liệu pin</p>
+          )}
+        </div>
+
+        {/* AI Triage card */}
+        <div className="bg-slate-900 border border-slate-700/60 rounded-xl p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Robot size={15} className="text-violet-400" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">AI Triage — Sơ cứu nhanh</span>
+          </div>
+          {ent?.incidentType && (
+            <div className="mb-1.5">
+              <p className="text-[10px] text-slate-500">Phân loại AI</p>
+              <p className="text-sm font-bold text-violet-300">{ent.incidentType}</p>
+            </div>
+          )}
+          {ent?.victimName && ent.victimName !== 'Chưa rõ' && (
+            <div className="mb-1.5">
+              <p className="text-[10px] text-slate-500">Nạn nhân</p>
+              <p className="text-sm font-semibold text-white">{ent.victimName}</p>
+            </div>
+          )}
+          {ent?.location && ent.location !== 'Chưa rõ' && (
+            <div className="mb-1.5">
+              <p className="text-[10px] text-slate-500">Địa điểm mô tả</p>
+              <p className="text-xs text-slate-300">{ent.location}</p>
+            </div>
+          )}
+          <div className="mt-2 pt-2 border-t border-slate-700/60">
+            <div className="flex items-center gap-1.5 mb-1">
+              <FirstAid size={12} className="text-amber-400" weight="fill" />
+              <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Hướng dẫn sơ cứu</span>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">{tip}</p>
+          </div>
+          {incident.voiceTranscript && (
+            <div className="mt-2 pt-2 border-t border-slate-700/60">
+              <p className="text-[10px] text-slate-500 mb-0.5">Transcript giọng nói</p>
+              <p className="text-xs text-slate-400 italic">"{incident.voiceTranscript.slice(0, 130)}{incident.voiceTranscript.length > 130 ? '...' : ''}"</p>
+            </div>
+          )}
+          {!ent && !incident.voiceTranscript && (
+            <p className="text-xs text-slate-500 italic mt-2">SOS thủ công — chưa có phân tích AI</p>
+          )}
+        </div>
+
+        {/* Timeline */}
+        <div className="bg-slate-900 border border-slate-700/60 rounded-xl p-3">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock size={15} className="text-sky-400" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nhật ký Hành trình</span>
+          </div>
+          <div>
+            {events.map((ev, i) => (
+              <div key={i} className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <div className={`w-2.5 h-2.5 rounded-full mt-0.5 shrink-0 ${ev.dot}`} />
+                  {i < events.length - 1 && <div className="w-px flex-1 bg-slate-700 my-0.5" style={{ minHeight: 12 }} />}
+                </div>
+                <div className="pb-3 min-w-0">
+                  <p className="text-[10px] text-slate-500 font-mono">{ev.time.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</p>
+                  <p className="text-xs text-slate-200 leading-tight">{ev.label}</p>
+                </div>
+              </div>
+            ))}
+            {/* Last Known Position */}
+            <div className="flex gap-3">
+              <NavigationArrow size={12} className="text-red-400 mt-0.5 shrink-0" weight="fill" />
+              <div>
+                <p className="text-[10px] text-slate-500">Last Known Position</p>
+                <p className="text-xs font-mono text-red-300">
+                  {incident.location?.coordinates
+                    ? `${incident.location.coordinates[1].toFixed(5)}, ${incident.location.coordinates[0].toFixed(5)}`
+                    : 'Không xác định'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Full detail link */}
+        <Link
+          to={`/incidents/${incident._id}`}
+          className="block text-center text-sm bg-red-700 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl transition-colors"
+        >
+          Xem toàn bộ hồ sơ sự cố →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 // ─── Dashboard Page ────────────────────────────────────────
 export default function Dashboard() {
   const [feed, setFeed] = useState([]);
   const [trips, setTrips] = useState([]);
   const [selectedPos, setSelectedPos] = useState(null);
+  const [selectedIncident, setSelectedIncident] = useState(null);
   const feedRef = useRef(null);
   const qc = useQueryClient();
 
@@ -373,38 +569,52 @@ export default function Dashboard() {
                 }}
               />
               
-              {/* Incident Markers */}
-              {activeIncidentsForMap.map((inc) => (
-                <Marker
-                  key={inc._id}
-                  position={[inc.location.coordinates[1], inc.location.coordinates[0]]}
-                  icon={incidentIcon}
-                >
-                  <Popup className="dark-popup">
-                    <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-red-600 text-sm">🚨 {inc.type}</span>
-                        <span className="text-xs bg-red-100 text-red-800 font-bold px-1.5 py-0.5 rounded">
-                          Cấp {inc.severity}
-                        </span>
-                      </div>
-                      <p className="text-xs font-semibold">Thành viên: {inc.userId?.name || 'Ẩn danh'}</p>
-                      <p className="text-xs font-mono">{inc.userId?.phone}</p>
-                      <p className="text-xs italic bg-slate-100 p-1.5 rounded border-l-2 border-red-500 text-slate-700">
-                        "{inc.message || 'Không có tin nhắn đính kèm'}"
-                      </p>
-                      <div className="pt-1">
-                        <Link
-                          to={`/incidents/${inc._id}`}
-                          className="block text-center text-xs bg-red-600 hover:bg-red-700 text-white font-semibold py-1 rounded transition-colors"
-                        >
-                          Xem chi tiết cứu hộ
-                        </Link>
-                      </div>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
+              {/* Incident Markers + Rescue Radius Circles */}
+              {activeIncidentsForMap.map((inc) => {
+                const lat = inc.location.coordinates[1];
+                const lng = inc.location.coordinates[0];
+                const isSelected = selectedIncident?._id === inc._id;
+                return (
+                  <React.Fragment key={inc._id}>
+                    <Marker
+                      position={[lat, lng]}
+                      icon={incidentIcon}
+                      eventHandlers={{ click: () => setSelectedIncident(isSelected ? null : inc) }}
+                    >
+                      <Popup className="dark-popup">
+                        <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-red-600 text-sm">🚨 {inc.type}</span>
+                            <span className="text-xs bg-red-100 text-red-800 font-bold px-1.5 py-0.5 rounded">Cấp {inc.severity}</span>
+                          </div>
+                          <p className="text-xs font-semibold">Thành viên: {inc.userId?.name || 'Ẩn danh'}</p>
+                          <p className="text-xs font-mono">{inc.userId?.phone}</p>
+                          <p className="text-xs italic bg-slate-100 p-1.5 rounded border-l-2 border-red-500 text-slate-700">
+                            "{inc.message || 'Không có tin nhắn đính kèm'}"
+                          </p>
+                          <button
+                            onClick={() => setSelectedIncident(inc)}
+                            className="block w-full text-center text-xs bg-red-600 hover:bg-red-700 text-white font-semibold py-1.5 rounded transition-colors mt-1"
+                          >
+                            📋 Mở hồ sơ SAR cứu hộ
+                          </button>
+                        </div>
+                      </Popup>
+                    </Marker>
+                    {/* Rescue Radius Circles — only shown for selected incident */}
+                    {isSelected && (
+                      <>
+                        <Circle center={[lat, lng]} radius={1000}
+                          pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.04, weight: 1.5, dashArray: '6 4' }} />
+                        <Circle center={[lat, lng]} radius={2000}
+                          pathOptions={{ color: '#f97316', fillColor: '#f97316', fillOpacity: 0.03, weight: 1.5, dashArray: '6 4' }} />
+                        <Circle center={[lat, lng]} radius={5000}
+                          pathOptions={{ color: '#eab308', fillColor: '#eab308', fillOpacity: 0.02, weight: 1, dashArray: '6 4' }} />
+                      </>
+                    )}
+                  </React.Fragment>
+                );
+              })}
 
               {/* Satellite Fire Hotspots (MODIS/VIIRS) */}
               {hotspots.map((hs) => (
@@ -495,6 +705,14 @@ export default function Dashboard() {
           
         </div>
       </div>
+
+      {/* SAR Incident Detail Panel — slides in from right on incident selection */}
+      {selectedIncident && (
+        <IncidentDetailPanel
+          incident={selectedIncident}
+          onClose={() => setSelectedIncident(null)}
+        />
+      )}
     </div>
   );
 }

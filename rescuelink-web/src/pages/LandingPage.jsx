@@ -140,7 +140,7 @@ export default function LandingPage() {
     return () => window.removeEventListener('resize', handler);
   }, []);
   return (
-    <div className="min-h-dvh text-slate-100 font-sans selection:bg-emergency-600/30" style={{ background: '#080c12' }}>
+    <div className="landing-page-container min-h-dvh text-slate-100 font-sans selection:bg-emergency-600/30" style={{ background: '#080c12' }}>
 
       {/* ─── Ambient background orbs (fixed, GPU safe) ─── */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
