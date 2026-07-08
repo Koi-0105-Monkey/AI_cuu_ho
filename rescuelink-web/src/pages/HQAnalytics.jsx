@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
-import { ChartLine, Clock, ShieldCheck, Siren, Users } from '@phosphor-icons/react';
+import { ChartLine, Clock, ShieldCheck, Siren, Users, Eye, ShieldWarning } from '@phosphor-icons/react';
 import api from '../services/api';
 
 const COLORS = ['#ef4444', '#f97316', '#eab308', '#3b82f6', '#10b981', '#a855f7'];
@@ -18,6 +18,12 @@ export default function HQAnalytics() {
   const { data: analytics, isLoading } = useQuery({
     queryKey: ['hq-analytics'],
     queryFn: () => api.get('/admin/analytics').then(r => r.data.stats)
+  });
+
+  const { data: auditLogs } = useQuery({
+    queryKey: ['hq-medical-logs'],
+    queryFn: () => api.get('/admin/medical-logs').then(r => r.data.data),
+    refetchInterval: 15_000
   });
 
   if (isLoading) {
@@ -174,6 +180,84 @@ export default function HQAnalytics() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Security Audit Logs */}
+      <div className="card bg-[#0d1525] border-slate-800 flex flex-col shrink-0">
+        <div className="px-5 py-4 border-b border-slate-800 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <ShieldWarning size={16} className="text-emerald-400" />
+            <h2 className="text-sm font-semibold text-white">Nhật Ký Bảo Mật Truy Cập Y Tế (Nghị định 13/2023)</h2>
+          </div>
+          <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-bold uppercase tracking-wider">
+            Mã hóa dữ liệu & Audit Trail Active
+          </span>
+        </div>
+        <div className="p-5">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left text-slate-300">
+              <thead className="bg-[#151d30] text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+                <tr>
+                  <th scope="col" className="px-4 py-3 rounded-l-lg">Người truy cập</th>
+                  <th scope="col" className="px-4 py-3">Vai trò</th>
+                  <th scope="col" className="px-4 py-3">Bệnh nhân (Trekker)</th>
+                  <th scope="col" className="px-4 py-3">Sự cố liên quan</th>
+                  <th scope="col" className="px-4 py-3">Hành động</th>
+                  <th scope="col" className="px-4 py-3 rounded-r-lg">Thời gian truy cập</th>
+                </tr>
+              </thead>
+              <tbody>
+                {!auditLogs || auditLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="text-center py-6 text-muted italic">
+                      Chưa có lượt truy cập dữ liệu y tế nhạy cảm nào được ghi nhận.
+                    </td>
+                  </tr>
+                ) : (
+                  auditLogs.map((log) => (
+                    <tr key={log._id} className="border-b border-slate-800/60 hover:bg-slate-900/40">
+                      <td className="px-4 py-3 font-semibold text-white">
+                        {log.viewerId?.name}
+                        <span className="block text-[10px] text-muted font-normal">{log.viewerId?.phone}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          log.viewerId?.role === 'admin' 
+                            ? 'bg-red-500/10 text-red-400 border border-red-500/25'
+                            : 'bg-blue-500/10 text-blue-400 border border-blue-500/25'
+                        }`}>
+                          {log.viewerId?.role === 'admin' ? 'CHỈ HUY HQ' : 'CỨU HỘ THỰC ĐỊA'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="font-medium text-slate-200">{log.targetUserId?.name}</span>
+                        <span className="block text-[10px] text-muted">{log.targetUserId?.phone}</span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-300">
+                        {log.incidentId ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="badge badge-med py-0 px-1.5">{log.incidentId.type}</span>
+                            <span className="text-[10px] text-muted">({log.incidentId.status})</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted italic">Không liên quan sự cố</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="flex items-center gap-1 text-emerald-400 font-medium">
+                          <Eye size={12} /> {log.action === 'view' ? 'Giải mã & Xem' : 'Cập nhật'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-400 font-mono">
+                        {new Date(log.accessedAt).toLocaleString('vi-VN')}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

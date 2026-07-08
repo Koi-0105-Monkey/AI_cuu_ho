@@ -12,6 +12,16 @@ const socketService = require('../services/socketService');
 const smsService = require('../services/smsService');
 const geminiService = require('../services/geminiService');
 const multer = require('multer');
+const rateLimit = require('express-rate-limit');
+
+const sosRateLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 phút
+  max: 3, // Giới hạn 3 lần tạo SOS / IP / User
+  keyGenerator: (req) => req.user?._id?.toString() || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown-ip',
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Bạn đã gửi yêu cầu quá thường xuyên. Vui lòng chờ 5 phút trước khi thử lại.' }
+});
 
 const router = express.Router();
 
@@ -60,7 +70,7 @@ const saveBase64Locally = (base64String) => {
 // @desc    Create an incident
 // @route   POST /api/incidents
 // @access  Private
-router.post('/', protect, validate(createIncidentSchema), async (req, res, next) => {
+router.post('/', protect, sosRateLimiter, validate(createIncidentSchema), async (req, res, next) => {
   try {
     const { type, severity, lat, lng, message, batteryAtTime } = req.body;
 
@@ -305,6 +315,7 @@ router.get('/:id', protect, async (req, res, next) => {
   try {
     const incident = await Incident.findById(req.params.id)
       .populate('userId', 'name phone emergencyContacts medicalProfile')
+      .populate('assignedRescuerId', 'name phone')
       .populate('tripId', 'routeName startedAt expectedReturn status');
 
     if (!incident) {
@@ -316,9 +327,47 @@ router.get('/:id', protect, async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Not authorized to view this incident' });
     }
 
+    // Convert to plain object so we can mutate the populated fields
+    const incidentObj = incident.toObject({ getters: true });
+
+    // Access Control check for medicalProfile
+    const isOwner = incident.userId._id.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'admin';
+    const isAssignedRescuer = req.user.role === 'rescuer' && 
+                              incident.assignedRescuerId && 
+                              incident.assignedRescuerId._id.toString() === req.user._id.toString();
+
+    if (isOwner || isAdmin || isAssignedRescuer) {
+      // Log medical data access if viewer is not the owner
+      if (!isOwner) {
+        try {
+          const MedicalAuditLog = require('../models/MedicalAuditLog');
+          await MedicalAuditLog.create({
+            viewerId: req.user._id,
+            targetUserId: incident.userId._id,
+            incidentId: incident._id,
+            action: 'view'
+          });
+        } catch (auditErr) {
+          console.error('[AuditLog] Failed to create access log:', auditErr.message);
+        }
+      }
+    } else {
+      // Redact medical details
+      if (incidentObj.userId && incidentObj.userId.medicalProfile) {
+        incidentObj.userId.medicalProfile = {
+          bloodType: incidentObj.userId.medicalProfile.bloodType || 'unknown',
+          allergies: '[ĐÃ ẨN - BẠN CHƯA ĐƯỢC PHÂN CÔNG XỬ LÝ SỰ CỐ NÀY]',
+          medications: '[ĐÃ ẨN - BẠN CHƯA ĐƯỢC PHÂN CÔNG XỬ LÝ SỰ CỐ NÀY]',
+          chronicConditions: '[ĐÃ ẨN - BẠN CHƯA ĐƯỢC PHÂN CÔNG XỬ LÝ SỰ CỐ NÀY]',
+          notes: '[ĐÃ ẨN - BẠN CHƯA ĐƯỢC PHÂN CÔNG XỬ LÝ SỰ CỐ NÀY]'
+        };
+      }
+    }
+
     res.json({
       success: true,
-      data: incident
+      data: incidentObj
     });
   } catch (error) {
     next(error);

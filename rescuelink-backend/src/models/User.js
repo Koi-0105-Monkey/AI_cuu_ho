@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
+const { encrypt, decrypt } = require('../utils/cryptoHelper');
 
 const emergencyContactSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -51,12 +52,15 @@ const userSchema = new mongoose.Schema({
       enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'unknown'],
       default: 'unknown'
     },
-    allergies: { type: String, default: '' },
-    medications: { type: String, default: '' },
-    chronicConditions: { type: String, default: '' },
-    notes: { type: String, default: '' }
+    allergies: { type: String, default: '', get: decrypt, set: encrypt },
+    medications: { type: String, default: '', get: decrypt, set: encrypt },
+    chronicConditions: { type: String, default: '', get: decrypt, set: encrypt },
+    notes: { type: String, default: '', get: decrypt, set: encrypt }
   },
   createdAt: { type: Date, default: Date.now }
+}, {
+  toJSON: { getters: true },
+  toObject: { getters: true }
 });
 
 module.exports = mongoose.model('User', userSchema);

@@ -223,4 +223,26 @@ router.get('/analytics', async (req, res, next) => {
   }
 });
 
+// @desc    Get medical access audit logs (Nghị định 13/2023 compliance)
+// @route   GET /api/admin/medical-logs
+// @access  Private (Admin/Rescuer only)
+router.get('/medical-logs', async (req, res, next) => {
+  try {
+    const MedicalAuditLog = require('../models/MedicalAuditLog');
+    const logs = await MedicalAuditLog.find()
+      .populate('viewerId', 'name phone role')
+      .populate('targetUserId', 'name phone')
+      .populate('incidentId', 'type status')
+      .sort({ accessedAt: -1 })
+      .limit(100);
+
+    res.json({
+      success: true,
+      data: logs
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;
