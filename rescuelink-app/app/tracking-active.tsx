@@ -510,7 +510,7 @@ export default function TrackingActiveScreen() {
   };
 
   const handleShareFamilyLink = async () => {
-    const shareToken = 'family_' + (activeTrip?.id || Math.random().toString(36).substring(2, 8));
+    const shareToken = activeTrip?.shareToken || activeTrip?.id || Math.random().toString(36).substring(2, 8);
     const familyUrl = `https://ai-cuu-ho-web.vercel.app/family/${shareToken}`;
     const message = `🏔️ Tôi đang trekking tại [${activeTrip?.routeName || 'Cung đường leo núi'}]. Hãy theo dõi vị trí GPS thời gian thực của tôi qua link: ${familyUrl}`;
 

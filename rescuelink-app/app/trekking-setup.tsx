@@ -114,7 +114,8 @@ export default function TrekkingSetupScreen() {
           routeName: routeName.trim(),
           emergencyContact: cleanPhone,
           expectedReturn: expectedReturnDate.toISOString(),
-          startedAt: tripData.startedAt
+          startedAt: tripData.startedAt,
+          shareToken: tripData.shareToken
         };
 
         await AsyncStorage.setItem('active_trip', JSON.stringify(localActiveTrip));

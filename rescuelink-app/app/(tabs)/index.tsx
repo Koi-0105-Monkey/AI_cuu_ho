@@ -87,7 +87,8 @@ export default function HomeScreen() {
             routeName: tripData.routeName,
             emergencyContact: cleanPhone,
             expectedReturn: tripData.expectedReturn,
-            startedAt: tripData.startedAt
+            startedAt: tripData.startedAt,
+            shareToken: tripData.shareToken
           };
           await AsyncStorage.setItem('active_trip', JSON.stringify(localActiveTrip));
           setActiveTrip(localActiveTrip);
@@ -579,25 +580,6 @@ export default function HomeScreen() {
               <Text className="text-emerald-300 font-bold text-xs uppercase tracking-wide">Quét Mã QR / PIN Ghép Đoàn →</Text>
             </Pressable>
           </Link>
-
-          <Pressable
-            onPress={async () => {
-              const familyUrl = `https://ai-cuu-ho-web.vercel.app/family/family_user_live`;
-              try {
-                await Share.share({
-                  message: `🏔️ Tôi sắp bắt đầu hành trình trekking. Hãy theo dõi vị trí GPS thời gian thực của tôi qua link: ${familyUrl}`,
-                  url: familyUrl,
-                  title: 'RescueLink - Link Chia Sẻ Cho Người Thân'
-                });
-              } catch (e) {
-                Alert.alert('Link Người Thân', familyUrl);
-              }
-            }}
-            className="bg-sky-950/40 border border-sky-700/60 py-3.5 rounded-2xl items-center justify-center active:bg-sky-900/60 flex-row gap-2"
-          >
-            <Text className="text-base">🔗</Text>
-            <Text className="text-sky-300 font-bold text-xs uppercase tracking-wide">Chia Sẻ Link Vị Trí Cho Người Thân →</Text>
-          </Pressable>
 
           <Link href="/tracking-active" asChild>
             <Pressable className="bg-surface-2 border border-surface-3 py-4 rounded-2xl items-center justify-center active:bg-surface-3">
