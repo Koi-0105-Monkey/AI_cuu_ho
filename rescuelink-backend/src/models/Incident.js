@@ -53,6 +53,21 @@ const incidentSchema = new mongoose.Schema({
     incidentType: { type: String },
     severity: { type: Number }
   },
+  assignedRescuerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  assignedAt: { type: Date },
+  resolvedAt: { type: Date },
+  etaMinutes: { type: Number },
+  dispatchNotes: { type: String, default: '' },
+  afterActionReport: {
+    summary: { type: String, default: '' },
+    teamNotes: { type: String, default: '' },
+    responseTimeMinutes: { type: Number },
+    resolutionTimeMinutes: { type: Number }
+  },
   createdAt: { type: Date, default: Date.now }
 });
 

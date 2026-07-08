@@ -634,4 +634,117 @@ router.post('/tts-warning', protect, authorize('admin', 'authority'), async (req
   }
 });
 
+// @desc    Dispatch a rescuer to an incident
+// @route   PATCH /api/incidents/:id/dispatch
+// @access  Private (Admin/Rescuer only)
+router.patch('/:id/dispatch', protect, authorize('admin', 'rescuer'), async (req, res, next) => {
+  try {
+    const { assignedRescuerId, etaMinutes, dispatchNotes } = req.body;
+    
+    if (!assignedRescuerId) {
+      return res.status(400).json({ success: false, message: 'Assigned Rescuer ID is required' });
+    }
+
+    const incident = await Incident.findById(req.params.id);
+    if (!incident) {
+      return res.status(404).json({ success: false, message: 'Incident not found' });
+    }
+
+    const rescuer = await User.findById(assignedRescuerId);
+    if (!rescuer) {
+      return res.status(404).json({ success: false, message: 'Rescuer user not found' });
+    }
+
+    incident.status = 'assigned';
+    incident.assignedRescuerId = assignedRescuerId;
+    incident.assignedAt = new Date();
+    incident.etaMinutes = etaMinutes || 30; // default 30 mins
+    incident.dispatchNotes = dispatchNotes || '';
+    
+    await incident.save();
+
+    // Populate and emit update
+    const populatedIncident = await Incident.findById(incident._id)
+      .populate('userId', 'name phone medicalProfile')
+      .populate('assignedRescuerId', 'name phone');
+
+    // Socket notify
+    socketService.emitIncidentUpdated(populatedIncident);
+
+    // Send push notification to assigned Rescuer
+    if (rescuer.fcmToken) {
+      try {
+        const fcmService = require('../services/fcmService');
+        await fcmService.sendToDevice(
+          rescuer.fcmToken,
+          '🚨 Nhiệm vụ cứu hộ mới',
+          `Bạn được điều phối xử lý sự cố ${incident.type} của trekker ${populatedIncident.userId?.name || 'Ẩn danh'}. ETA: ${incident.etaMinutes} phút.`,
+          {
+            type: 'DISPATCH_ASSIGNED',
+            incidentId: incident._id.toString()
+          }
+        );
+      } catch (fcmErr) {
+        console.error('[Dispatch] FCM push failed:', fcmErr.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Rescue team dispatched successfully',
+      data: populatedIncident
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Resolve incident with After-Action Report (AAR)
+// @route   PATCH /api/incidents/:id/resolve
+// @access  Private (Admin/Rescuer only)
+router.patch('/:id/resolve', protect, authorize('admin', 'rescuer'), async (req, res, next) => {
+  try {
+    const { afterActionReport } = req.body;
+    
+    const incident = await Incident.findById(req.params.id);
+    if (!incident) {
+      return res.status(404).json({ success: false, message: 'Incident not found' });
+    }
+
+    const now = new Date();
+    incident.status = 'resolved';
+    incident.resolvedAt = now;
+
+    // Calculate response and resolution times
+    const assignedTime = incident.assignedAt || incident.createdAt;
+    const responseTimeMinutes = Math.round((assignedTime.getTime() - incident.createdAt.getTime()) / (1000 * 60));
+    const resolutionTimeMinutes = Math.round((now.getTime() - assignedTime.getTime()) / (1000 * 60));
+
+    incident.afterActionReport = {
+      summary: afterActionReport?.summary || 'Cứu hộ thành công và khép lại hồ sơ.',
+      teamNotes: afterActionReport?.teamNotes || '',
+      responseTimeMinutes: responseTimeMinutes >= 0 ? responseTimeMinutes : 0,
+      resolutionTimeMinutes: resolutionTimeMinutes >= 0 ? resolutionTimeMinutes : 0
+    };
+
+    await incident.save();
+
+    // Populate and emit update
+    const populatedIncident = await Incident.findById(incident._id)
+      .populate('userId', 'name phone medicalProfile')
+      .populate('assignedRescuerId', 'name phone');
+
+    // Socket notify
+    socketService.emitIncidentUpdated(populatedIncident);
+
+    res.json({
+      success: true,
+      message: 'Incident resolved successfully with After-Action Report',
+      data: populatedIncident
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

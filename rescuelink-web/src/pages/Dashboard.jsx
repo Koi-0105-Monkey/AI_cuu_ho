@@ -425,6 +425,13 @@ export default function Dashboard() {
         }
         return t;
       }));
+    },
+    'weather:alert': (data) => {
+      playBeep();
+      toast.error(`⛈️ Cảnh báo thời tiết nguy hiểm: ${data.weather?.description || 'Giông bão'} phát hiện tại chuyến đi của ${data.userName || 'Trekker'}!`, {
+        duration: 8000,
+        position: 'top-center'
+      });
     }
   });
 

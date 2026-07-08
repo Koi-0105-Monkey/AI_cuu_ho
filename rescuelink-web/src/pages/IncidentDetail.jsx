@@ -9,10 +9,11 @@ import { vi } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft, CheckCircle, User, Phone, BatteryFull, Clock,
-  MapPin, ChatCentered, BellRinging
+  MapPin, ChatCentered, BellRinging, Users, FileText
 } from '@phosphor-icons/react';
 import Header from '../components/layout/Header';
 import api from '../services/api';
+import { useEffect } from 'react';
 
 // Fix default Leaflet icon for Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -44,6 +45,47 @@ export default function IncidentDetail() {
   const navigate = useNavigate();
   const qc       = useQueryClient();
   const [note, setNote] = useState('');
+
+  const [rescuers, setRescuers] = useState([]);
+  const [selectedRescuer, setSelectedRescuer] = useState('');
+  const [eta, setEta] = useState(30);
+  const [dispatchNotes, setDispatchNotes] = useState('');
+  const [aarSummary, setAarSummary] = useState('');
+  const [aarTeamNotes, setAarTeamNotes] = useState('');
+
+  useEffect(() => {
+    api.get('/admin/users?role=rescuer&limit=100')
+      .then(res => {
+        if (res.data?.success) setRescuers(res.data.data || []);
+      })
+      .catch(() => {});
+  }, []);
+
+  const dispatchRescue = useMutation({
+    mutationFn: (payload) => api.patch(`/incidents/${id}/dispatch`, payload),
+    onSuccess: () => {
+      qc.invalidateQueries(['incident', id]);
+      qc.invalidateQueries(['incidents']);
+      qc.invalidateQueries(['active-incidents']);
+      toast.success('Đã điều động cứu hộ thực địa!');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Lỗi điều động');
+    }
+  });
+
+  const resolveIncident = useMutation({
+    mutationFn: (payload) => api.patch(`/incidents/${id}/resolve`, payload),
+    onSuccess: () => {
+      qc.invalidateQueries(['incident', id]);
+      qc.invalidateQueries(['incidents']);
+      qc.invalidateQueries(['active-incidents']);
+      toast.success('Đã đóng hồ sơ sự cố & lưu báo cáo AAR');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Lỗi đóng hồ sơ');
+    }
+  });
 
   const VIETTEL_MAPS_KEY = import.meta.env.VITE_VIETTEL_MAPS_KEY || '';
   const TILE_URL = VIETTEL_MAPS_KEY 
@@ -234,41 +276,186 @@ export default function IncidentDetail() {
 
           {/* ─── Right column ───────────────────── */}
           <div className="space-y-4">
-            {/* Status & action */}
-            <Section title="Trạng thái">
-              <div className="flex items-center gap-2">
-                <BellRinging size={16} className="text-emergency-400" />
-                <span className="text-sm font-medium text-white">{inc.type}</span>
-                <span className={`badge ${inc.severity <= 2 ? 'badge-low' : inc.severity === 3 ? 'badge-med' : 'badge-high'}`}>
-                  Mức {inc.severity}
+            {/* Status & Dispatch / AAR Coordination Panel */}
+            <Section title="Trực Ban & Điều Phối Cứu Hộ">
+              <div className="flex items-center justify-between pb-2 border-b border-surface-3">
+                <div className="flex items-center gap-2">
+                  <BellRinging size={16} className="text-emergency-400" />
+                  <span className="text-sm font-bold text-white uppercase tracking-wider">{inc.type}</span>
+                </div>
+                <span className={`badge font-bold ${
+                  inc.status === 'open' ? 'badge-high' : inc.status === 'assigned' ? 'badge-med' : 'badge-low'
+                }`}>
+                  {inc.status === 'open' ? '🔴 ĐANG MỞ (SOS)' : inc.status === 'assigned' ? '🟡 ĐANG CỨU HỘ' : '🟢 ĐÃ XONG (RESOLVED)'}
                 </span>
               </div>
-              {nextStatus && (
-                <button
-                  className={`btn-primary w-full justify-center mt-2 ${
-                    inc.status === 'assigned'
-                      ? 'bg-safe/20 text-safe-400 border border-safe/40 hover:bg-safe/30'
-                      : ''
-                  }`}
-                  onClick={() => updateStatus.mutate(nextStatus)}
-                  disabled={updateStatus.isLoading}
-                >
-                  {inc.status === 'assigned' ? <CheckCircle size={16} /> : <BellRinging size={16} />}
-                  {STATUS_LABELS[inc.status]}
-                </button>
+
+              {/* 1. Trạng thái OPEN: Hiển thị form điều động cứu hộ */}
+              {inc.status === 'open' && (
+                <div className="space-y-3 pt-2">
+                  <p className="text-[10px] text-muted font-bold uppercase tracking-wider">Chỉ định đội cứu hộ thực địa</p>
+                  
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted">Nhân viên cứu hộ</label>
+                    <select
+                      className="input w-full text-xs"
+                      value={selectedRescuer}
+                      onChange={e => setSelectedRescuer(e.target.value)}
+                    >
+                      <option value="">-- Chọn nhân viên cứu hộ --</option>
+                      {rescuers.map(r => (
+                        <option key={r._id} value={r._id}>{r.name} ({r.phone})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted">ETA dự kiến tiếp cận (phút)</label>
+                    <input
+                      type="number"
+                      className="input w-full text-xs"
+                      value={eta}
+                      onChange={e => setEta(parseInt(e.target.value) || 30)}
+                      min={1}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted">Ghi chú điều động</label>
+                    <textarea
+                      className="input w-full text-xs h-16 resize-none"
+                      placeholder="Mô tả hướng tiếp cận, mang theo vật tư y tế gì..."
+                      value={dispatchNotes}
+                      onChange={e => setDispatchNotes(e.target.value)}
+                    />
+                  </div>
+
+                  <button
+                    className="btn-primary w-full justify-center bg-emergency-600 hover:bg-emergency-700 text-white font-bold"
+                    onClick={() => {
+                      if (!selectedRescuer) {
+                        toast.error('Vui lòng chọn nhân viên cứu hộ thực địa');
+                        return;
+                      }
+                      dispatchRescue.mutate({
+                        assignedRescuerId: selectedRescuer,
+                        etaMinutes: eta,
+                        dispatchNotes
+                      });
+                    }}
+                    disabled={dispatchRescue.isLoading}
+                  >
+                    🚀 BẮT ĐẦU ĐIỀU ĐỘNG CỨU HỘ
+                  </button>
+                </div>
               )}
+
+              {/* 2. Trạng thái ASSIGNED: Hiển thị thông tin đội cứu hộ + form đóng hồ sơ sự cố (AAR) */}
+              {inc.status === 'assigned' && (
+                <div className="space-y-3 pt-2">
+                  <div className="bg-[#1b253b] p-3 rounded-xl border border-slate-700 space-y-2 text-xs">
+                    <p className="font-bold text-amber-400">⚡ ĐANG TRIỂN KHAI CỨU HỘ</p>
+                    <Row label="Đội phụ trách:" value={inc.assignedRescuerId?.name} />
+                    <Row label="SĐT liên lạc:" value={inc.assignedRescuerId?.phone} />
+                    <Row label="ETA tiếp cận:" value={`~${inc.etaMinutes} phút`} />
+                    {inc.dispatchNotes && <p className="text-[10px] text-muted-light italic">"Ghi chú: {inc.dispatchNotes}"</p>}
+                  </div>
+
+                  <p className="text-[10px] text-muted font-bold uppercase tracking-wider mt-4">Báo cáo sau sự cố (AAR)</p>
+                  
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted">Tóm tắt cứu hộ (để lưu trữ/HQ báo cáo)</label>
+                    <textarea
+                      className="input w-full text-xs h-16 resize-none"
+                      placeholder="Nạn nhân đã được tiếp cận an toàn, sơ cứu vết thương..."
+                      value={aarSummary}
+                      onChange={e => setAarSummary(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted">Ghi chú từ hiện trường của đội cứu hộ</label>
+                    <textarea
+                      className="input w-full text-xs h-16 resize-none"
+                      placeholder="Trật khớp cổ chân phải, đã nẹp cố định. Đang đưa về trạm..."
+                      value={aarTeamNotes}
+                      onChange={e => setAarTeamNotes(e.target.value)}
+                    />
+                  </div>
+
+                  <button
+                    className="btn-primary w-full justify-center bg-safe hover:bg-safe-600 text-white font-bold"
+                    onClick={() => {
+                      resolveIncident.mutate({
+                        afterActionReport: {
+                          summary: aarSummary,
+                          teamNotes: aarTeamNotes
+                        }
+                      });
+                    }}
+                    disabled={resolveIncident.isLoading}
+                  >
+                    ✓ GIẢI QUYẾT & ĐÓNG HỒ SƠ
+                  </button>
+                </div>
+              )}
+
+              {/* 3. Trạng thái RESOLVED: Hiển thị tóm tắt hiệu quả cứu nạn AAR */}
               {inc.status === 'resolved' && (
-                <div className="flex items-center gap-2 text-safe-400 text-sm">
-                  <CheckCircle size={16} weight="fill" /> Đã giải quyết
+                <div className="space-y-3 pt-2">
+                  <div className="bg-[#10b981]/10 p-3 rounded-xl border border-[#10b981]/20 space-y-2 text-xs">
+                    <p className="font-bold text-emerald-400">✓ ĐÃ HOÀN THÀNH CỨU HỘ</p>
+                    {inc.assignedRescuerId && (
+                      <>
+                        <Row label="Cứu hộ phụ trách:" value={inc.assignedRescuerId.name} />
+                        <Row label="SĐT:" value={inc.assignedRescuerId.phone} />
+                      </>
+                    )}
+                    <Row label="Thời gian phản ứng (Response):" value={`${inc.afterActionReport?.responseTimeMinutes || 0} phút`} />
+                    <Row label="Thời gian xử lý hiện trường (Resolution):" value={`${inc.afterActionReport?.resolutionTimeMinutes || 0} phút`} />
+                  </div>
+
+                  {inc.afterActionReport && (
+                    <div className="space-y-2 text-xs bg-slate-900/60 p-3 rounded-xl border border-surface-4">
+                      <p className="font-semibold text-white flex items-center gap-1.5">
+                        <FileText size={14} className="text-slate-400" /> Báo cáo sau sự cố (AAR)
+                      </p>
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] text-muted uppercase">Tóm tắt cứu hộ:</p>
+                        <p className="text-slate-300 italic">"{inc.afterActionReport.summary}"</p>
+                      </div>
+                      {inc.afterActionReport.teamNotes && (
+                        <div className="space-y-1.5 pt-1.5 border-t border-surface-4">
+                          <p className="text-[10px] text-muted uppercase">Ghi nhận từ hiện trường:</p>
+                          <p className="text-slate-300 italic">"{inc.afterActionReport.teamNotes}"</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </Section>
 
             {/* User info */}
-            <Section title="Người báo cáo">
+            <Section title="Người báo cáo & Y tế">
               <Row label={<><User size={13} className="inline mr-1" />Tên</>}   value={inc.userId?.name} />
               <Row label={<><Phone size={13} className="inline mr-1" />SĐT</>}  value={inc.userId?.phone} />
               <Row label="Vai trò" value={inc.userId?.role} />
+              {inc.userId?.medicalProfile && (
+                <div className="mt-2 pt-2 border-t border-surface-4 space-y-1.5 text-xs">
+                  <p className="font-bold text-emerald-400">🩺 Thông tin y tế sơ cứu:</p>
+                  <Row label="Nhóm máu:" value={inc.userId.medicalProfile.bloodType === 'unknown' ? 'Chưa rõ' : inc.userId.medicalProfile.bloodType} />
+                  <Row label="Dị ứng:" value={inc.userId.medicalProfile.allergies || 'Không phát hiện'} />
+                  <Row label="Thuốc đang dùng:" value={inc.userId.medicalProfile.medications || 'Không có'} />
+                  <Row label="Bệnh nền:" value={inc.userId.medicalProfile.chronicConditions || 'Không có'} />
+                  {inc.userId.medicalProfile.notes && (
+                    <div className="bg-[#1b253b] p-2 rounded border border-slate-700 mt-1">
+                      <p className="text-[10px] text-slate-400">Ghi chú sơ cứu:</p>
+                      <p className="text-[11px] text-slate-200 italic mt-0.5">"{inc.userId.medicalProfile.notes}"</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </Section>
 
             {/* Incident meta */}

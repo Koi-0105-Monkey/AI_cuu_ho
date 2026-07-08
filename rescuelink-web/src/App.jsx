@@ -17,6 +17,7 @@ import FamilyView from './pages/FamilyView';
 import OperatorDashboard from './pages/operator/OperatorDashboard';
 import OperatorGroups from './pages/operator/OperatorGroups';
 import OperatorAnalytics from './pages/operator/OperatorAnalytics';
+import HQAnalytics from './pages/HQAnalytics';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,7 @@ const router = createBrowserRouter([
       { path: 'dashboard', element: <Dashboard /> },
       { path: 'incidents', element: <IncidentList /> },
       { path: 'incidents/:id', element: <IncidentDetail /> },
+      { path: 'dashboard/analytics', element: <HQAnalytics /> },
       { path: 'dashboard/trails', element: <TrailSafety /> },
       { path: 'dashboard/portal', element: <UserPortal /> },
       { path: 'users', element: <UserList /> },
