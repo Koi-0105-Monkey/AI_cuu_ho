@@ -74,6 +74,16 @@ router.post('/', protect, sosRateLimiter, validate(createIncidentSchema), async 
   try {
     const { type, severity, lat, lng, message, batteryAtTime } = req.body;
 
+    // Calculate severity dynamically using Multi-Signal Severity Engine
+    const severityEngine = require('../services/severityScoringEngine');
+    const scoreResult = await severityEngine.calculateSeverity(
+      req.user,
+      lat,
+      lng,
+      message,
+      batteryAtTime
+    );
+
     // Find active trip if any
     const activeTrip = await Trip.findOne({ userId: req.user._id, status: 'active' });
 
@@ -81,7 +91,8 @@ router.post('/', protect, sosRateLimiter, validate(createIncidentSchema), async 
       userId: req.user._id,
       tripId: activeTrip ? activeTrip._id : undefined,
       type,
-      severity,
+      severity: scoreResult.finalScore,
+      severityBreakdown: scoreResult,
       status: 'open',
       location: {
         type: 'Point',
@@ -108,7 +119,7 @@ router.post('/', protect, sosRateLimiter, validate(createIncidentSchema), async 
         message
       });
       // Nếu severity >= 4 → gửi thêm alert về rescue team (admin)
-      if (severity >= 4) {
+      if (scoreResult.finalScore >= 4) {
         await smsService.sendRescueTeamAlert(incident, req.user);
       }
     } catch (smsError) {
@@ -209,12 +220,23 @@ router.post('/fire', protect, upload.single('image'), async (req, res, next) => 
     // Find active trip if any
     const activeTrip = await Trip.findOne({ userId: req.user._id, status: 'active' });
 
+    // Calculate severity dynamically using Multi-Signal Severity Engine
+    const severityEngine = require('../services/severityScoringEngine');
+    const scoreResult = await severityEngine.calculateSeverity(
+      req.user,
+      parsedLat,
+      parsedLng,
+      autoMessage,
+      batteryAtTime ? parseInt(batteryAtTime) : undefined
+    );
+
     // 3. Create Incident
     const incident = await Incident.create({
       userId: req.user._id,
       tripId: activeTrip ? activeTrip._id : undefined,
       type: 'FIRE',
-      severity,
+      severity: scoreResult.finalScore,
+      severityBreakdown: scoreResult,
       status: 'open',
       location: {
         type: 'Point',
@@ -490,11 +512,22 @@ router.post('/report-voice-sos', protect, uploadAudio.single('audio'), async (re
       type = typeMapping[entities.incidentType];
     }
 
+    // Calculate severity dynamically using Multi-Signal Severity Engine
+    const severityEngine = require('../services/severityScoringEngine');
+    const scoreResult = await severityEngine.calculateSeverity(
+      req.user,
+      lat ? parseFloat(lat) : undefined,
+      lng ? parseFloat(lng) : undefined,
+      transcript,
+      batteryAtTime ? parseInt(batteryAtTime) : undefined
+    );
+
     const incident = await Incident.create({
       userId: req.user._id,
       tripId: activeTrip ? activeTrip._id : undefined,
       type,
-      severity: entities.severity || 4,
+      severity: scoreResult.finalScore,
+      severityBreakdown: scoreResult,
       status: 'open',
       location: {
         type: 'Point',
@@ -623,11 +656,22 @@ router.post('/incoming-sms', async (req, res, next) => {
       type = typeMapping[entities.incidentType];
     }
 
+    // Calculate severity dynamically using Multi-Signal Severity Engine
+    const severityEngine = require('../services/severityScoringEngine');
+    const scoreResult = await severityEngine.calculateSeverity(
+      user,
+      lat,
+      lng,
+      restoredText || Body,
+      undefined // batteryLevel not available in incoming SMS payload
+    );
+
     const incident = await Incident.create({
       userId: user._id,
       tripId: activeTrip ? activeTrip._id : undefined,
       type,
-      severity: entities.severity || 4,
+      severity: scoreResult.finalScore,
+      severityBreakdown: scoreResult,
       status: 'open',
       location: {
         type: 'Point',

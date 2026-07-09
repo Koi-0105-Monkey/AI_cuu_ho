@@ -437,6 +437,9 @@ export default function Dashboard() {
 
   const openCount = feed.filter(i => i.status === 'open').length;
 
+  // Sắp xếp sự cố theo mức độ nghiêm trọng giảm dần (severity 5 -> 1)
+  const sortedFeed = [...feed].sort((a, b) => (b.severity || 0) - (a.severity || 0));
+
   // Render maps markers
   const activeIncidentsForMap = feed.filter(i => i.location?.coordinates);
   const activeTripsForMap = trips.filter(t => t.lastKnownLocation?.coordinates);
@@ -486,7 +489,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="flex flex-col divide-y divide-surface-4">
-                  {feed.map((inc) => (
+                  {sortedFeed.map((inc) => (
                     <div key={inc._id} className="px-4 py-3 hover:bg-surface-3 transition-colors">
                       <IncidentCard incident={inc} />
                     </div>
@@ -511,14 +514,6 @@ export default function Dashboard() {
                 <span className="w-2.5 h-2.5 bg-emerald-700 rounded-full inline-block animate-pulse" />
                 <span className="text-white font-medium">Kiểm lâm tuần tra</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-orange-500 font-bold">🔥</span>
-                <span className="text-white font-medium">Điểm cháy vệ tinh</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3.5 h-2 bg-red-500/20 border border-red-500 inline-block" />
-                <span className="text-white font-medium">Vùng cấm VQG</span>
-              </div>
             </div>
             
             <MapContainer
@@ -526,55 +521,13 @@ export default function Dashboard() {
               zoom={6}
               className="w-full h-full min-h-[350px] flex-1"
             >
-              <LayersControl position="topright">
-                <LayersControl.BaseLayer checked name="🗺️ OpenStreetMap Chi Tiết (Full Quán xá, ngõ hẻm)">
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    maxZoom={19}
-                  />
-                </LayersControl.BaseLayer>
-                <LayersControl.BaseLayer name="🛰️ Ảnh Vệ Tinh Siêu Nét (Esri World Imagery)">
-                  <TileLayer
-                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                    attribution='&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                    maxZoom={18}
-                  />
-                </LayersControl.BaseLayer>
-                <LayersControl.BaseLayer name="🏔️ Bản Đồ Địa Hình Topo (OpenTopoMap)">
-                  <TileLayer
-                    url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
-                    maxZoom={17}
-                  />
-                </LayersControl.BaseLayer>
-              </LayersControl>
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              />
 
               {/* Tự chọn vị trí trực tiếp trên bản đồ qua Click */}
               <LocationPickerMarker selectedPos={selectedPos} setSelectedPos={setSelectedPos} />
-
-              {/* Vẽ Ranh giới VQG Hoàng Liên */}
-              <Polygon
-                positions={VQG_BOUNDS}
-                pathOptions={{
-                  color: '#10b981',
-                  fillColor: '#10b981',
-                  fillOpacity: 0.05,
-                  weight: 2
-                }}
-              />
-
-              {/* Vẽ Phân khu cấm bảo vệ nghiêm ngặt */}
-              <Polygon
-                positions={FORBIDDEN_ZONE}
-                pathOptions={{
-                  color: '#ef4444',
-                  fillColor: '#ef4444',
-                  fillOpacity: 0.15,
-                  weight: 2,
-                  dashArray: '5, 5'
-                }}
-              />
               
               {/* Incident Markers + Rescue Radius Circles */}
               {activeIncidentsForMap.map((inc) => {
@@ -623,29 +576,7 @@ export default function Dashboard() {
                 );
               })}
 
-              {/* Satellite Fire Hotspots (MODIS/VIIRS) */}
-              {hotspots.map((hs) => (
-                <Marker
-                  key={hs.id}
-                  position={[hs.lat, hs.lng]}
-                  icon={fireHotspotIcon}
-                >
-                  <Popup className="dark-popup">
-                    <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
-                      <span className="font-bold text-orange-600 text-sm">🔥 Điểm cháy vệ tinh</span>
-                      <p className="text-xs font-semibold">Vệ tinh: {hs.satellite} ({hs.confidence})</p>
-                      <p className="text-xs">Bức xạ nhiệt: <strong className="text-red-600">{hs.frp} MW</strong></p>
-                      <p className="text-xs">Phát hiện lúc: {new Date(hs.acqTime).toLocaleTimeString()}</p>
-                      <button
-                        onClick={() => handleVerifyHotspot(hs)}
-                        className="w-full text-center text-xs bg-orange-500 hover:bg-orange-600 text-white font-semibold py-1.5 rounded transition-colors mt-2"
-                      >
-                        Giao kiểm lâm xác minh 🚨
-                      </button>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
+
 
               {/* Trekking Trip & Ranger Patrol Markers */}
               {activeTripsForMap.map((trip) => {

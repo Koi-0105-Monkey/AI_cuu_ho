@@ -327,7 +327,7 @@ describe('RescueLink Backend API Test Suite', () => {
       expect(res.statusCode).toBe(201);
       expect(res.body.success).toBe(true);
       expect(res.body.incident.type).toBe('LOST');
-      expect(res.body.incident.severity).toBe(3);
+      expect(res.body.incident.severity).toBeGreaterThanOrEqual(4);
       expect(res.body.incident.location.coordinates).toEqual([104.4539, 21.3582]);
       expect(res.body.incident.userId.name).toBe(testUser.name);
     });
@@ -355,7 +355,7 @@ describe('RescueLink Backend API Test Suite', () => {
       // Verify incident created in DB
       const incident = await Incident.findOne({ type: 'FIRE' });
       expect(incident).toBeDefined();
-      expect(incident.severity).toBe(4);
+      expect(incident.severity).toBeGreaterThanOrEqual(4);
       expect(incident.location.coordinates).toEqual([105.8542, 21.0285]);
     });
 

@@ -133,7 +133,36 @@ const transcribeAudio = async (audioData, mimeType = 'audio/wav') => {
   }
 };
 
+/**
+ * Tạo phản hồi văn bản từ prompt bằng Gemini 1.5 Flash
+ * @param {string} prompt
+ * @returns {Promise<string>}
+ */
+const generateResponse = async (prompt) => {
+  if (GEMINI_MODE === 'mock' || !genAI) {
+    console.log('[Gemini AI Text Generator] Running in MOCK mode.');
+    const promptLower = prompt.toLowerCase();
+    if (promptLower.includes('chảy máu') || promptLower.includes('gãy') || promptLower.includes('chấn thương') || promptLower.includes('nguy kịch') || promptLower.includes('bất tỉnh') || promptLower.includes('mất nhiều máu')) {
+      return '5';
+    }
+    if (promptLower.includes('lạc') || promptLower.includes('lạnh') || promptLower.includes('đói') || promptLower.includes('sương mù')) {
+      return '4';
+    }
+    return '3';
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const result = await model.generateContent(prompt);
+    return result.response.text().trim();
+  } catch (error) {
+    console.error('[Gemini generateResponse Error]', error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   processSmsMessage,
-  transcribeAudio
+  transcribeAudio,
+  generateResponse
 };

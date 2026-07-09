@@ -11,12 +11,7 @@ import UserList from './pages/UserList';
 import LandingPage from './pages/LandingPage';
 import TrailSafety from './pages/TrailSafety';
 import UserPortal from './pages/UserPortal';
-import OperatorManifests from './pages/operator/OperatorManifests';
-
 import FamilyView from './pages/FamilyView';
-import OperatorDashboard from './pages/operator/OperatorDashboard';
-import OperatorGroups from './pages/operator/OperatorGroups';
-import OperatorAnalytics from './pages/operator/OperatorAnalytics';
 import HQAnalytics from './pages/HQAnalytics';
 
 const queryClient = new QueryClient({
@@ -41,14 +36,6 @@ const router = createBrowserRouter([
       { path: 'dashboard/trails', element: <TrailSafety /> },
       { path: 'dashboard/portal', element: <UserPortal /> },
       { path: 'users', element: <UserList /> },
-      
-      // Operator Routes
-      { path: 'operator', element: <OperatorDashboard /> },
-      { path: 'operator/groups', element: <OperatorGroups /> },
-      { path: 'operator/manifests', element: <OperatorManifests /> },
-      { path: 'operator/analytics', element: <OperatorAnalytics /> },
-      { path: 'operator/trails', element: <TrailSafety /> },
-      { path: 'operator/portal', element: <UserPortal /> },
     ],
   },
 ]);

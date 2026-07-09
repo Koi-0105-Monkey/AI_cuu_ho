@@ -82,12 +82,23 @@ router.post('/inbound', async (req, res, next) => {
     // Find active trip if any
     const activeTrip = await Trip.findOne({ userId: user._id, status: 'active' });
 
+    // Calculate severity dynamically using Multi-Signal Severity Engine
+    const severityEngine = require('../services/severityScoringEngine');
+    const scoreResult = await severityEngine.calculateSeverity(
+      user,
+      lat,
+      lng,
+      messageBody,
+      undefined
+    );
+
     // Create Incident
     const incident = await Incident.create({
       userId: user._id,
       tripId: activeTrip ? activeTrip._id : undefined,
       type: incidentType,
-      severity: severity || 3,
+      severity: scoreResult.finalScore,
+      severityBreakdown: scoreResult,
       status: 'open',
       location: {
         type: 'Point',

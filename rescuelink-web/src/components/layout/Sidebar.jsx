@@ -12,21 +12,11 @@ const RESCUE_NAV_ITEMS = [
   { to: '/users',               icon: Users,     label: 'Người Dùng' },
 ];
 
-const OPERATOR_NAV_ITEMS = [
-  { to: '/operator',           icon: Gauge,     label: 'Dashboard Tour' },
-  { to: '/operator/groups',    icon: Users,     label: 'Quản Lý Đoàn' },
-  { to: '/operator/manifests', icon: Heartbeat, label: 'Khai Báo Y Tế' },
-  { to: '/operator/analytics', icon: Warning,   label: 'Thống Kê Tour' },
-  { to: '/operator/trails',    icon: Compass,   label: 'Cung Đường An Toàn' },
-];
-
 export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
 
-  const isAtOperatorPortal = pathname.startsWith('/operator');
-  const showOperatorMenu = user?.role === 'operator' || isAtOperatorPortal;
-  const navItems = showOperatorMenu ? OPERATOR_NAV_ITEMS : RESCUE_NAV_ITEMS;
+  const navItems = RESCUE_NAV_ITEMS;
 
   const sidebarContent = (
     <div className="flex flex-col h-full py-6 px-4">
@@ -55,14 +45,14 @@ export default function Sidebar({ isOpen, onClose }) {
       {/* Main Role Navigation */}
       <nav className="flex-1 flex flex-col gap-1">
         <p className="text-[10px] text-slate-500 font-bold uppercase px-3 mb-1">
-          {showOperatorMenu ? 'Phân Hệ Tour Operator' : 'Phân Hệ Chỉ Huy HQ'}
+          Phân Hệ Chỉ Huy HQ
         </p>
 
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
-            end={to === '/dashboard' || to === '/operator'}
+            end={to === '/dashboard'}
             onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold
@@ -96,17 +86,6 @@ export default function Sidebar({ isOpen, onClose }) {
               </NavLink>
 
               <NavLink
-                to="/operator"
-                onClick={onClose}
-                className={({ isActive }) =>
-                  `flex items-center gap-2 p-2 rounded-lg transition-colors ${isActive ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-300 hover:bg-surface-3'}`
-                }
-              >
-                <Suitcase size={16} className="text-emerald-400" />
-                <span>2. Cổng Operator Tour</span>
-              </NavLink>
-
-              <NavLink
                 to="/"
                 onClick={onClose}
                 className={({ isActive }) =>
@@ -114,7 +93,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 }
               >
                 <Globe size={16} className="text-sky-400" />
-                <span>3. Trang Chủ Công Cộng</span>
+                <span>2. Trang Chủ Công Cộng</span>
               </NavLink>
 
               <NavLink
@@ -125,7 +104,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 }
               >
                 <Compass size={16} className="text-purple-400" />
-                <span>4. Cung Đường An Toàn</span>
+                <span>3. Cung Đường An Toàn</span>
               </NavLink>
 
               <NavLink
@@ -136,7 +115,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 }
               >
                 <Users size={16} className="text-pink-400" />
-                <span>5. Web Trekker Cá Nhân</span>
+                <span>4. Web Trekker Cá Nhân</span>
               </NavLink>
             </div>
           </div>

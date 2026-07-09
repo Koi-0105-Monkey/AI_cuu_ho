@@ -250,6 +250,45 @@ export default function IncidentDetail() {
                       </button>
                     </div>
                   )}
+
+                  {/* Severity Breakdown */}
+                  {inc.severityBreakdown && (
+                    <div className="bg-[#1b253b] p-3 rounded-lg border border-slate-700">
+                      <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+                        ⚖️ Động cơ Phân tích Độ Nghiêm Trọng (Severity Scoring Engine)
+                      </div>
+                      <div className="grid grid-cols-5 gap-2 text-center text-xs mb-3">
+                        <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                          <span className="text-muted block text-[10px]">Cơ bản</span>
+                          <span className="font-bold text-slate-300">{inc.severityBreakdown.baseScore || 3}</span>
+                        </div>
+                        <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                          <span className="text-muted block text-[10px]">Y tế</span>
+                          <span className="font-bold text-rose-400">+{inc.severityBreakdown.medicalAdjustment || 0}</span>
+                        </div>
+                        <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                          <span className="text-muted block text-[10px]">Pin</span>
+                          <span className="font-bold text-amber-400">+{inc.severityBreakdown.batteryAdjustment || 0}</span>
+                        </div>
+                        <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                          <span className="text-muted block text-[10px]">Thời tiết</span>
+                          <span className="font-bold text-sky-400">+{inc.severityBreakdown.weatherAdjustment || 0}</span>
+                        </div>
+                        <div className="p-2 rounded bg-emerald-950/40 border border-emerald-500/20">
+                          <span className="text-emerald-400 block text-[10px] font-bold">Tổng điểm</span>
+                          <span className="font-extrabold text-emerald-400 text-sm">{inc.severityBreakdown.finalScore || inc.severity}</span>
+                        </div>
+                      </div>
+                      <div className="text-[11px] text-slate-300 space-y-1">
+                        <span className="font-semibold block text-slate-400 text-[10px] uppercase">Chi tiết điều chỉnh:</span>
+                        <ul className="list-disc pl-4 space-y-1 text-slate-300">
+                          {inc.severityBreakdown.reasons?.map((r, index) => (
+                            <li key={index} className="leading-relaxed">{r}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </Section>
             )}

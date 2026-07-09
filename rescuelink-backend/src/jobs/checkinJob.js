@@ -80,6 +80,15 @@ const runCheckinVerification = async () => {
             tripId: trip._id,
             type: 'LOST',
             severity: 5, // Cấp nguy kịch
+            severityBreakdown: {
+              finalScore: 5,
+              baseScore: 5,
+              medicalAdjustment: 0,
+              batteryAdjustment: 0,
+              weatherAdjustment: 0,
+              timeAdjustment: 0,
+              reasons: ["Hệ thống tự động phát hiện trễ hẹn check-in (Dead Man's Switch) quá 30 phút. Đặt mức ưu tiên tối đa."]
+            },
             location: {
               type: 'Point',
               coordinates: [lng, lat]

@@ -68,6 +68,15 @@ const incidentSchema = new mongoose.Schema({
     responseTimeMinutes: { type: Number },
     resolutionTimeMinutes: { type: Number }
   },
+  severityBreakdown: {
+    baseScore: { type: Number },
+    medicalAdjustment: { type: Number },
+    batteryAdjustment: { type: Number },
+    weatherAdjustment: { type: Number },
+    timeAdjustment: { type: Number },
+    finalScore: { type: Number },
+    reasons: [{ type: String }]
+  },
   createdAt: { type: Date, default: Date.now }
 });
 
