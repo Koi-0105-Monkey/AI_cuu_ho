@@ -13,6 +13,7 @@ import TrailSafety from './pages/TrailSafety';
 import UserPortal from './pages/UserPortal';
 import FamilyView from './pages/FamilyView';
 import HQAnalytics from './pages/HQAnalytics';
+import WindyWeather from './pages/WindyWeather';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,6 +34,7 @@ const router = createBrowserRouter([
       { path: 'incidents', element: <IncidentList /> },
       { path: 'incidents/:id', element: <IncidentDetail /> },
       { path: 'dashboard/analytics', element: <HQAnalytics /> },
+      { path: 'dashboard/weather', element: <WindyWeather /> },
       { path: 'dashboard/trails', element: <TrailSafety /> },
       { path: 'dashboard/portal', element: <UserPortal /> },
       { path: 'users', element: <UserList /> },

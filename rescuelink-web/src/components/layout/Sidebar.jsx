@@ -1,12 +1,13 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  Gauge, Warning, MapPin, Users, SignOut, Compass, Heartbeat, House, X, Globe, Suitcase, ChartLine
+  Gauge, Warning, MapPin, Users, SignOut, Compass, Heartbeat, House, X, Globe, Suitcase, ChartLine, CloudSun
 } from '@phosphor-icons/react';
 import { useAuth } from '../../context/AuthContext';
 
 const RESCUE_NAV_ITEMS = [
   { to: '/dashboard',           icon: Gauge,     label: 'Dashboard HQ' },
   { to: '/incidents',           icon: Warning,   label: 'Sự Cố & Cứu Hộ' },
+  { to: '/dashboard/weather',   icon: CloudSun,  label: 'Thời Tiết Windy' },
   { to: '/dashboard/analytics', icon: ChartLine, label: 'Hiệu Suất Cứu Hộ' },
   { to: '/dashboard/trails',    icon: Compass,   label: 'Cung Đường An Toàn' },
   { to: '/users',               icon: Users,     label: 'Người Dùng' },
