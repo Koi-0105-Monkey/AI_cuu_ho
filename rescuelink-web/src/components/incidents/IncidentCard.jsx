@@ -45,6 +45,11 @@ export default function IncidentCard({ incident, onClick }) {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-white">{meta.label}</span>
             <span className={badge}>Mức {incident.severity}</span>
+            {incident.severityBreakdown?.needsManualReview && (
+              <span className="badge bg-amber-500/15 text-amber-400 border border-amber-500/20 animate-pulse">
+                ⚠️ Review
+              </span>
+            )}
             {incident.source === 'sms' && (
               <span className="badge bg-purple-500/15 text-purple-400">SMS</span>
             )}

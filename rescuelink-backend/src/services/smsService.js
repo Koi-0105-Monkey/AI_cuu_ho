@@ -117,7 +117,7 @@ const removeVietnameseTones = (str) => {
  * @param {object} data - { type, lat, lng, battery, message }
  */
 const sendEmergencySMS = async (user, data) => {
-  const { type, lat, lng, battery, message } = data;
+  const { type, lat, lng, battery, message, shareToken } = data;
 
   if (!user.emergencyContacts || user.emergencyContacts.length === 0) {
     console.log(`No emergency contacts for user ${user.name}`);
@@ -139,20 +139,26 @@ const sendEmergencySMS = async (user, data) => {
     }
   }
 
+  let linkStr = '';
+  if (shareToken) {
+    const baseUrl = process.env.FRONTEND_URL || 'https://ai-cuu-ho-web.vercel.app';
+    linkStr = ` Link: ${baseUrl}/family/${shareToken}`;
+  }
+
   if (type === 'BATTERY') {
     smsContent = removeVietnameseTones(
-      `[SOS RescueLink] CANH BAO PIN YEU ${battery}% tu ${cleanName}. Vi tri cuoi GPS:${lat},${lng}. Hay lien lac ngay!`
+      `[SOS RescueLink] CANH BAO PIN YEU ${battery}% tu ${cleanName}. Vi tri cuoi GPS:${lat},${lng}. Hay lien lac ngay!${linkStr}`
     );
   } else {
     const cleanMsg = message ? removeVietnameseTones(message) : '';
     smsContent = removeVietnameseTones(
-      `[SOS RescueLink] KHAN CAP: ${type} tu ${cleanName}. GPS:${lat},${lng}. Pin:${battery || 'N/A'}%${medStr}. "${cleanMsg}"`
+      `[SOS RescueLink] KHAN CAP: ${type} tu ${cleanName}. GPS:${lat},${lng}. Pin:${battery || 'N/A'}%${medStr}. "${cleanMsg}"${linkStr}`
     );
   }
 
-  // Giới hạn 160 ký tự
-  if (smsContent.length > 160) {
-    smsContent = smsContent.substring(0, 157) + '...';
+  // Giới hạn 320 ký tự (tối đa 2 segment SMS GSM-7) để tránh cắt đứt đường dẫn link theo dõi
+  if (smsContent.length > 320) {
+    smsContent = smsContent.substring(0, 317) + '...';
   }
 
   const sendPromises = user.emergencyContacts.map(contact =>

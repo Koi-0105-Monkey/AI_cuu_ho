@@ -75,7 +75,9 @@ const incidentSchema = new mongoose.Schema({
     weatherAdjustment: { type: Number },
     timeAdjustment: { type: Number },
     finalScore: { type: Number },
-    reasons: [{ type: String }]
+    reasons: [{ type: String }],
+    aiConfidence: { type: String, enum: ['High', 'Medium', 'Low'], default: 'High' },
+    needsManualReview: { type: Boolean, default: false }
   },
   createdAt: { type: Date, default: Date.now }
 });

@@ -253,9 +253,20 @@ export default function IncidentDetail() {
 
                   {/* Severity Breakdown */}
                   {inc.severityBreakdown && (
-                    <div className="bg-[#1b253b] p-3 rounded-lg border border-slate-700">
-                      <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">
-                        ⚖️ Động cơ Phân tích Độ Nghiêm Trọng (Severity Scoring Engine)
+                    <div className={`p-4 rounded-lg border ${
+                      inc.severityBreakdown.needsManualReview 
+                        ? 'bg-amber-500/5 border-amber-500/30' 
+                        : 'bg-[#1b253b] border-slate-700'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                          ⚖️ Động cơ Phân tích Độ Nghiêm Trọng (Severity Scoring Engine)
+                        </div>
+                        {inc.severityBreakdown.needsManualReview && (
+                          <span className="text-[9px] bg-amber-500/25 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-black uppercase animate-pulse">
+                            ⚠️ Cần duyệt lại
+                          </span>
+                        )}
                       </div>
                       <div className="grid grid-cols-5 gap-2 text-center text-xs mb-3">
                         <div className="p-2 rounded bg-slate-900 border border-slate-800">
@@ -279,6 +290,20 @@ export default function IncidentDetail() {
                           <span className="font-extrabold text-emerald-400 text-sm">{inc.severityBreakdown.finalScore || inc.severity}</span>
                         </div>
                       </div>
+                      
+                      <div className="flex items-center justify-between text-xs py-2 border-t border-slate-700/60 mb-2">
+                        <span className="text-slate-400 font-semibold uppercase text-[10px]">Độ tin cậy của thuật toán AI:</span>
+                        <span className={`px-2.5 py-0.5 rounded text-[11px] font-black border ${
+                          inc.severityBreakdown.aiConfidence === 'High' 
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' 
+                            : inc.severityBreakdown.aiConfidence === 'Medium'
+                            ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                            : 'bg-red-500/15 text-red-400 border-red-500/30'
+                        }`}>
+                          {inc.severityBreakdown.aiConfidence === 'High' ? 'CAO' : inc.severityBreakdown.aiConfidence === 'Medium' ? 'TRUNG BÌNH' : 'THẤP'}
+                        </span>
+                      </div>
+
                       <div className="text-[11px] text-slate-300 space-y-1">
                         <span className="font-semibold block text-slate-400 text-[10px] uppercase">Chi tiết điều chỉnh:</span>
                         <ul className="list-disc pl-4 space-y-1 text-slate-300">

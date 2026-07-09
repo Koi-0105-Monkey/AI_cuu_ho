@@ -116,7 +116,8 @@ router.post('/', protect, sosRateLimiter, validate(createIncidentSchema), async 
         lat,
         lng,
         battery: batteryAtTime,
-        message
+        message,
+        shareToken: activeTrip ? activeTrip.shareToken : undefined
       });
       // Nếu severity >= 4 → gửi thêm alert về rescue team (admin)
       if (scoreResult.finalScore >= 4) {

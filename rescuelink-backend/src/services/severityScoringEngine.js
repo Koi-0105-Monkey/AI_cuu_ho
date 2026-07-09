@@ -116,6 +116,26 @@ Nội dung SOS: "${textContent}"`;
     reasons.push(`Yêu cầu gửi vào ban đêm (${currentHour}:00), tầm nhìn hạn chế (+0.5)`);
   }
 
+  // 6. Tính toán độ tin cậy AI (aiConfidence) và gắn cờ cần duyệt lại (needsManualReview)
+  let aiConfidence = 'High';
+  let needsManualReview = false;
+
+  if (!textContent || textContent.trim().length === 0) {
+    aiConfidence = 'Low';
+    needsManualReview = true;
+  } else if (reasons.some(r => r.includes('lỗi') || r.includes('offline'))) {
+    aiConfidence = 'Low';
+    needsManualReview = true;
+  }
+
+  const hasSevereMedical = medicalAdjustment >= 1.0;
+  const hasSevereBattery = batteryAdjustment >= 1.0;
+  if (baseScore <= 2 && (hasSevereMedical || hasSevereBattery)) {
+    aiConfidence = 'Medium';
+    needsManualReview = true;
+    reasons.push('⚠️ AI phát hiện tín hiệu mâu thuẫn: Nội dung báo cáo bình tĩnh nhưng pin rất yếu hoặc có tiền sử bệnh lý nền nguy cơ cao (Cần trực ban xem xét kỹ)');
+  }
+
   // Tổng hợp điểm số
   const calculatedScore = baseScore + medicalAdjustment + batteryAdjustment + weatherAdjustment + timeAdjustment;
   const finalScore = Math.min(5, Math.max(1, Math.round(calculatedScore)));
@@ -127,7 +147,9 @@ Nội dung SOS: "${textContent}"`;
     batteryAdjustment,
     weatherAdjustment,
     timeAdjustment,
-    reasons
+    reasons,
+    aiConfidence,
+    needsManualReview
   };
 }
 

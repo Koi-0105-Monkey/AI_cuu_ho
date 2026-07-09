@@ -265,6 +265,43 @@ function IncidentDetailPanel({ incident, onClose }) {
           )}
         </div>
 
+        {/* AI Confidence & Review Card */}
+        {incident.severityBreakdown && (
+          <div className={`border rounded-xl p-3 ${
+            incident.severityBreakdown.needsManualReview 
+              ? 'bg-amber-500/10 border-amber-500/30' 
+              : 'bg-slate-900 border-slate-700/60'
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trạng thái AI Evaluation</span>
+              {incident.severityBreakdown.needsManualReview && (
+                <span className="text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded font-black uppercase animate-pulse">
+                  ⚠️ Cần duyệt lại
+                </span>
+              )}
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-300">Độ tin cậy của AI:</span>
+              <span className={`text-xs font-black px-2 py-0.5 rounded ${
+                incident.severityBreakdown.aiConfidence === 'High' 
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                  : incident.severityBreakdown.aiConfidence === 'Medium'
+                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                  : 'bg-red-500/10 text-red-400 border border-red-500/20'
+              }`}>
+                {incident.severityBreakdown.aiConfidence === 'High' ? 'CAO' : incident.severityBreakdown.aiConfidence === 'Medium' ? 'TRUNG BÌNH' : 'THẤP'}
+              </span>
+            </div>
+            
+            {incident.severityBreakdown.needsManualReview && (
+              <p className="text-[10px] text-amber-300 italic mt-2 border-t border-amber-500/10 pt-1.5 leading-tight">
+                * Có tín hiệu mâu thuẫn giữa mức khẩn cấp tự khai báo và thông số y tế/thiết bị thực tế. Trực ban cần ưu tiên kiểm tra.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Timeline */}
         <div className="bg-slate-900 border border-slate-700/60 rounded-xl p-3">
           <div className="flex items-center gap-2 mb-3">
@@ -510,14 +547,6 @@ export default function Dashboard() {
                 <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block animate-pulse" />
                 <span className="text-white font-medium">Trekker</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 bg-emerald-700 rounded-full inline-block animate-pulse" />
-                <span className="text-white font-medium">Kiểm lâm tuần tra</span>
-              </div>
-              <div className="flex items-center gap-1.5 border-l border-surface-4 pl-3">
-                <span className="text-orange-500 font-bold">🔥</span>
-                <span className="text-white font-medium">Điểm cháy vệ tinh (NASA)</span>
-              </div>
             </div>
             
             <MapContainer
@@ -582,42 +611,19 @@ export default function Dashboard() {
                 );
               })}
 
-              {/* Satellite Fire Hotspots (MODIS/VIIRS) */}
-              {hotspots.map((hs) => (
-                <Marker
-                  key={hs.id}
-                  position={[hs.lat, hs.lng]}
-                  icon={fireHotspotIcon}
-                >
-                  <Popup className="dark-popup">
-                    <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
-                      <span className="font-bold text-orange-600 text-sm">🔥 Điểm cháy vệ tinh</span>
-                      <p className="text-xs font-semibold">Vệ tinh: {hs.satellite} ({hs.confidence})</p>
-                      <p className="text-xs">Bức xạ nhiệt: <strong className="text-red-600">{hs.frp} MW</strong></p>
-                      <p className="text-xs">Phát hiện lúc: {new Date(hs.acqTime).toLocaleTimeString()}</p>
-                      <button
-                        onClick={() => handleVerifyHotspot(hs)}
-                        className="w-full text-center text-xs bg-orange-500 hover:bg-orange-600 text-white font-semibold py-1.5 rounded transition-colors mt-2"
-                      >
-                        Giao kiểm lâm xác minh 🚨
-                      </button>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-
-              {/* Trekking Trip & Ranger Patrol Markers */}
+              {/* Trekking Trip Markers */}
               {activeTripsForMap.map((trip) => {
                 const isRanger = trip.userId?.isRanger || trip.userId?.role === 'authority';
+                if (isRanger) return null; // Ẩn kiểm lâm khỏi bản đồ theo scope rút gọn
+                
                 const lat = trip.lastKnownLocation.coordinates[1];
                 const lng = trip.lastKnownLocation.coordinates[0];
                 
                 // Simplified geofencing check
-                const inForbiddenZone = !isRanger && 
-                  lat >= 22.32 && lat <= 22.36 && 
+                const inForbiddenZone = lat >= 22.32 && lat <= 22.36 && 
                   lng >= 103.76 && lng <= 103.82;
 
-                const markerIcon = isRanger ? rangerIcon : tripIcon;
+                const markerIcon = tripIcon;
 
                 return (
                   <Marker

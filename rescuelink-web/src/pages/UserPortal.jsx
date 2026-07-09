@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -26,6 +26,9 @@ export default function UserPortal() {
   const [batteryLevel, setBatteryLevel] = useState(80);
   const [sending, setSending] = useState(false);
   const [shareToken, setShareToken] = useState('');
+  const [holdProgress, setHoldProgress] = useState(0);
+  const [isHolding, setIsHolding] = useState(false);
+  const holdIntervalRef = useRef(null);
 
   // 1. Lấy vị trí thực tế của thiết bị trình duyệt
   useEffect(() => {
@@ -76,24 +79,13 @@ export default function UserPortal() {
     checkLoggedUser();
   }, []);
 
-  const handleTriggerWebSOS = async (e) => {
-    e.preventDefault();
-    if (!fullName || !phone) {
-      toast.error('Vui lòng điền Họ tên và Số điện thoại báo nạn!');
-      return;
-    }
-    if (!emergencyPhone) {
-      toast.error('Vui lòng cung cấp Số điện thoại người thân để báo tin SOS!');
-      return;
-    }
-
+  const triggerSOSDirectly = async () => {
     setSending(true);
     const loadingToast = toast.loading('Đang xử lý thông tin và gửi yêu cầu cứu hộ...');
 
     try {
       let token = localStorage.getItem('rl_token');
       
-      // Nếu chưa có token (hoặc số điện thoại điền khác với số đang lưu), tự động đăng ký/login
       if (!token) {
         try {
           const regRes = await api.post('/auth/register', {
@@ -106,7 +98,6 @@ export default function UserPortal() {
           token = regRes.data.token;
           localStorage.setItem('rl_token', token);
         } catch (regErr) {
-          // Nếu đã tồn tại tài khoản, thử đăng nhập bằng guest password
           try {
             const logRes = await api.post('/auth/login', {
               phone: phone,
@@ -123,14 +114,12 @@ export default function UserPortal() {
         }
       }
 
-      // 3. Cập nhật hồ sơ y tế lên server
       await api.patch('/auth/profile', {
         name: fullName,
         emergencyContacts: [{ name: 'Gia đình', phone: emergencyPhone, relation: 'Family' }],
         medicalProfile: { bloodType, chronicConditions: medicalNote }
       });
 
-      // 4. Gửi tín hiệu sự cố lên Dashboard HQ
       const incidentRes = await api.post('/incidents', {
         type: 'LOST',
         lat: userLocation.lat,
@@ -146,7 +135,6 @@ export default function UserPortal() {
       });
       
       if (incidentRes.data.incident?.tripId) {
-        // Lấy shareToken nếu có trip
         const tripRes = await api.get(`/trips/active`);
         if (tripRes.data.trip?.shareToken) {
           setShareToken(tripRes.data.trip.shareToken);
@@ -159,8 +147,58 @@ export default function UserPortal() {
       toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi truyền phát tín hiệu cứu hộ.');
     } finally {
       setSending(false);
+      setHoldProgress(0);
+      setIsHolding(false);
     }
   };
+
+  const startHold = (e) => {
+    e.preventDefault();
+    if (sending) return;
+    if (!fullName || !phone) {
+      toast.error('Vui lòng điền Họ tên và Số điện thoại báo nạn!');
+      return;
+    }
+    if (!emergencyPhone) {
+      toast.error('Vui lòng cung cấp Số điện thoại người thân để báo tin SOS!');
+      return;
+    }
+
+    setIsHolding(true);
+    setHoldProgress(0);
+    
+    holdIntervalRef.current = setInterval(() => {
+      setHoldProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(holdIntervalRef.current);
+          holdIntervalRef.current = null;
+          triggerSOSDirectly();
+          return 100;
+        }
+        return prev + 1.67;
+      });
+    }, 50);
+  };
+
+  const cancelHold = () => {
+    if (holdIntervalRef.current) {
+      clearInterval(holdIntervalRef.current);
+      holdIntervalRef.current = null;
+    }
+    if (isHolding && holdProgress < 99) {
+      toast.error('⚠️ Hãy nhấn giữ đủ 3 giây để kích hoạt SOS!');
+    }
+    setIsHolding(false);
+    setHoldProgress(0);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (holdIntervalRef.current) {
+        clearInterval(holdIntervalRef.current);
+      }
+    };
+  }, []);
 
   const handleCopyFamilyLink = () => {
     if (!shareToken) {
@@ -379,15 +417,34 @@ export default function UserPortal() {
                 </div>
               </div>
 
-              {/* Big, red, pulse SOS trigger button */}
-              <button
-                type="submit"
-                disabled={sending}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-black text-sm shadow-xl shadow-red-600/30 flex items-center justify-center gap-2 transition-all uppercase tracking-wide disabled:opacity-50"
-              >
-                <PhoneCall size={20} weight="fill" />
-                {sending ? 'ĐANG PHÁT TÍN HIỆU...' : '🚨 GỬI TÍN HIỆU SOS KHẨN CẤP'}
-              </button>
+              {/* Big, red, pulse SOS trigger button with Hold-to-SOS (3 seconds) */}
+              <div className="relative overflow-hidden rounded-2xl border border-red-500/30">
+                {/* Hold Progress background overlay */}
+                {isHolding && (
+                  <div 
+                    className="absolute inset-y-0 left-0 bg-red-800/80 transition-all duration-75 pointer-events-none"
+                    style={{ width: `${holdProgress}%` }}
+                  />
+                )}
+                
+                <button
+                  type="button"
+                  disabled={sending}
+                  onMouseDown={startHold}
+                  onMouseUp={cancelHold}
+                  onMouseLeave={cancelHold}
+                  onTouchStart={startHold}
+                  onTouchEnd={cancelHold}
+                  className="relative w-full py-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-black text-sm shadow-xl flex items-center justify-center gap-2 transition-all uppercase tracking-wide disabled:opacity-50 select-none cursor-pointer"
+                >
+                  <PhoneCall size={20} weight="fill" />
+                  {sending 
+                    ? 'ĐANG PHÁT TÍN HIỆU...' 
+                    : isHolding 
+                    ? `🚨 GIỮ NÚT: ${Math.max(0, Math.ceil((100 - holdProgress) / 33))}s...` 
+                    : '🚨 NHẤN GIỮ 3 GIÂY ĐỂ SOS'}
+                </button>
+              </div>
             </form>
 
           </div>
