@@ -317,23 +317,8 @@ export default function Dashboard() {
   const [trips, setTrips] = useState([]);
   const [selectedPos, setSelectedPos] = useState(null);
   const [selectedIncident, setSelectedIncident] = useState(null);
-  const [radarPath, setRadarPath] = useState(null);
-  const [showRadar, setShowRadar] = useState(true);
   const feedRef = useRef(null);
   const qc = useQueryClient();
-
-  // Fetch RainViewer radar maps path
-  useEffect(() => {
-    fetch('https://api.rainviewer.com/public/weather-maps.json')
-      .then(r => r.json())
-      .then(data => {
-        if (data && data.radar && data.radar.past && data.radar.past.length > 0) {
-          const lastPast = data.radar.past[data.radar.past.length - 1];
-          setRadarPath(lastPast.path);
-        }
-      })
-      .catch(err => console.warn('Failed to fetch RainViewer radar:', err));
-  }, []);
 
   // Load satellite hotspots
   const { data: hotspots = [] } = useQuery({
@@ -533,17 +518,6 @@ export default function Dashboard() {
                 <span className="text-orange-500 font-bold">🔥</span>
                 <span className="text-white font-medium">Điểm cháy vệ tinh (NASA)</span>
               </div>
-              <label className="flex items-center gap-1.5 border-l border-surface-4 pl-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={showRadar}
-                  onChange={(e) => setShowRadar(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-0 focus:ring-offset-0 mr-1"
-                />
-                <span className="text-emerald-400 font-bold flex items-center gap-1">
-                  ⛈️ Lớp mưa & radar (Windy)
-                </span>
-              </label>
             </div>
             
             <MapContainer
@@ -556,17 +530,7 @@ export default function Dashboard() {
                 attribution='&copy; Google Maps'
               />
 
-              {/* RainViewer Live Weather Radar Overlay (Windy Style) */}
-              {showRadar && radarPath && (
-                <TileLayer
-                  url={`https://tilecache.rainviewer.com${radarPath}/256/{z}/{x}/{y}/2/1_1.png`}
-                  attribution='&copy; RainViewer Live Radar'
-                  opacity={0.45}
-                  zIndex={100}
-                  maxNativeZoom={16}
-                  maxZoom={21}
-                />
-              )}
+
 
               {/* Tự chọn vị trí trực tiếp trên bản đồ qua Click */}
               <LocationPickerMarker selectedPos={selectedPos} setSelectedPos={setSelectedPos} />
