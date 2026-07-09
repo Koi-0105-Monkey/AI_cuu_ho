@@ -42,7 +42,7 @@ export default function FamilyView() {
   const VIETTEL_MAPS_KEY = import.meta.env.VITE_VIETTEL_MAPS_KEY || '';
   const TILE_URL = VIETTEL_MAPS_KEY 
     ? `https://maps.viettelmap.vn/api/v1/tile/{z}/{x}/{y}.png?key=${VIETTEL_MAPS_KEY}`
-    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+    : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [hasEmergency, setHasEmergency] = useState(false);

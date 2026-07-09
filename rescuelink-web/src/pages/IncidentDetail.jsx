@@ -90,7 +90,7 @@ export default function IncidentDetail() {
   const VIETTEL_MAPS_KEY = import.meta.env.VITE_VIETTEL_MAPS_KEY || '';
   const TILE_URL = VIETTEL_MAPS_KEY 
     ? `https://maps.viettelmap.vn/api/v1/tile/{z}/{x}/{y}.png?key=${VIETTEL_MAPS_KEY}`
-    : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
 
   const { data: inc, isLoading } = useQuery({
     queryKey: ['incident', id],

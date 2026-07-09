@@ -239,8 +239,8 @@ export default function UserPortal() {
                 className="w-full h-[320px] md:h-[380px]"
               >
                 <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; OpenStreetMap'
+                  url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                  attribution='&copy; Google Maps'
                 />
                 <Marker position={[userLocation.lat, userLocation.lng]}>
                   <Popup>

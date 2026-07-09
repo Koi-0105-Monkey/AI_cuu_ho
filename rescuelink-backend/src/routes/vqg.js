@@ -198,29 +198,55 @@ router.get('/search', protect, async (req, res, next) => {
 
     let searchResults = [];
 
-    // 1. Primary Engine: Nominatim OpenStreetMap Official API
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&countrycodes=vn&format=json&addressdetails=1&limit=15`;
-      const nomResp = await fetch(nomUrl, {
-        headers: { 'User-Agent': 'RescueLinkSafetyTech/1.0 (Vietnam Search Engine)' },
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      const nomData = await nomResp.json();
-
-      if (Array.isArray(nomData) && nomData.length > 0) {
-        searchResults = nomData.map(item => ({
-          display_name: item.display_name,
-          lat: item.lat,
-          lon: item.lon,
-          type: item.type || item.class || 'poi'
-        }));
+    // 0. High Priority Engine: Google Place Text Search API
+    const googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (googleApiKey && googleApiKey.trim().length > 0) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${googleApiKey}&language=vi&region=vn`;
+        const resp = await fetch(googleUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        const data = await resp.json();
+        
+        if (data && data.results && Array.isArray(data.results) && data.results.length > 0) {
+          searchResults = data.results.map(item => ({
+            display_name: item.formatted_address || item.name,
+            lat: String(item.geometry?.location?.lat || 0),
+            lon: String(item.geometry?.location?.lng || 0),
+            type: (item.types && item.types[0]) || 'poi'
+          }));
+        }
+      } catch (googleErr) {
+        console.warn('Google Place Search API failed, falling back:', googleErr.message);
       }
-    } catch (nomErr) {
-      console.warn('Nominatim Search API fetch failed:', nomErr.message);
+    }
+
+    // 1. Primary Engine (OSM Fallback): Nominatim OpenStreetMap Official API
+    if (searchResults.length === 0) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&countrycodes=vn&format=json&addressdetails=1&limit=15`;
+        const nomResp = await fetch(nomUrl, {
+          headers: { 'User-Agent': 'RescueLinkSafetyTech/1.0 (Vietnam Search Engine)' },
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        const nomData = await nomResp.json();
+
+        if (Array.isArray(nomData) && nomData.length > 0) {
+          searchResults = nomData.map(item => ({
+            display_name: item.display_name,
+            lat: item.lat,
+            lon: item.lon,
+            type: item.type || item.class || 'poi'
+          }));
+        }
+      } catch (nomErr) {
+        console.warn('Nominatim Search API fetch failed:', nomErr.message);
+      }
     }
 
     // 2. Secondary Engine: Local Docker Photon / Komoot Photon API
@@ -307,6 +333,29 @@ router.get('/reverse', async (req, res, next) => {
     const { lat, lng } = req.query;
     if (!lat || !lng) {
       return res.status(400).json({ success: false, message: 'Thiếu tham số lat/lng' });
+    }
+
+    // Try Google Reverse Geocoding API if key is present
+    const googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (googleApiKey && googleApiKey.trim().length > 0) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const googleUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${googleApiKey}&language=vi`;
+        const resp = await fetch(googleUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        const data = await resp.json();
+        
+        if (data && data.results && data.results.length > 0) {
+          return res.json({
+            success: true,
+            display_name: data.results[0].formatted_address,
+            address: {}
+          });
+        }
+      } catch (googleErr) {
+        console.warn('Google Reverse Geocoding API failed, falling back:', googleErr.message);
+      }
     }
 
     const controller = new AbortController();
