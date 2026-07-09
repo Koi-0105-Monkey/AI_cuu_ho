@@ -563,6 +563,8 @@ export default function Dashboard() {
                   attribution='&copy; RainViewer Live Radar'
                   opacity={0.45}
                   zIndex={100}
+                  maxNativeZoom={16}
+                  maxZoom={21}
                 />
               )}
 
