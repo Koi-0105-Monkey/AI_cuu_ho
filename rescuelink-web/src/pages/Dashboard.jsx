@@ -317,8 +317,23 @@ export default function Dashboard() {
   const [trips, setTrips] = useState([]);
   const [selectedPos, setSelectedPos] = useState(null);
   const [selectedIncident, setSelectedIncident] = useState(null);
+  const [radarPath, setRadarPath] = useState(null);
+  const [showRadar, setShowRadar] = useState(true);
   const feedRef = useRef(null);
   const qc = useQueryClient();
+
+  // Fetch RainViewer radar maps path
+  useEffect(() => {
+    fetch('https://api.rainviewer.com/public/weather-maps.json')
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.radar && data.radar.past && data.radar.past.length > 0) {
+          const lastPast = data.radar.past[data.radar.past.length - 1];
+          setRadarPath(lastPast.path);
+        }
+      })
+      .catch(err => console.warn('Failed to fetch RainViewer radar:', err));
+  }, []);
 
   // Load satellite hotspots
   const { data: hotspots = [] } = useQuery({
@@ -514,6 +529,21 @@ export default function Dashboard() {
                 <span className="w-2.5 h-2.5 bg-emerald-700 rounded-full inline-block animate-pulse" />
                 <span className="text-white font-medium">Kiểm lâm tuần tra</span>
               </div>
+              <div className="flex items-center gap-1.5 border-l border-surface-4 pl-3">
+                <span className="text-orange-500 font-bold">🔥</span>
+                <span className="text-white font-medium">Điểm cháy vệ tinh (NASA)</span>
+              </div>
+              <label className="flex items-center gap-1.5 border-l border-surface-4 pl-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showRadar}
+                  onChange={(e) => setShowRadar(e.target.checked)}
+                  className="rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-0 focus:ring-offset-0 mr-1"
+                />
+                <span className="text-emerald-400 font-bold flex items-center gap-1">
+                  ⛈️ Lớp mưa & radar (Windy)
+                </span>
+              </label>
             </div>
             
             <MapContainer
@@ -525,6 +555,16 @@ export default function Dashboard() {
                 url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
                 attribution='&copy; Google Maps'
               />
+
+              {/* RainViewer Live Weather Radar Overlay (Windy Style) */}
+              {showRadar && radarPath && (
+                <TileLayer
+                  url={`https://tilecache.rainviewer.com${radarPath}/256/{z}/{x}/{y}/2/1_1.png`}
+                  attribution='&copy; RainViewer Live Radar'
+                  opacity={0.45}
+                  zIndex={100}
+                />
+              )}
 
               {/* Tự chọn vị trí trực tiếp trên bản đồ qua Click */}
               <LocationPickerMarker selectedPos={selectedPos} setSelectedPos={setSelectedPos} />
@@ -576,7 +616,29 @@ export default function Dashboard() {
                 );
               })}
 
-
+              {/* Satellite Fire Hotspots (MODIS/VIIRS) */}
+              {hotspots.map((hs) => (
+                <Marker
+                  key={hs.id}
+                  position={[hs.lat, hs.lng]}
+                  icon={fireHotspotIcon}
+                >
+                  <Popup className="dark-popup">
+                    <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
+                      <span className="font-bold text-orange-600 text-sm">🔥 Điểm cháy vệ tinh</span>
+                      <p className="text-xs font-semibold">Vệ tinh: {hs.satellite} ({hs.confidence})</p>
+                      <p className="text-xs">Bức xạ nhiệt: <strong className="text-red-600">{hs.frp} MW</strong></p>
+                      <p className="text-xs">Phát hiện lúc: {new Date(hs.acqTime).toLocaleTimeString()}</p>
+                      <button
+                        onClick={() => handleVerifyHotspot(hs)}
+                        className="w-full text-center text-xs bg-orange-500 hover:bg-orange-600 text-white font-semibold py-1.5 rounded transition-colors mt-2"
+                      >
+                        Giao kiểm lâm xác minh 🚨
+                      </button>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
 
               {/* Trekking Trip & Ranger Patrol Markers */}
               {activeTripsForMap.map((trip) => {
