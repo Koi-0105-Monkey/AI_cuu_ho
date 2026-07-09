@@ -68,3 +68,20 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
     *   `TrailSafety.jsx`: thêm Header, fix layout inside AppLayout, đổi GPX button sang emerald.
     *   `OperatorDashboard.jsx`: thêm Header, LayersControl OSM.
     *   Sidebar: bỏ "TEST MODE" badge.
+*   **Tinh giản 2 Actor & Tích hợp Google Maps (09/07/2026)**:
+    *   **Loại bỏ Operator (Công ty lữ hành):** Xóa bỏ hoàn toàn vai trò Operator, operator routes và menu liên quan trong Sidebar/App.jsx.
+    *   **Cổng Web Portal Một Trang (`UserPortal.jsx`):** Tinh giản thành trang SOS báo nạn 1-chạm gửi định vị GPS từ trình duyệt và form khai báo y tế ngắn đồng bộ hóa tự động lên server.
+    *   **Dashboard HQ Sắp xếp theo Độ khẩn cấp AI:** Sự cố tự động sắp xếp theo điểm Severity giảm dần từ 5 xuống 1 nhờ dynamic Severity Scoring Engine.
+    *   **Thay thế bằng Google Maps API:** Toàn bộ bản đồ trên web chuyển sang Google Maps tiles. Hệ thống tìm kiếm địa điểm và dịch ngược tọa độ tại backend đã chuyển hẳn sang **Google Places API** và **Google Geocoding API** (xóa bỏ code OSM Nominatim và Docker Photon local).
+    *   **Tối ưu Docker:** Xóa bỏ service và volume `photon` trong `docker-compose.yml` để giải phóng tài nguyên CPU/RAM/ổ cứng cho server.
+
+---
+
+## 📋 3. Nhiệm Vụ Tiếp Theo & Ưu Tiên (Next Steps & Priorities)
+
+- `[ ]` Tích hợp Firebase service account key thật để thử nghiệm FCM Notification đầy đủ.
+- `[ ]` Đăng ký API Key của Google Gemini (AI Studio miễn phí) điền vào file `.env` ở backend để chạy sản phẩm thật.
+- `[x]` Chạy lệnh dọn dẹp xóa thư mục [rescuelink-vqg/](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-vqg) khi có sự xác nhận của người dùng (Đã thực hiện).
+- `[x]` Loại bỏ hoàn toàn vai trò `authority` / VQG và xóa mọi vết tích Viettel AI khỏi hệ thống (Đã thực hiện).
+- `[x]` Triển khai mã hóa dữ liệu y khoa (AES-256-CBC) và bảng nhật ký Audit Log bảo mật (Nghị định 13/2023) (Đã thực hiện).
+- `[x]` Tinh giản 2 Actor, tích hợp Google Maps API & Google Places, tối ưu hóa dọn dẹp Docker container (Đã thực hiện).
