@@ -14,7 +14,7 @@ import {
   Warning, Users, CheckCircle, BellRinging, MapPin, Compass,
   BatteryHigh, BatteryLow, BatteryWarning, X, Robot, FirstAid, Clock, NavigationArrow
 } from '@phosphor-icons/react';
-import { setupLeafletIcons, incidentIcon, tripIcon } from '../utils/leafletIcons';
+import { setupLeafletIcons, incidentIcon, tripIcon, islandIcon } from '../utils/leafletIcons';
 
 setupLeafletIcons();
 

@@ -102,7 +102,7 @@ Sử dụng **ui-ux-pro-max skill** để audit và tối ưu toàn bộ `rescue
 |------|----------|
 | [App.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/App.jsx) | Xóa `WindyWeather` route/import; Thêm `gcTime: 5min` vào QueryClient; Lazy-load `Dashboard` + `HQAnalytics` với `React.lazy + Suspense` → giảm initial bundle |
 | [Sidebar.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/components/layout/Sidebar.jsx) | Xóa 8 icon import thừa (`CloudSun`, `Suitcase`, `Heartbeat`, `House`, `Compass`...); Thay `⚡` emoji bằng `ArrowsLeftRight` SVG icon; Thu gọn Portal Switcher còn 2 link thực sự hữu ích |
-| [Dashboard.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/Dashboard.jsx) | Xóa `fireHotspotIcon`, `rangerIcon`, `islandIcon` imports thừa; Wrap `sortedFeed` trong `useMemo([feed])` để tránh sort lại mỗi Socket.io update |
+| [Dashboard.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/Dashboard.jsx) | Xóa unused imports; Wrap `sortedFeed` trong `useMemo`; **Sửa lỗi:** Import lại `islandIcon` (dùng hiển thị Hoàng Sa / Trường Sa trên map) chống crash trang |
 | [Header.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/components/layout/Header.jsx) | Xóa Bell button vô nghĩa (click không làm gì) + xóa `Bell` import |
 | [UserList.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/UserList.jsx) | Thêm `useEffect` debounce 400ms; Xóa nút "Tìm" thừa; Thêm `sr-only label` WCAG; Thêm `aria-label` cho table + pagination; Thêm empty state với icon + nút xóa filter |
 | [IncidentList.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/IncidentList.jsx) | Thay emoji `📋` bằng `<Printer />` SVG icon; Thêm `aria-label` cho table + pagination; Thêm empty state với icon + nút xóa filter |
@@ -111,8 +111,8 @@ Sử dụng **ui-ux-pro-max skill** để audit và tối ưu toàn bộ `rescue
 ### Kết quả Build
 
 ```
-Dashboard-MLFbw4rD.js   98 kB  (tách riêng, lazy)
-HQAnalytics-C6BHDNYd.js 394 kB (tách riêng, lazy)
-index-DN3y42FA.js      1040 kB (bundle chính, không chứa Leaflet/Recharts)
-✓ built in 861ms — PASSED
+Dashboard-VnDNxyw0.js   98 kB  (tách riêng, lazy)
+HQAnalytics-asUtyhgT.js 394 kB (tách riêng, lazy)
+index-CoB_Hem2.js      1041 kB (bundle chính, không chứa Leaflet/Recharts)
+✓ built in 1.14s — PASSED
 ```

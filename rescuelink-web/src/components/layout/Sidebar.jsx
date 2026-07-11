@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  Gauge, Warning, Users, SignOut, Globe, ChartLine, ArrowsLeftRight, MapPin, X
+  Gauge, Warning, Users, SignOut, Globe, ChartLine, ArrowsLeftRight, MapPin, X, Compass
 } from '@phosphor-icons/react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -77,6 +77,17 @@ export default function Sidebar({ isOpen, onClose }) {
 
             <div className="grid grid-cols-1 gap-1.5 bg-surface-2/60 p-2 rounded-xl border border-surface-4 text-xs font-medium">
               <NavLink
+                to="/dashboard"
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 p-2 rounded-lg transition-colors ${isActive && pathname === '/dashboard' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-300 hover:bg-surface-3'}`
+                }
+              >
+                <Gauge size={16} className="text-red-400" />
+                <span>1. Cổng Cứu Hộ HQ</span>
+              </NavLink>
+
+              <NavLink
                 to="/"
                 onClick={onClose}
                 className={({ isActive }) =>
@@ -84,18 +95,29 @@ export default function Sidebar({ isOpen, onClose }) {
                 }
               >
                 <Globe size={16} className="text-sky-400" />
-                <span>Trang Chủ Công Cộng</span>
+                <span>2. Trang Chủ Công Cộng</span>
               </NavLink>
 
               <NavLink
-                to="/portal"
+                to="/dashboard/trails"
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 p-2 rounded-lg transition-colors ${isActive ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-300 hover:bg-surface-3'}`
+                }
+              >
+                <Compass size={16} className="text-purple-400" />
+                <span>3. Cung Đường An Toàn</span>
+              </NavLink>
+
+              <NavLink
+                to="/dashboard/portal"
                 onClick={onClose}
                 className={({ isActive }) =>
                   `flex items-center gap-2 p-2 rounded-lg transition-colors ${isActive ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-300 hover:bg-surface-3'}`
                 }
               >
                 <Users size={16} className="text-pink-400" />
-                <span>Cổng SOS Trekker</span>
+                <span>4. Web Trekker Cá Nhân</span>
               </NavLink>
             </div>
           </div>
