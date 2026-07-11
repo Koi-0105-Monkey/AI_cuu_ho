@@ -116,3 +116,33 @@ HQAnalytics-asUtyhgT.js 394 kB (tách riêng, lazy)
 index-CoB_Hem2.js      1041 kB (bundle chính, không chứa Leaflet/Recharts)
 ✓ built in 1.14s — PASSED
 ```
+
+---
+
+## 📚 6. Định Hướng Đề Tài & Phạm Vi Nghiên Cứu (Official Thesis Scope)
+
+Tất cả các AI Agent làm việc sau này phải tuân thủ ranh giới định hướng và roadmap đề tài đã được thống nhất:
+
+### 📌 6.1. Chủ đề chính thức (Tên đề tài chốt cuối)
+> **"RescueLink — Hệ thống hỗ trợ ra quyết định cứu hộ khẩn cấp chuyên biệt cho hoạt động trekking, ứng dụng AI phân tích tín hiệu SOS đa phương thức và xếp hạng ưu tiên cứu hộ trong điều kiện mất kết nối mạng vùng núi"**
+
+### 📐 6.2. Phạm vi & Ranh giới nghiên cứu (Scope Boundaries)
+*   **Trong phạm vi:**
+    *   Trekker/người leo núi dã ngoại tham gia cung đường có đăng ký trước.
+    *   Khu vực rừng núi hiểm trở có nguy cơ mất sóng viễn thông/sóng data 4G di động.
+    *   Các sự cố chuyên biệt: lạc đường, chấn thương thực địa, kiệt sức, thời tiết xấu cực đoan.
+*   **Ngoài phạm vi (Bắt buộc loại trừ):**
+    *   Không thay thế hệ thống tổng đài khẩn cấp quốc gia (112, 113, 114, 115) ở đô thị.
+    *   Không xử lý các tai nạn giao thông đô thị, cháy nhà dân hoặc tình huống khẩn cấp thường nhật.
+    *   Không tích hợp các tính năng du lịch/săn mây thương mại đại trà làm loãng giá trị cứu nạn cốt lõi.
+
+### 🗺️ 6.3. Định hướng mở rộng dài hạn (Roadmap)
+*   **Mở rộng theo chiều ngang (Cùng bài toán mất kết nối mạng, khác hoạt động):**
+    *   *Lặn biển / Đi biển xa bờ:* Đo đạc thêm tín hiệu thủy triều, độ sâu thay vì độ cao vùng núi.
+    *   *Phượt xe máy địa hình (Off-road):* Thay đổi bộ chỉ số y tế/tốc độ di chuyển tương ứng tai nạn xe cộ.
+    *   *Khám phá hang động (Caving):* Phát huy tối đa mạng lưới Bluetooth BLE mesh khi không có cả sóng GPS.
+*   **Mở rộng đối tượng Actor:**
+    *   Cung cấp API xuất báo cáo AAR (After-Action Report) và Response Time cho các **Công ty bảo hiểm du lịch mạo hiểm** định giá rủi ro.
+    *   Bán/cấp phép bản quyền phần mềm quản lý cho **Ban quản lý các Vườn Quốc Gia** giám sát mật độ du khách trekking.
+*   **Mở rộng quy mô (Thiên tai diện rộng):** Ứng dụng lõi AI Severity scoring đa tín hiệu cho công tác cứu nạn lũ lụt, sạt lở đất đá mùa mưa bão tại miền Trung (vùng mất sóng diện rộng cần ưu tiên phân bổ nguồn lực).
+
