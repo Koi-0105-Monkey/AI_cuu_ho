@@ -12,16 +12,16 @@ export default {
         display: ['Outfit', 'system-ui', 'sans-serif'],
       },
       colors: {
-        // Base surfaces — tinted dark navy (not pure black)
+        // Base surfaces — tinted dark navy
         surface: {
-          DEFAULT: '#080c12',
-          1: '#0d1117',
-          2: '#131920',
-          3: '#1a2130',
-          4: '#212940',
-          5: '#2a3350',
+          DEFAULT: '#0d1525',
+          1: '#0d1525',
+          2: '#131e33',
+          3: '#1a273f',
+          4: '#1e293b', // matches --border-subtle
+          5: '#28354c',
         },
-        // Emergency red — slightly desaturated for premium feel
+        // Emergency red
         emergency: {
           50:  '#fff1f1',
           100: '#ffe0e0',
@@ -30,21 +30,21 @@ export default {
           600: '#e11d48',
           700: '#be123c',
         },
-        // Safe green
+        // Safe (Blue instead of green for colorblind accessibility)
         safe: {
-          400: '#34d399',
-          500: '#10b981',
-          DEFAULT: '#059669',
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          DEFAULT: '#0284c7',
         },
         // Severity
         severity: {
-          low:  '#22c55e',
-          med:  '#f59e0b',
-          high: '#f43f5e',
+          low:  '#0ea5e9', // Blue (safe)
+          med:  '#f59e0b', // Orange (warning)
+          high: '#e11d48', // Red (critical)
         },
         // Muted text
         muted: {
-          DEFAULT: '#64748b',
+          DEFAULT: '#687385',
           light: '#94a3b8',
         },
         // Accent gold for premium moments

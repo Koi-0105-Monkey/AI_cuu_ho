@@ -12,7 +12,7 @@ import { useSocket } from '../hooks/useSocket';
 import api from '../services/api';
 import {
   Warning, Users, CheckCircle, BellRinging, MapPin, Compass,
-  BatteryHigh, BatteryLow, BatteryWarning, X, Robot, FirstAid, Clock, NavigationArrow
+  BatteryHigh, BatteryLow, BatteryWarning, X, Robot, FirstAid, Clock, NavigationArrow, ShieldCheck
 } from '@phosphor-icons/react';
 import { setupLeafletIcons, incidentIcon, tripIcon, islandIcon } from '../utils/leafletIcons';
 
@@ -523,9 +523,12 @@ export default function Dashboard() {
             </div>
             <div ref={feedRef} className="overflow-y-auto flex-1">
               {feed.length === 0 ? (
-                <div className="py-16 text-center text-muted text-sm flex flex-col items-center gap-2">
-                  <CheckCircle size={32} className="text-safe-500 opacity-60" />
-                  Không có sự cố nào đang mở.
+                <div className="py-16 text-center text-slate-400 text-sm flex flex-col items-center gap-3">
+                  <ShieldCheck size={36} className="text-safe-500" />
+                  <div className="space-y-1">
+                    <p className="font-bold text-white">Hệ thống đang giám sát bình thường</p>
+                    <p className="text-xs text-muted">Không có sự cố khẩn cấp nào đang mở.</p>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col divide-y divide-surface-4">
