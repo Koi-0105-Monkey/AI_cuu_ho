@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { FunnelSimple, ArrowRight, Printer, Warning } from '@phosphor-icons/react';
+import { FunnelSimple, ArrowRight, Printer, Warning, CheckCircle, Clock } from '@phosphor-icons/react';
 import Header from '../components/layout/Header';
 import api from '../services/api';
 
@@ -149,10 +149,28 @@ export default function IncidentList() {
                         {inc.batteryAtTime ?? '—'}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={severityBadge(inc.severity)}>Mức {inc.severity}</span>
+                        <span className={`${severityBadge(inc.severity)} flex items-center gap-0.5 w-fit`}>
+                          {inc.severity <= 2 ? (
+                            <CheckCircle size={10} weight="fill" className="text-green-400" />
+                          ) : inc.severity === 3 ? (
+                            <Warning size={10} weight="bold" className="text-amber-400" />
+                          ) : (
+                            <Warning size={10} weight="fill" className="text-rose-400 animate-pulse" />
+                          )}
+                          Mức {inc.severity}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={statusBadge(inc.status)}>{statusLabel(inc.status)}</span>
+                        <span className={`${statusBadge(inc.status)} flex items-center gap-0.5 w-fit`}>
+                          {inc.status === 'open' ? (
+                            <Warning size={10} weight="bold" className="text-rose-400" />
+                          ) : inc.status === 'assigned' ? (
+                            <Clock size={10} className="text-amber-400" />
+                          ) : (
+                            <CheckCircle size={10} weight="fill" className="text-green-400" />
+                          )}
+                          {statusLabel(inc.status)}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-muted">
                         <ArrowRight size={16} />

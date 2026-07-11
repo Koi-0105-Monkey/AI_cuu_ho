@@ -2,7 +2,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import {
-  Car, Fire, FirstAid, Tree, Wrench, Warning
+  Car, Fire, FirstAid, Tree, Wrench, Warning, CheckCircle
 } from '@phosphor-icons/react';
 
 const TYPE_META = {
@@ -44,7 +44,16 @@ export default function IncidentCard({ incident, onClick }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-white">{meta.label}</span>
-            <span className={badge}>Mức {incident.severity}</span>
+            <span className={`${badge} flex items-center gap-0.5`}>
+              {incident.severity <= 2 ? (
+                <CheckCircle size={10} weight="fill" className="text-green-400" />
+              ) : incident.severity === 3 ? (
+                <Warning size={10} weight="bold" className="text-amber-400" />
+              ) : (
+                <Warning size={10} weight="fill" className="text-rose-400 animate-pulse" />
+              )}
+              Mức {incident.severity}
+            </span>
             {incident.severityBreakdown?.needsManualReview && (
               <span className="badge bg-amber-500/15 text-amber-400 border border-amber-500/20 animate-pulse">
                 ⚠️ Review

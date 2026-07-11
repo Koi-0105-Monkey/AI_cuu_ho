@@ -347,10 +347,10 @@ export default function IncidentDetail() {
                   <BellRinging size={16} className="text-emergency-400" />
                   <span className="text-sm font-bold text-white uppercase tracking-wider">{inc.type}</span>
                 </div>
-                <span className={`badge font-bold ${
+                <span className={`badge font-bold flex items-center gap-1 ${
                   inc.status === 'open' ? 'badge-high' : inc.status === 'assigned' ? 'badge-med' : 'badge-low'
                 }`}>
-                  {inc.status === 'open' ? '🔴 ĐANG MỞ (SOS)' : inc.status === 'assigned' ? '🟡 ĐANG CỨU HỘ' : '🟢 ĐÃ XONG (RESOLVED)'}
+                  {inc.status === 'open' ? '🚨 ĐANG MỞ (SOS)' : inc.status === 'assigned' ? '⏳ ĐANG CỨU HỘ' : '✅ ĐÃ XONG (RESOLVED)'}
                 </span>
               </div>
 

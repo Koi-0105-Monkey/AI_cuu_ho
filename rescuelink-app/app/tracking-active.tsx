@@ -731,10 +731,10 @@ export default function TrackingActiveScreen() {
     }
 
     Alert.alert(
-      'Đã gửi khẩn cấp',
+      onlineIncidentSuccess ? 'Đã gửi khẩn cấp' : 'Không có kết nối mạng',
       onlineIncidentSuccess 
         ? 'Đã gửi báo động khẩn cấp lên Server Cứu Hộ thành công!'
-        : 'Báo động đã được ghi nhận. Hệ thống đang mở trình nhắn tin SMS để gửi tin khẩn cấp cho người thân.'
+        : 'Không thể kết nối với máy chủ. SOS đã được lưu ngoại tuyến và sẽ tự động đồng bộ khi có sóng.\n\nHệ thống đang mở trình nhắn tin SMS để gửi tọa độ khẩn cấp qua sóng GSM dự phòng!'
     );
   };
 

@@ -11,7 +11,6 @@ import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
   dsn: 'https://d3ee23846fb124134d471a1a01e62ff3@o4510417905123328.ingest.us.sentry.io/4511646556094464',
-  enableInExpoDevelopment: true,
   debug: false,
 });
 
