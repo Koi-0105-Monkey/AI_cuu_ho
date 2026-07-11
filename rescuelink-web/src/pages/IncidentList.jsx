@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { FunnelSimple, ArrowRight } from '@phosphor-icons/react';
+import { FunnelSimple, ArrowRight, Printer, Warning } from '@phosphor-icons/react';
 import Header from '../components/layout/Header';
 import api from '../services/api';
 
@@ -72,9 +72,11 @@ export default function IncidentList() {
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={() => window.print()}
-              className="px-3 py-1.5 rounded-lg bg-red-600/20 border border-red-500/40 text-red-400 hover:bg-red-600/30 text-xs font-bold transition-all flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-lg bg-surface-3 border border-surface-4 text-slate-300 hover:bg-surface-4 text-xs font-medium transition-all flex items-center gap-1.5"
+              title="In hồ sơ xác minh cho 115/114"
             >
-              📋 Xuất Hồ Sơ Xác Minh Cho 115/114
+              <Printer size={14} />
+              Xuất Hồ Sơ
             </button>
           </div>
         </div>
@@ -82,7 +84,7 @@ export default function IncidentList() {
         {/* ─── Table ───────────────────── */}
         <div className="card p-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" role="table" aria-label="Danh sách sự cố">
               <thead>
                 <tr className="border-b border-surface-4 text-xs uppercase tracking-wider text-muted">
                   <th className="px-4 py-3 text-left">Loại</th>
@@ -108,8 +110,19 @@ export default function IncidentList() {
                   ))
                 ) : incidents.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-muted text-sm">
-                      Không tìm thấy sự cố nào.
+                    <td colSpan={8} className="px-4 py-14 text-center">
+                      <div className="flex flex-col items-center gap-3 text-muted">
+                        <Warning size={32} weight="thin" className="text-surface-5" />
+                        <p className="text-sm">Không tìm thấy sự cố nào.</p>
+                        {(type || status || dateFrom || dateTo) && (
+                          <button
+                            onClick={() => { setType(''); setStatus(''); setDateFrom(''); setDateTo(''); setPage(1); }}
+                            className="text-xs text-emergency-400 hover:underline"
+                          >
+                            Xóa bộ lọc để xem tất cả
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -156,10 +169,18 @@ export default function IncidentList() {
             <div className="flex items-center justify-between px-4 py-3 border-t border-surface-4">
               <p className="text-xs text-muted">Trang {page} / {pages} • {data?.total} kết quả</p>
               <div className="flex gap-2">
-                <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-                        className="btn-ghost text-xs px-3 py-1 disabled:opacity-30">← Trước</button>
-                <button disabled={page >= pages} onClick={() => setPage(p => p + 1)}
-                        className="btn-ghost text-xs px-3 py-1 disabled:opacity-30">Sau →</button>
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage(p => p - 1)}
+                  className="btn-ghost text-xs px-3 py-1 disabled:opacity-30"
+                  aria-label="Trang trước"
+                >← Trước</button>
+                <button
+                  disabled={page >= pages}
+                  onClick={() => setPage(p => p + 1)}
+                  className="btn-ghost text-xs px-3 py-1 disabled:opacity-30"
+                  aria-label="Trang sau"
+                >Sau →</button>
               </div>
             </div>
           )}

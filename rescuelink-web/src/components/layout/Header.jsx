@@ -1,4 +1,4 @@
-import { Bell, List } from '@phosphor-icons/react';
+import { List } from '@phosphor-icons/react';
 import { useAuth } from '../../context/AuthContext';
 import { useLayout } from './AppLayout';
 
@@ -29,9 +29,6 @@ export default function Header({ title, liveCount = 0 }) {
       </div>
 
       <div className="flex items-center gap-3">
-        <button className="relative btn-ghost p-2 text-muted-light">
-          <Bell size={18} />
-        </button>
         <div className="flex items-center gap-2 pl-3 border-l border-surface-4">
           <div className="w-7 h-7 rounded-full bg-emergency-600/30 flex items-center justify-center shrink-0">
             <span className="text-emergency-400 text-xs font-bold">

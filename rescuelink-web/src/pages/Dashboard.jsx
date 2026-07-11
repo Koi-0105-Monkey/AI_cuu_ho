@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMapEvents, LayersControl, Circle } from 'react-leaflet';
 import L from 'leaflet';
@@ -14,7 +14,7 @@ import {
   Warning, Users, CheckCircle, BellRinging, MapPin, Compass,
   BatteryHigh, BatteryLow, BatteryWarning, X, Robot, FirstAid, Clock, NavigationArrow
 } from '@phosphor-icons/react';
-import { setupLeafletIcons, incidentIcon, tripIcon, fireHotspotIcon, rangerIcon, islandIcon } from '../utils/leafletIcons';
+import { setupLeafletIcons, incidentIcon, tripIcon } from '../utils/leafletIcons';
 
 setupLeafletIcons();
 
@@ -475,7 +475,10 @@ export default function Dashboard() {
   const openCount = feed.filter(i => i.status === 'open').length;
 
   // Sắp xếp sự cố theo mức độ nghiêm trọng giảm dần (severity 5 -> 1)
-  const sortedFeed = [...feed].sort((a, b) => (b.severity || 0) - (a.severity || 0));
+  const sortedFeed = useMemo(
+    () => [...feed].sort((a, b) => (b.severity || 0) - (a.severity || 0)),
+    [feed]
+  );
 
   // Render maps markers
   const activeIncidentsForMap = feed.filter(i => i.location?.coordinates);

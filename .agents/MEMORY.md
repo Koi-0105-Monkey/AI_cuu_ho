@@ -36,6 +36,9 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
     *   Thêm tính năng **📢 Cảnh Báo & Báo Cáo Sự Cố Cho Đồng Đội ([tracking-active.tsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-app/app/tracking-active.tsx))**: Phát báo động rung/chuông và vị trí tới toàn bộ điện thoại các thành viên trong nhóm khi có người chấn thương hoặc đi lạc.
     *   Tích hợp module **📶 Bluetooth BLE RSSI Beacon ([bleBeacon.ts](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-app/utils/bleBeacon.ts))**: Đo cường độ tín hiệu Bluetooth để xác định cự ly khoảng cách 5-10m giữa các đồng đội khi mất hoàn toàn sóng 4G/GPS.
     *   Tích hợp nút **🔗 Chia Sẻ Link Người Thân (1-Tap Share Zalo/FB)** trên [index.tsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-app/app/(tabs)/index.tsx) và [tracking-active.tsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-app/app/tracking-active.tsx).
+*   **Tích hợp Trí tuệ Thiết kế UI/UX Pro Max**:
+    *   Cài đặt bộ skill [ui-ux-pro-max](file:///Users/khoihuynh/Documents/AI_cuu_ho/.agents/skills/ui-ux-pro-max) trực tiếp vào thư mục `.agents/skills/` để các AI Agent trong tương lai tự động truy xuất cẩm nang thiết kế chuẩn chỉ.
+    *   Hỗ trợ sinh tự động hệ thống Token thiết kế thông qua CLI `search.py` và tối ưu hóa các thành phần UI (Touch Target size >= 44x44pt, loading feedback, contrast check) cho RescueLink Web & Mobile App.
 
 ---
 
@@ -85,3 +88,31 @@ Tài liệu này đóng vai trò là **Bộ nhớ phiên làm việc** (Session 
 - `[x]` Loại bỏ hoàn toàn vai trò `authority` / VQG và xóa mọi vết tích Viettel AI khỏi hệ thống (Đã thực hiện).
 - `[x]` Triển khai mã hóa dữ liệu y khoa (AES-256-CBC) và bảng nhật ký Audit Log bảo mật (Nghị định 13/2023) (Đã thực hiện).
 - `[x]` Tinh giản 2 Actor, tích hợp Google Maps API & Google Places, tối ưu hóa dọn dẹp Docker container (Đã thực hiện).
+- `[x]` **Tối ưu UI/UX Web Dashboard (11/07/2026)** — Hoàn thành (xem mục 4 bên dưới).
+
+---
+
+## 🎨 5. UI/UX Web Optimization Session (11/07/2026)
+
+Sử dụng **ui-ux-pro-max skill** để audit và tối ưu toàn bộ `rescuelink-web`. Build verification: **PASSED**.
+
+### Thay đổi đã thực hiện
+
+| File | Thay đổi |
+|------|----------|
+| [App.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/App.jsx) | Xóa `WindyWeather` route/import; Thêm `gcTime: 5min` vào QueryClient; Lazy-load `Dashboard` + `HQAnalytics` với `React.lazy + Suspense` → giảm initial bundle |
+| [Sidebar.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/components/layout/Sidebar.jsx) | Xóa 8 icon import thừa (`CloudSun`, `Suitcase`, `Heartbeat`, `House`, `Compass`...); Thay `⚡` emoji bằng `ArrowsLeftRight` SVG icon; Thu gọn Portal Switcher còn 2 link thực sự hữu ích |
+| [Dashboard.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/Dashboard.jsx) | Xóa `fireHotspotIcon`, `rangerIcon`, `islandIcon` imports thừa; Wrap `sortedFeed` trong `useMemo([feed])` để tránh sort lại mỗi Socket.io update |
+| [Header.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/components/layout/Header.jsx) | Xóa Bell button vô nghĩa (click không làm gì) + xóa `Bell` import |
+| [UserList.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/UserList.jsx) | Thêm `useEffect` debounce 400ms; Xóa nút "Tìm" thừa; Thêm `sr-only label` WCAG; Thêm `aria-label` cho table + pagination; Thêm empty state với icon + nút xóa filter |
+| [IncidentList.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/IncidentList.jsx) | Thay emoji `📋` bằng `<Printer />` SVG icon; Thêm `aria-label` cho table + pagination; Thêm empty state với icon + nút xóa filter |
+| [HQAnalytics.jsx](file:///Users/khoihuynh/Documents/AI_cuu_ho/rescuelink-web/src/pages/HQAnalytics.jsx) | Thay spinner thành skeleton cards (4 stat boxes + 2 chart blocks); Thêm `isUsingFallbackData` flag + badge "Dữ liệu mẫu" khi monthlyMetrics là hardcoded |
+
+### Kết quả Build
+
+```
+Dashboard-MLFbw4rD.js   98 kB  (tách riêng, lazy)
+HQAnalytics-C6BHDNYd.js 394 kB (tách riêng, lazy)
+index-DN3y42FA.js      1040 kB (bundle chính, không chứa Leaflet/Recharts)
+✓ built in 861ms — PASSED
+```

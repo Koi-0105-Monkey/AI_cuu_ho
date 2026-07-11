@@ -28,10 +28,28 @@ export default function HQAnalytics() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center text-muted text-sm bg-[#080c12] min-h-screen">
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          <span>Đang tải phân tích hiệu suất cứu hộ...</span>
+      <div className="flex flex-col h-full overflow-y-auto space-y-6 p-6 bg-[#080c12]">
+        {/* Skeleton title */}
+        <div className="shrink-0 space-y-2">
+          <div className="h-6 bg-surface-3 animate-pulse rounded-lg w-72" />
+          <div className="h-3 bg-surface-3 animate-pulse rounded w-80" />
+        </div>
+        {/* Skeleton stat cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="card flex items-center gap-4 py-4 bg-[#0d1525] border-slate-800">
+              <div className="w-11 h-11 rounded-xl bg-surface-3 animate-pulse" />
+              <div className="space-y-2">
+                <div className="h-2.5 bg-surface-3 animate-pulse rounded w-24" />
+                <div className="h-5 bg-surface-3 animate-pulse rounded w-12" />
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Skeleton charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="card bg-[#0d1525] border-slate-800 h-[350px] animate-pulse" />
+          <div className="card bg-[#0d1525] border-slate-800 h-[350px] animate-pulse" />
         </div>
       </div>
     );
@@ -43,7 +61,8 @@ export default function HQAnalytics() {
     value: analytics.typeDistribution[key]
   })).filter(item => item.value > 0);
 
-  // Fallback for monthly metrics if empty
+  // Flag whether we are using real or sample data for the monthly chart
+  const isUsingFallbackData = !analytics?.monthlyMetrics;
   const monthlyData = analytics?.monthlyMetrics || [
     { name: 'Tháng 1', total: 5, resolved: 4, avgResponseTime: 12 },
     { name: 'Tháng 2', total: 8, resolved: 8, avgResponseTime: 15 },
@@ -112,9 +131,16 @@ export default function HQAnalytics() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Response Time Chart */}
         <div className="card bg-[#0d1525] border-slate-800 flex flex-col min-h-[350px]">
-          <div className="px-5 py-4 border-b border-slate-800 shrink-0 flex items-center gap-2">
-            <ChartLine size={16} className="text-amber-400" />
-            <h2 className="text-sm font-semibold text-white">Thời gian phản ứng cứu hộ theo tháng (Response Time)</h2>
+          <div className="px-5 py-4 border-b border-slate-800 shrink-0 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ChartLine size={16} className="text-amber-400" />
+              <h2 className="text-sm font-semibold text-white">Thời gian phản ứng cứu hộ theo tháng</h2>
+            </div>
+            {isUsingFallbackData && (
+              <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-medium">
+                Dữ liệu mẫu
+              </span>
+            )}
           </div>
           <div className="flex-1 p-5 min-h-0">
             <ResponsiveContainer width="100%" height="100%">

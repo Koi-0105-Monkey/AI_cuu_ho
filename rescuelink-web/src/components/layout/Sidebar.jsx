@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  Gauge, Warning, MapPin, Users, SignOut, Compass, Heartbeat, House, X, Globe, Suitcase, ChartLine, CloudSun
+  Gauge, Warning, Users, SignOut, Globe, ChartLine, ArrowsLeftRight, MapPin, X
 } from '@phosphor-icons/react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -67,23 +67,15 @@ export default function Sidebar({ isOpen, onClose }) {
           </NavLink>
         ))}
 
-        {/* Dedicated Admin Portal Switcher Box */}
+        {/* Portal Switcher — Admin only */}
         {user?.role === 'admin' && (
           <div className="mt-6 pt-4 border-t border-surface-4 space-y-1.5">
-            <p className="text-[10px] text-muted-light font-bold uppercase tracking-wider px-2 mb-2">⚡ Portal Switcher</p>
+            <p className="text-[10px] text-muted-light font-bold uppercase tracking-wider px-2 mb-2 flex items-center gap-1.5">
+              <ArrowsLeftRight size={11} weight="bold" />
+              Portal Switcher
+            </p>
 
             <div className="grid grid-cols-1 gap-1.5 bg-surface-2/60 p-2 rounded-xl border border-surface-4 text-xs font-medium">
-              <NavLink
-                to="/dashboard"
-                onClick={onClose}
-                className={({ isActive }) =>
-                  `flex items-center gap-2 p-2 rounded-lg transition-colors ${isActive ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-300 hover:bg-surface-3'}`
-                }
-              >
-                <Gauge size={16} className="text-red-400" />
-                <span>1. Cổng Cứu Hộ HQ</span>
-              </NavLink>
-
               <NavLink
                 to="/"
                 onClick={onClose}
@@ -92,29 +84,18 @@ export default function Sidebar({ isOpen, onClose }) {
                 }
               >
                 <Globe size={16} className="text-sky-400" />
-                <span>2. Trang Chủ Công Cộng</span>
+                <span>Trang Chủ Công Cộng</span>
               </NavLink>
 
               <NavLink
-                to="/dashboard/trails"
-                onClick={onClose}
-                className={({ isActive }) =>
-                  `flex items-center gap-2 p-2 rounded-lg transition-colors ${isActive ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-300 hover:bg-surface-3'}`
-                }
-              >
-                <Compass size={16} className="text-purple-400" />
-                <span>3. Cung Đường An Toàn</span>
-              </NavLink>
-
-              <NavLink
-                to="/dashboard/portal"
+                to="/portal"
                 onClick={onClose}
                 className={({ isActive }) =>
                   `flex items-center gap-2 p-2 rounded-lg transition-colors ${isActive ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-300 hover:bg-surface-3'}`
                 }
               >
                 <Users size={16} className="text-pink-400" />
-                <span>4. Web Trekker Cá Nhân</span>
+                <span>Cổng SOS Trekker</span>
               </NavLink>
             </div>
           </div>

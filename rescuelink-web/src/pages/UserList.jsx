@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { User, Phone, MagnifyingGlass, Shield, Person } from '@phosphor-icons/react';
+import { MagnifyingGlass, Shield, Person, Users } from '@phosphor-icons/react';
 import Header from '../components/layout/Header';
 import api from '../services/api';
 
@@ -15,10 +15,19 @@ const roleBadge = (r) => ({
 }[r] || 'badge bg-surface-4 text-muted-light');
 
 export default function UserList() {
-  const [search, setSearch]   = useState('');
-  const [role, setRole]       = useState('');
-  const [page, setPage]       = useState(1);
-  const [query, setQuery]     = useState('');
+  const [search, setSearch] = useState('');
+  const [role, setRole]     = useState('');
+  const [page, setPage]     = useState(1);
+  const [query, setQuery]   = useState('');
+
+  // Debounce: auto-trigger search 400ms after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setQuery(search);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['users', { search: query, role, page }],
@@ -38,13 +47,14 @@ export default function UserList() {
 
         {/* Filter bar */}
         <div className="card flex flex-wrap gap-3 items-center p-4">
+          <label className="sr-only" htmlFor="user-search">Tìm theo tên hoặc số điện thoại</label>
           <div className="flex items-center gap-2 bg-surface-3 border border-surface-4 rounded-lg px-3 py-2 flex-1 min-w-[180px]">
             <MagnifyingGlass size={15} className="text-muted shrink-0" />
             <input
+              id="user-search"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { setQuery(search); setPage(1); } }}
-              placeholder="Tìm tên, SĐT…"
+              placeholder="Tìm tên, SĐT… (tự động)"
               className="bg-transparent text-sm text-white placeholder:text-muted outline-none flex-1"
             />
           </div>
@@ -52,15 +62,12 @@ export default function UserList() {
             <option value="">Tất cả vai trò</option>
             {ROLES.slice(1).map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
           </select>
-          <button onClick={() => { setQuery(search); setPage(1); }} className="btn-primary text-sm px-4 py-2">
-            Tìm
-          </button>
         </div>
 
         {/* Table */}
         <div className="card p-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" role="table" aria-label="Danh sách người dùng">
               <thead>
                 <tr className="border-b border-surface-4 text-xs uppercase tracking-wider text-muted">
                   <th className="px-4 py-3 text-left">Tên</th>
@@ -83,8 +90,19 @@ export default function UserList() {
                   ))
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-12 text-center text-muted text-sm">
-                      Không tìm thấy người dùng.
+                    <td colSpan={5} className="px-4 py-14 text-center">
+                      <div className="flex flex-col items-center gap-3 text-muted">
+                        <Users size={32} weight="thin" className="text-surface-5" />
+                        <p className="text-sm">Không tìm thấy người dùng nào.</p>
+                        {search && (
+                          <button
+                            onClick={() => setSearch('')}
+                            className="text-xs text-emergency-400 hover:underline"
+                          >
+                            Xóa từ khóa để xem tất cả
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -122,10 +140,18 @@ export default function UserList() {
             <div className="flex items-center justify-between px-4 py-3 border-t border-surface-4">
               <p className="text-xs text-muted">Trang {page} / {pages} • {data?.total} người</p>
               <div className="flex gap-2">
-                <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-                        className="btn-ghost text-xs px-3 py-1 disabled:opacity-30">← Trước</button>
-                <button disabled={page >= pages} onClick={() => setPage(p => p + 1)}
-                        className="btn-ghost text-xs px-3 py-1 disabled:opacity-30">Sau →</button>
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage(p => p - 1)}
+                  className="btn-ghost text-xs px-3 py-1 disabled:opacity-30"
+                  aria-label="Trang trước"
+                >← Trước</button>
+                <button
+                  disabled={page >= pages}
+                  onClick={() => setPage(p => p + 1)}
+                  className="btn-ghost text-xs px-3 py-1 disabled:opacity-30"
+                  aria-label="Trang sau"
+                >Sau →</button>
               </div>
             </div>
           )}
