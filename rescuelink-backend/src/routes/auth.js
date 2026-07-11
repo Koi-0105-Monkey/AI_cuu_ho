@@ -6,7 +6,19 @@ const validate = require('../middleware/validate');
 const { protect } = require('../middleware/auth');
 const { registerSchema, loginSchema } = require('../utils/validation');
 
+const rateLimit = require('express-rate-limit');
+
 const router = express.Router();
+
+const loginRateLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 phút
+  max: 5, // Giới hạn 5 lần đăng nhập / 5 phút / IP hoặc Số điện thoại
+  skip: () => process.env.NODE_ENV === 'test',
+  keyGenerator: (req) => req.body.phone || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown-ip',
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Bạn đã đăng nhập sai quá nhiều lần. Vui lòng thử lại sau 5 phút.' }
+});
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -70,7 +82,7 @@ router.post('/register', validate(registerSchema), async (req, res, next) => {
 // @desc    Authenticate user & get token
 // @route   POST /api/auth/login
 // @access  Public
-router.post('/login', validate(loginSchema), async (req, res, next) => {
+router.post('/login', loginRateLimiter, validate(loginSchema), async (req, res, next) => {
   try {
     const { phone, password } = req.body;
 

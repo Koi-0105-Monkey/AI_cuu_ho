@@ -4,9 +4,34 @@ const Incident = require('../models/Incident');
 module.exports = {
   init: (server) => {
     const { Server } = require('socket.io');
+    const jwt = require('jsonwebtoken');
     io = new Server(server, {
       cors: {
         origin: '*',
+      }
+    });
+
+    // Authentication middleware for Socket.io
+    io.use((socket, next) => {
+      const isTest = process.env.NODE_ENV === 'test';
+      if (isTest) {
+        return next();
+      }
+
+      const token = socket.handshake.auth?.token || 
+                    socket.handshake.headers?.authorization?.split(' ')[1] || 
+                    socket.handshake.query?.token;
+
+      if (!token) {
+        return next(new Error('Authentication error: Token is required'));
+      }
+
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        socket.userId = decoded.id;
+        next();
+      } catch (err) {
+        return next(new Error('Authentication error: Token is invalid'));
       }
     });
 

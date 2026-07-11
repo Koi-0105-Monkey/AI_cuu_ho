@@ -10,10 +10,35 @@ const router = express.Router();
 // Example: [SOS:FIRE] GPS:21.0285,105.8542 T:2026-06-25 10:14:00 LVL:4
 const SMS_PATTERN = /\[SOS:(\w+)\]\s*GPS:([\d.-]+),([\d.-]+)(?:\s*T:([\d: -]+))?\s*LVL:(\d)/;
 
+const twilio = require('twilio');
+
+const validateTwilioRequest = (req, res, next) => {
+  const isMockOrTest = process.env.NODE_ENV === 'test' || process.env.SMS_MOCK_MODE === 'true';
+  if (isMockOrTest) {
+    return next();
+  }
+
+  const twilioSignature = req.headers['x-twilio-signature'];
+  const url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+  const params = req.body;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+  if (!twilioSignature) {
+    return res.status(401).send('Unauthorized: Missing X-Twilio-Signature');
+  }
+
+  const isValid = twilio.validateRequest(authToken, twilioSignature, url, params);
+  if (!isValid) {
+    return res.status(403).send('Forbidden: Invalid Twilio Signature');
+  }
+
+  next();
+};
+
 // @desc    Twilio SMS Inbound Webhook
 // @route   POST /api/sms/inbound
-// @access  Public (called by Twilio)
-router.post('/inbound', async (req, res, next) => {
+// @access  Public (called by Twilio, verified by signature)
+router.post('/inbound', validateTwilioRequest, async (req, res, next) => {
   try {
     const fromPhone = req.body.From; // Sender phone number e.g. "+84912345678"
     const messageBody = req.body.Body; // SMS content

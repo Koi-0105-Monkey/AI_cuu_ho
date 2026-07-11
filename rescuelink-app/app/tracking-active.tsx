@@ -721,12 +721,22 @@ export default function TrackingActiveScreen() {
       await AsyncStorage.setItem('pending_sms_alert', JSON.stringify(pending));
       setPendingSms(pending);
 
-      // Try opening SMS right away
-      const isAvailable = await SMS.isAvailableAsync();
-      if (isAvailable) {
-        await SMS.sendSMSAsync([activeTrip.emergencyContact], messageStr);
+      // Try opening SMS right away (Mock in development to avoid carrier charges)
+      if (__DEV__) {
+        console.log(`[MOCK SMS] Sending to ${activeTrip.emergencyContact}: ${messageStr}`);
+        Alert.alert(
+          'Thử nghiệm SMS (Dev Mode)',
+          `Hệ thống giả lập gửi tin nhắn SOS tới người thân: [${activeTrip.emergencyContact}]\n\nNội dung: "${messageStr}"\n\n(Đã chặn gửi tin nhắn thật trong môi trường Test để không tốn tiền điện thoại của bạn).`
+        );
         await AsyncStorage.removeItem('pending_sms_alert');
         setPendingSms(null);
+      } else {
+        const isAvailable = await SMS.isAvailableAsync();
+        if (isAvailable) {
+          await SMS.sendSMSAsync([activeTrip.emergencyContact], messageStr);
+          await AsyncStorage.removeItem('pending_sms_alert');
+          setPendingSms(null);
+        }
       }
     }
 

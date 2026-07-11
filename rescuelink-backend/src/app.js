@@ -71,6 +71,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
 app.use('/api', routes);
+app.use('/api/v1', routes);
 
 // Base route
 app.get('/', (req, res) => {

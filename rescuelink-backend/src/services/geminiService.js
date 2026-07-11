@@ -2,6 +2,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_MODE = process.env.GEMINI_MODE || 'mock';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 
 let genAI;
 if (GEMINI_API_KEY && GEMINI_MODE !== 'mock') {
@@ -54,7 +55,7 @@ const processSmsMessage = async (rawSmsText) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
     const prompt = `Bạn là một trợ lý AI cứu hộ khẩn cấp tại Việt Nam.
 Nhiệm vụ của bạn là nhận tin nhắn SMS cứu nạn khẩn cấp (thường viết không dấu do sóng yếu) và:
 1. Khôi phục hoàn toàn dấu tiếng Việt chuẩn xác cho tin nhắn đó.
@@ -114,7 +115,7 @@ const transcribeAudio = async (audioData, mimeType = 'audio/wav') => {
       buffer = Buffer.from(audioData, 'base64');
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
     
     const result = await model.generateContent([
       {
@@ -152,7 +153,7 @@ const generateResponse = async (prompt) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
     const result = await model.generateContent(prompt);
     return result.response.text().trim();
   } catch (error) {

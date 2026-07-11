@@ -20,6 +20,7 @@ export const useSocket = (handlers = {}) => {
       transports: ['websocket'],
       reconnectionDelay: 1000,
       reconnectionAttempts: 10,
+      autoConnect: false,
     });
     socket.on('connect', () => console.log('Socket connected:', socket.id));
     socket.on('disconnect', () => console.log('Socket disconnected'));
@@ -27,6 +28,15 @@ export const useSocket = (handlers = {}) => {
 
   useEffect(() => {
     if (!socket) return;
+
+    const token = localStorage.getItem('user_token');
+    if (token) {
+      socket.auth = { token };
+    }
+
+    if (!socket.connected) {
+      socket.connect();
+    }
 
     // Register this hook's handlers
     const registeredEvents = Object.keys(handlersRef.current);
