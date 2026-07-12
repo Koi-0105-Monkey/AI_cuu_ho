@@ -1,10 +1,23 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const Trip = require('../models/Trip');
 const Incident = require('../models/Incident');
 const socketService = require('../services/socketService');
 
 const router = express.Router();
+
+const smsRateLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 3, // Limit to 3 SMS SOS / phone number / 5 minutes
+  keyGenerator: (req) => req.body.From || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown-phone',
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: '<Response><Message>RescueLink: Gui yeu cau SOS qua nhanh. Vui long cho 5 phut truoc khi thu lai.</Message></Response>',
+  handler: (req, res, next, options) => {
+    res.status(429).type('text/xml').send(options.message);
+  }
+});
 
 // SMS Pattern: [SOS:TYPE] GPS:lat,lng T:timestamp LVL:severity MSG:message
 // Example: [SOS:FIRE] GPS:21.0285,105.8542 T:2026-06-25 10:14:00 LVL:4
@@ -38,7 +51,7 @@ const validateTwilioRequest = (req, res, next) => {
 // @desc    Twilio SMS Inbound Webhook
 // @route   POST /api/sms/inbound
 // @access  Public (called by Twilio, verified by signature)
-router.post('/inbound', validateTwilioRequest, async (req, res, next) => {
+router.post('/inbound', smsRateLimiter, validateTwilioRequest, async (req, res, next) => {
   try {
     const fromPhone = req.body.From; // Sender phone number e.g. "+84912345678"
     const messageBody = req.body.Body; // SMS content

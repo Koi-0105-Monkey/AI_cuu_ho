@@ -123,4 +123,81 @@ describe('Severity Scoring Engine Test Suite', () => {
     expect(result.needsManualReview).toBe(true);
     expect(result.aiConfidence).toBe('Medium');
   });
+
+  test('should handle user without medicalProfile safely', async () => {
+    geminiService.generateResponse.mockResolvedValue('3');
+    weatherService.getWeather.mockResolvedValue(null);
+
+    const user = { name: 'No Med Profile User' };
+    const result = await severityEngine.calculateSeverity(user, 21.0285, 105.8542, 'Help', 100);
+
+    expect(result.medicalAdjustment).toBe(0);
+    expect(result.finalScore).toBe(3);
+  });
+
+  test('should handle undefined batteryLevel safely', async () => {
+    geminiService.generateResponse.mockResolvedValue('3');
+    weatherService.getWeather.mockResolvedValue(null);
+
+    const user = { name: 'User' };
+    const result = await severityEngine.calculateSeverity(user, 21.0285, 105.8542, 'Help', undefined);
+
+    expect(result.batteryAdjustment).toBe(0);
+  });
+
+  test('should catch weatherService rejection and handle gracefully with 0 adjustment', async () => {
+    geminiService.generateResponse.mockResolvedValue('3');
+    weatherService.getWeather.mockRejectedValue(new Error('Weather API Outage'));
+
+    const user = { name: 'User' };
+    const result = await severityEngine.calculateSeverity(user, 21.0285, 105.8542, 'Help', 100);
+
+    expect(result.weatherAdjustment).toBe(0);
+  });
+
+  test('should handle unparseable Gemini response with fallback baseScore of 3', async () => {
+    geminiService.generateResponse.mockResolvedValue('Unknown string response');
+    weatherService.getWeather.mockResolvedValue(null);
+
+    const user = { name: 'User' };
+    const result = await severityEngine.calculateSeverity(user, 21.0285, 105.8542, 'Help', 100);
+
+    expect(result.baseScore).toBe(3);
+  });
+
+  test('should handle Gemini service rejection with fallback baseScore of 3', async () => {
+    geminiService.generateResponse.mockRejectedValue(new Error('Gemini API offline'));
+    weatherService.getWeather.mockResolvedValue(null);
+
+    const user = { name: 'User' };
+    const result = await severityEngine.calculateSeverity(user, 21.0285, 105.8542, 'Help', 100);
+
+    expect(result.baseScore).toBe(3);
+    expect(result.needsManualReview).toBe(true);
+    expect(result.aiConfidence).toBe('Low');
+  });
+
+  test('should handle empty/undefined text content with fallback baseScore of 3', async () => {
+    weatherService.getWeather.mockResolvedValue(null);
+
+    const user = { name: 'User' };
+    const result = await severityEngine.calculateSeverity(user, 21.0285, 105.8542, '', 100);
+
+    expect(result.baseScore).toBe(3);
+    expect(result.needsManualReview).toBe(true);
+    expect(result.aiConfidence).toBe('Low');
+  });
+
+  test('should adjust score for moderate bad weather (rain/fog)', async () => {
+    geminiService.generateResponse.mockResolvedValue('3');
+    weatherService.getWeather.mockResolvedValue({
+      weatherCode: 61,
+      description: 'Mưa nhẹ kéo dài'
+    });
+
+    const user = { name: 'User' };
+    const result = await severityEngine.calculateSeverity(user, 21.0285, 105.8542, 'Help', 100);
+
+    expect(result.weatherAdjustment).toBe(0.5);
+  });
 });

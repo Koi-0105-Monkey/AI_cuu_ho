@@ -26,12 +26,6 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin', 'rescuer'],
     default: 'user'
   },
-  // ID công ty tour (dành cho role: guide, user thuộc operator)
-  operatorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Operator',
-    default: null
-  },
   // FCM Device Token — để gửi push notification
   fcmToken: {
     type: String,
