@@ -701,7 +701,7 @@ export default function Dashboard() {
                     onClick={() => setOpenSelectedPosInfo(true)}
                   >
                     {openSelectedPosInfo && (
-                      <InfoWindowF onCloseClick={() => setOpenSelectedPosInfo(false)}>
+                      <InfoWindowF position={selectedPos} onCloseClick={() => setOpenSelectedPosInfo(false)}>
                         <div className="text-slate-800 p-2 space-y-1.5 min-w-[220px]">
                           <span className="font-bold text-sky-600 text-xs flex items-center gap-1">📍 Vị trí ghim chọn trực tiếp</span>
                           <p className="text-[11px] font-semibold text-slate-700 leading-tight border-b pb-1">{address}</p>
@@ -742,7 +742,7 @@ export default function Dashboard() {
                         onClick={() => setSelectedIncident(isSelected ? null : inc)}
                       >
                         {isSelected && (
-                          <InfoWindowF onCloseClick={() => setSelectedIncident(null)}>
+                          <InfoWindowF position={{ lat, lng }} onCloseClick={() => setSelectedIncident(null)}>
                             <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
                               <div className="flex items-center justify-between">
                                 <span className="font-bold text-red-600 text-sm">🚨 {inc.type}</span>
@@ -800,7 +800,7 @@ export default function Dashboard() {
                       onClick={() => setSelectedTripId(isSelected ? null : trip._id)}
                     >
                       {isSelected && (
-                        <InfoWindowF onCloseClick={() => setSelectedTripId(null)}>
+                        <InfoWindowF position={{ lat, lng }} onCloseClick={() => setSelectedTripId(null)}>
                           <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
                             <div className="flex items-center justify-between">
                               <span className="font-bold text-sm text-emerald-600">
@@ -829,14 +829,14 @@ export default function Dashboard() {
 
                 {/* Quần đảo Hoàng Sa & Trường Sa thuộc chủ quyền Việt Nam */}
                 <MarkerF position={{ lat: 16.5, lng: 112.0 }} icon={getGoogleIslandIcon('Quần đảo Hoàng Sa')}>
-                  <InfoWindowF>
+                  <InfoWindowF position={{ lat: 16.5, lng: 112.0 }}>
                     <div className="text-xs font-bold text-slate-800 text-center p-1">
                        Quần đảo Hoàng Sa<br/>(Việt Nam)
                     </div>
                   </InfoWindowF>
                 </MarkerF>
                 <MarkerF position={{ lat: 9.5, lng: 112.5 }} icon={getGoogleIslandIcon('Quần đảo Trường Sa')}>
-                  <InfoWindowF>
+                  <InfoWindowF position={{ lat: 9.5, lng: 112.5 }}>
                     <div className="text-xs font-bold text-slate-800 text-center p-1">
                        Quần đảo Trường Sa<br/>(Việt Nam)
                     </div>
