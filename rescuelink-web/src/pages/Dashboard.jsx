@@ -95,8 +95,8 @@ const getGoogleIncidentIcon = () => ({
     <circle cx="12" cy="12" r="6" fill="#e11d48" stroke="#ffffff" stroke-width="1.5" />
     <text x="12" y="15" fill="#ffffff" font-size="9" font-weight="bold" text-anchor="middle">!</text>
   </svg>`),
-  scaledSize: new window.google.maps.Size(32, 32),
-  anchor: new window.google.maps.Point(16, 16)
+  scaledSize: { width: 32, height: 32 },
+  anchor: { x: 16, y: 16 }
 });
 
 const getGoogleTripIcon = () => ({
@@ -104,8 +104,8 @@ const getGoogleTripIcon = () => ({
     <circle cx="12" cy="12" r="10" fill="#0ea5e9" opacity="0.4" />
     <circle cx="12" cy="12" r="6" fill="#0284c7" stroke="#ffffff" stroke-width="1.5" />
   </svg>`),
-  scaledSize: new window.google.maps.Size(32, 32),
-  anchor: new window.google.maps.Point(16, 16)
+  scaledSize: { width: 32, height: 32 },
+  anchor: { x: 16, y: 16 }
 });
 
 const getGoogleIslandIcon = (name) => ({
@@ -114,8 +114,8 @@ const getGoogleIslandIcon = (name) => ({
     <rect x="5" y="18" width="90" height="18" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1" />
     <text x="50" y="30" fill="#ffffff" font-size="8" font-weight="bold" text-anchor="middle">${name}</text>
   </svg>`),
-  scaledSize: new window.google.maps.Size(100, 40),
-  anchor: new window.google.maps.Point(50, 10)
+  scaledSize: { width: 100, height: 40 },
+  anchor: { x: 50, y: 10 }
 });
 
 function GoogleMapWrapper({ googleMapsKey, center, zoom, onClick, children }) {
