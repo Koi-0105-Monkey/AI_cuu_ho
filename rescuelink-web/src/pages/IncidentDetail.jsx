@@ -87,6 +87,19 @@ export default function IncidentDetail() {
     }
   });
 
+  const reviewIncident = useMutation({
+    mutationFn: () => api.patch(`/incidents/${id}/review`),
+    onSuccess: () => {
+      qc.invalidateQueries(['incident', id]);
+      qc.invalidateQueries(['incidents']);
+      qc.invalidateQueries(['active-incidents']);
+      toast.success('Đã xác nhận xem xét báo cáo AI thành công!');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Lỗi xác nhận');
+    }
+  });
+
   const VIETTEL_MAPS_KEY = import.meta.env.VITE_VIETTEL_MAPS_KEY || '';
   const TILE_URL = VIETTEL_MAPS_KEY 
     ? `https://maps.viettelmap.vn/api/v1/tile/{z}/{x}/{y}.png?key=${VIETTEL_MAPS_KEY}`
@@ -133,9 +146,35 @@ export default function IncidentDetail() {
       <Header title="Chi tiết Sự cố" />
       <div className="flex-1 overflow-auto p-6 space-y-4">
         {/* Back button */}
-        <button onClick={() => navigate(-1)} className="btn-ghost text-sm">
-          <ArrowLeft size={16} /> Quay lại
-        </button>
+        <div className="flex items-center justify-between">
+          <button onClick={() => navigate(-1)} className="btn-ghost text-sm">
+            <ArrowLeft size={16} /> Quay lại
+          </button>
+          {inc.reviewedBy && (
+            <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg">
+              ✓ Đã được phê duyệt thủ công bởi: {inc.reviewedBy.name || 'Admin'}
+            </span>
+          )}
+        </div>
+
+        {inc.severityBreakdown?.needsManualReview && !inc.reviewedBy && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <h4 className="text-sm font-bold text-amber-400">AI không chắc chắn — Cần xác nhận thủ công trước khi điều phối</h4>
+                <p className="text-xs text-slate-350">Có sự mâu thuẫn giữa thông số đo đạc thực tế của thiết bị và nội dung sự cố tự khai báo.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => reviewIncident.mutate()}
+              disabled={reviewIncident.isLoading}
+              className="btn-primary bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs px-4 py-2 rounded-lg transition-all shrink-0"
+            >
+              {reviewIncident.isLoading ? 'Đang duyệt...' : '✅ Đã xem xét & duyệt qua'}
+            </button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* ─── Left column ────────────────────── */}
@@ -407,9 +446,11 @@ export default function IncidentDetail() {
                         dispatchNotes
                       });
                     }}
-                    disabled={dispatchRescue.isLoading}
+                    disabled={dispatchRescue.isLoading || (inc.severityBreakdown?.needsManualReview && !inc.reviewedBy)}
                   >
-                    🚀 BẮT ĐẦU ĐIỀU ĐỘNG CỨU HỘ
+                    {inc.severityBreakdown?.needsManualReview && !inc.reviewedBy
+                      ? '⚠️ BỊ CHẶN: CẦN DUYỆT THỦ CÔNG'
+                      : '🚀 BẮT ĐẦU ĐIỀU ĐỘNG CỨU HỘ'}
                   </button>
                 </div>
               )}

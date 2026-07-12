@@ -19,6 +19,10 @@ const gpsRawSchema = new mongoose.Schema({
   battery: { type: Number },
   recordedAt: {
     type: Date,
+    default: Date.now
+  },
+  syncedAt: {
+    type: Date,
     default: Date.now,
     expires: 21600 // TTL index: 6 hours (21600 seconds)
   }

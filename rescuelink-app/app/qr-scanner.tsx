@@ -1,3 +1,4 @@
+// Quét mã QR ghép nhóm trekking cá nhân (không phải B2B)
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,

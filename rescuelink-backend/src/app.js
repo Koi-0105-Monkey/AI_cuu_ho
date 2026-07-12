@@ -1,5 +1,13 @@
 require('./instrument');
 require('dotenv').config();
+
+if (process.env.NODE_ENV !== 'test') {
+  if (!process.env.MEDICAL_SECRET_KEY || process.env.MEDICAL_SECRET_KEY.length < 32) {
+    console.error('❌ FATAL STARTUP ERROR: MEDICAL_SECRET_KEY must be a string of at least 32 characters.');
+    throw new Error('MEDICAL_SECRET_KEY is missing or invalid (must be >= 32 chars).');
+  }
+}
+
 const express = require('express');
 const http = require('http');
 const cors = require('cors');

@@ -109,6 +109,64 @@ const runGpsCompression = async () => {
 };
 
 /**
+ * Execute GPS Raw to Segment Compression instantly for a specific trip
+ */
+const compressTripGps = async (userId, tripId) => {
+  try {
+    const rawPoints = await GpsRaw.find({ userId, tripId }).sort({ recordedAt: 1 });
+    if (rawPoints.length < 2) {
+      return;
+    }
+
+    const compressedPoints = rdpCompress(rawPoints, 10);
+    const startTime = rawPoints[0].recordedAt;
+    const endTime = rawPoints[rawPoints.length - 1].recordedAt;
+
+    let distanceMeters = 0;
+    let minBattery = rawPoints[0].battery || 100;
+    
+    for (let i = 0; i < rawPoints.length; i++) {
+      if (i > 0) {
+        distanceMeters += haversineDistance(rawPoints[i - 1], rawPoints[i]);
+      }
+      if (rawPoints[i].battery !== undefined && rawPoints[i].battery < minBattery) {
+        minBattery = rawPoints[i].battery;
+      }
+    }
+
+    const durationHours = (endTime - startTime) / (1000 * 60 * 60);
+    const avgSpeedKmh = durationHours > 0 ? (distanceMeters / 1000) / durationHours : 0;
+    const coordinates = compressedPoints.map(pt => [pt.lng, pt.lat]);
+
+    await GpsSegment.create({
+      userId,
+      tripId,
+      geometry: {
+        type: 'LineString',
+        coordinates
+      },
+      startTime,
+      endTime,
+      distanceMeters: Math.round(distanceMeters),
+      avgSpeedKmh: parseFloat(avgSpeedKmh.toFixed(2)),
+      minBattery,
+      originalPointCount: rawPoints.length,
+      compressedPointCount: compressedPoints.length,
+      color: '#1D9E75'
+    });
+
+    const deleteResult = await GpsRaw.deleteMany({
+      tripId,
+      recordedAt: { $gte: startTime, $lte: endTime }
+    });
+
+    console.log(`[GPS Compression Instant] Successfully compressed Trip ${tripId}: ${rawPoints.length} points -> ${compressedPoints.length} points (${deleteResult.deletedCount} raw points deleted).`);
+  } catch (error) {
+    console.error('[GPS Compression Instant] Error occurred:', error.message);
+  }
+};
+
+/**
  * Initialize the cron job
  */
 const initGpsCronJob = () => {
@@ -122,5 +180,6 @@ const initGpsCronJob = () => {
 
 module.exports = {
   runGpsCompression,
+  compressTripGps,
   initGpsCronJob
 };

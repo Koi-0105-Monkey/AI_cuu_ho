@@ -38,7 +38,8 @@ router.post('/batch', protect, validate(gpsBatchSchema), async (req, res, next) 
       speed: pt.speed,
       heading: pt.heading,
       battery: pt.battery,
-      recordedAt: pt.recordedAt ? new Date(pt.recordedAt) : new Date()
+      recordedAt: pt.recordedAt ? new Date(pt.recordedAt) : new Date(),
+      syncedAt: new Date()
     }));
 
     // Save batch to MongoDB GpsRaw
@@ -53,6 +54,14 @@ router.post('/batch', protect, validate(gpsBatchSchema), async (req, res, next) 
     };
     activeTrip.lastSeen = lastPt.recordedAt ? new Date(lastPt.recordedAt) : new Date();
     await activeTrip.save();
+
+    // Trigger instant compression
+    const { compressTripGps } = require('../jobs/compressGps');
+    try {
+      await compressTripGps(req.user._id, activeTrip._id);
+    } catch (compressErr) {
+      console.error('[GPS Batch Compression Error]:', compressErr.message);
+    }
 
     res.status(201).json({
       success: true,

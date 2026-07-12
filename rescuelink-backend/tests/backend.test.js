@@ -301,7 +301,11 @@ describe('RescueLink Backend API Test Suite', () => {
 
       // Verify DB storage
       const count = await GpsRaw.countDocuments({ userId });
-      expect(count).toBe(3); // 1 starting point + 2 batch points
+      expect(count).toBe(0); // Processed instantly, so raw count is 0
+
+      const GpsSegment = require('../src/models/GpsSegment');
+      const segmentCount = await GpsSegment.countDocuments({ userId });
+      expect(segmentCount).toBe(1); // 1 compressed segment created
     });
   });
 

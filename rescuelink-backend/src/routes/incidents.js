@@ -3,14 +3,16 @@ const path = require('path');
 const fs = require('fs');
 const Incident = require('../models/Incident');
 const Trip = require('../models/Trip');
+const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { createIncidentSchema } = require('../utils/validation');
 const { upload, isCloudinaryConfigured } = require('../config/cloudinary');
-const { analyzeFireImage } = require('../services/aiService');
+const { analyzeFireImage } = require('../services/geminiService');
 const socketService = require('../services/socketService');
 const smsService = require('../services/smsService');
 const geminiService = require('../services/geminiService');
+const notifyEmergencyContacts = require('../services/notifyEmergencyContacts');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 
@@ -111,14 +113,7 @@ router.post('/', protect, sosRateLimiter, validate(createIncidentSchema), async 
 
     // Send Emergency SMS & FCM Notifications to contacts
     try {
-      await smsService.sendEmergencySMS(req.user, {
-        type,
-        lat,
-        lng,
-        battery: batteryAtTime,
-        message,
-        shareToken: activeTrip ? activeTrip.shareToken : undefined
-      });
+      await notifyEmergencyContacts(incident);
       // Nếu severity >= 4 → gửi thêm alert về rescue team (admin)
       if (scoreResult.finalScore >= 4) {
         await smsService.sendRescueTeamAlert(incident, req.user);
@@ -256,13 +251,7 @@ router.post('/fire', protect, upload.single('image'), async (req, res, next) => 
 
     // Send Emergency SMS to contacts
     try {
-      await smsService.sendEmergencySMS(req.user, {
-        type: 'FIRE',
-        lat: parsedLat,
-        lng: parsedLng,
-        battery: batteryAtTime ? parseInt(batteryAtTime) : undefined,
-        message: autoMessage
-      });
+      await notifyEmergencyContacts(incident);
     } catch (smsError) {
       console.error(`Failed to send emergency SMS for fire incident: ${smsError.message}`);
     }
@@ -556,6 +545,13 @@ router.post('/report-voice-sos', protect, uploadAudio.single('audio'), async (re
     // Emit event to Dashboard
     socketService.emitIncidentNew(populatedIncident);
 
+    // Trigger emergency contact notification
+    try {
+      await notifyEmergencyContacts(incident);
+    } catch (smsError) {
+      console.error(`Failed to send emergency SMS for voice SOS: ${smsError.message}`);
+    }
+
     res.status(201).json({
       success: true,
       data: populatedIncident
@@ -565,142 +561,7 @@ router.post('/report-voice-sos', protect, uploadAudio.single('audio'), async (re
   }
 });
 
-// @desc    Receive incoming SMS SOS (Trekker offline fallback)
-// @route   POST /api/incidents/incoming-sms
-// @access  Public (Webhook)
-router.post('/incoming-sms', async (req, res, next) => {
-  try {
-    const { From, Body } = req.body;
-    if (!From || !Body) {
-      return res.status(400).json({ success: false, message: 'From and Body are required' });
-    }
 
-    // 1. Find User by Phone
-    let cleanPhone = From.replace('+84', '0');
-    let user = await require('../models/User').findOne({ phone: cleanPhone });
-    
-    // If not found, find by partial matching
-    if (!user) {
-      const searchPhone = cleanPhone.slice(-9); // last 9 digits
-      user = await require('../models/User').findOne({ phone: new RegExp(searchPhone + '$') });
-    }
-
-    // Fallback if user not registered
-    if (!user) {
-      const User = require('../models/User');
-      user = await User.findOne({ phone: '0000000000' });
-      if (!user) {
-        user = await User.create({
-          name: `Khách vãng lai (${cleanPhone})`,
-          phone: '0000000000',
-          password: 'guestpassword123',
-          role: 'trekker'
-        });
-      }
-    }
-
-    // 2. Parse GPS from message
-    let lat = 21.0285;
-    let lng = 105.8542;
-    let locationExtracted = false;
-
-    // Match maps.google.com/?q=lat,lng or coordinates lat,lng
-    const gpsRegex = /(?:q=)?(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/i;
-    const gpsMatch = Body.match(gpsRegex);
-    if (gpsMatch) {
-      lat = parseFloat(gpsMatch[1]);
-      lng = parseFloat(gpsMatch[2]);
-      locationExtracted = true;
-    }
-
-    // 3. Process with Viettel AI NLP
-    const cleanBody = Body.replace(/https?:\/\/\S+/g, '').replace(/SOS RescueLink!/g, '').trim();
-
-    let restoredText = cleanBody;
-    let entities = { victimName: user.name, location: 'Chưa rõ', incidentType: 'MANUAL', severity: 4 };
-
-    if (cleanBody.length > 2) {
-      const geminiResult = await geminiService.processSmsMessage(cleanBody);
-      restoredText = geminiResult.textWithDiacritics;
-      entities = {
-        victimName: geminiResult.victimName,
-        location: geminiResult.location,
-        incidentType: geminiResult.incidentType,
-        severity: geminiResult.severity
-      };
-    }
-
-    // Find active trip for the user if any
-    const activeTrip = await Trip.findOne({ userId: user._id, status: 'active' });
-    if (activeTrip && !locationExtracted) {
-      if (activeTrip.startLocation?.coordinates) {
-        lng = activeTrip.startLocation.coordinates[0];
-        lat = activeTrip.startLocation.coordinates[1];
-      }
-    }
-
-    // Map incident type
-    let type = 'MANUAL';
-    const typeMapping = {
-      'CHÁY': 'FIRE',
-      'TAI_NẠN': 'MED',
-      'LẠC': 'LOST',
-      'KHÁC': 'MANUAL',
-      'Cháy rừng': 'FIRE',
-      'Chấn thương': 'MED',
-      'Lạc đường': 'LOST',
-      'Rắn cắn/Ngộ độc': 'MED',
-      'Thiên tai/Mắc kẹt': 'LOST',
-      'Sức khỏe yếu': 'MED'
-    };
-    if (typeMapping[entities.incidentType]) {
-      type = typeMapping[entities.incidentType];
-    }
-
-    // Calculate severity dynamically using Multi-Signal Severity Engine
-    const severityEngine = require('../services/severityScoringEngine');
-    const scoreResult = await severityEngine.calculateSeverity(
-      user,
-      lat,
-      lng,
-      restoredText || Body,
-      undefined // batteryLevel not available in incoming SMS payload
-    );
-
-    const incident = await Incident.create({
-      userId: user._id,
-      tripId: activeTrip ? activeTrip._id : undefined,
-      type,
-      severity: scoreResult.finalScore,
-      severityBreakdown: scoreResult,
-      status: 'open',
-      location: {
-        type: 'Point',
-        coordinates: [lng, lat]
-      },
-      message: `[SMS SOS - ${cleanPhone}] ${Body}`,
-      voiceTranscript: restoredText !== cleanBody ? restoredText : undefined,
-      extractedEntities: {
-        victimName: entities.victimName !== 'Chưa rõ' ? entities.victimName : user.name,
-        location: entities.location !== 'Chưa rõ tọa độ cụ thể' ? entities.location : (locationExtracted ? 'Tọa độ GPS đính kèm' : 'Chưa rõ'),
-        incidentType: entities.incidentType,
-        severity: entities.severity
-      },
-      source: 'sms'
-    });
-
-    const populatedIncident = await Incident.findById(incident._id).populate('userId', 'name phone medicalProfile');
-    socketService.emitIncidentNew(populatedIncident);
-
-    res.json({
-      success: true,
-      message: 'Incoming SMS processed successfully',
-      data: populatedIncident
-    });
-  } catch (error) {
-    next(error);
-  }
-});
 
 // @desc    Generate Text-to-Speech warning audio (Viettel TTS)
 // @route   POST /api/incidents/tts-warning
@@ -728,10 +589,37 @@ router.post('/tts-warning', protect, authorize('admin', 'authority'), async (req
   }
 });
 
-// @desc    Dispatch a rescuer to an incident
-// @route   PATCH /api/incidents/:id/dispatch
+// @desc    Mark incident as reviewed by admin/rescuer
+// @route   PATCH /api/incidents/:id/review
 // @access  Private (Admin/Rescuer only)
-router.patch('/:id/dispatch', protect, authorize('admin', 'rescuer'), async (req, res, next) => {
+router.patch('/:id/review', protect, authorize('admin', 'rescuer'), async (req, res, next) => {
+  try {
+    const incident = await Incident.findById(req.params.id);
+    if (!incident) {
+      return res.status(404).json({ success: false, message: 'Incident not found' });
+    }
+    
+    incident.reviewedBy = req.user._id;
+    await incident.save();
+
+    const populatedIncident = await Incident.findById(incident._id)
+      .populate('userId', 'name phone medicalProfile')
+      .populate('assignedRescuerId', 'name phone')
+      .populate('reviewedBy', 'name phone');
+
+    socketService.emitIncidentUpdated(populatedIncident);
+
+    res.json({
+      success: true,
+      message: 'Incident reviewed successfully',
+      data: populatedIncident
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+const handleDispatch = async (req, res, next) => {
   try {
     const { assignedRescuerId, etaMinutes, dispatchNotes } = req.body;
     
@@ -742,6 +630,14 @@ router.patch('/:id/dispatch', protect, authorize('admin', 'rescuer'), async (req
     const incident = await Incident.findById(req.params.id);
     if (!incident) {
       return res.status(404).json({ success: false, message: 'Incident not found' });
+    }
+
+    // Enforce manual review check
+    if (incident.severityBreakdown?.needsManualReview && !incident.reviewedBy) {
+      return res.status(409).json({
+        success: false,
+        message: 'AI không chắc chắn — cần xác nhận thủ công trước khi điều phối.'
+      });
     }
 
     const rescuer = await User.findById(assignedRescuerId);
@@ -760,7 +656,8 @@ router.patch('/:id/dispatch', protect, authorize('admin', 'rescuer'), async (req
     // Populate and emit update
     const populatedIncident = await Incident.findById(incident._id)
       .populate('userId', 'name phone medicalProfile')
-      .populate('assignedRescuerId', 'name phone');
+      .populate('assignedRescuerId', 'name phone')
+      .populate('reviewedBy', 'name phone');
 
     // Socket notify
     socketService.emitIncidentUpdated(populatedIncident);
@@ -791,7 +688,17 @@ router.patch('/:id/dispatch', protect, authorize('admin', 'rescuer'), async (req
   } catch (error) {
     next(error);
   }
-});
+};
+
+// @desc    Dispatch a rescuer to an incident
+// @route   PATCH /api/incidents/:id/dispatch
+// @access  Private (Admin/Rescuer only)
+router.patch('/:id/dispatch', protect, authorize('admin', 'rescuer'), handleDispatch);
+
+// @desc    Assign a rescuer to an incident (alias for dispatch)
+// @route   PATCH /api/incidents/:id/assign
+// @access  Private (Admin/Rescuer only)
+router.patch('/:id/assign', protect, authorize('admin', 'rescuer'), handleDispatch);
 
 // @desc    Resolve incident with After-Action Report (AAR)
 // @route   PATCH /api/incidents/:id/resolve

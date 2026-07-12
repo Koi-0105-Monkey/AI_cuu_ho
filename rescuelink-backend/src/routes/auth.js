@@ -171,4 +171,14 @@ router.patch('/profile', protect, async (req, res, next) => {
   }
 });
 
+// @desc    Get Google Maps API Key
+// @route   GET /api/auth/google-maps-key
+// @access  Private
+router.get('/google-maps-key', protect, (req, res) => {
+  res.json({
+    success: true,
+    googleMapsKey: process.env.GOOGLE_MAPS_API_KEY || ''
+  });
+});
+
 module.exports = router;

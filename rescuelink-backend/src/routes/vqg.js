@@ -11,6 +11,14 @@ const router = express.Router();
 // @access  Private (Admin/Operator/Rescuer)
 router.get('/hotspots', protect, async (req, res, next) => {
   try {
+    if (process.env.FEATURE_FOREST_FIRE !== 'true') {
+      return res.json({
+        success: true,
+        count: 0,
+        data: []
+      });
+    }
+
     const nasaKey = process.env.NASA_FIRMS_KEY || 'f2f6d1fd3bf4dd2d3796ef510aac1322';
     let realHotspots = [];
 

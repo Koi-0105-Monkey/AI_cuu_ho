@@ -58,6 +58,11 @@ const incidentSchema = new mongoose.Schema({
     ref: 'User',
     default: null
   },
+  reviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   assignedAt: { type: Date },
   resolvedAt: { type: Date },
   etaMinutes: { type: Number },

@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 const ALGORITHM = 'aes-256-cbc';
-const SECRET_KEY = (process.env.MEDICAL_SECRET_KEY || 'a_very_secure_default_secret_key_32_bytes!').substring(0, 32);
+const SECRET_KEY = (process.env.MEDICAL_SECRET_KEY || '').substring(0, 32);
 const IV_LENGTH = 16;
 
 /**

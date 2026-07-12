@@ -82,6 +82,9 @@ module.exports = {
   emitIncidentNew: (incident) => {
     if (io) io.emit('incident:new', incident);
   },
+  emitNewIncident: (incident) => {
+    if (io) io.emit('incident:new', incident);
+  },
   emitIncidentUpdated: (incident) => {
     if (io) io.emit('incident:updated', incident);
   },

@@ -162,8 +162,92 @@ const generateResponse = async (prompt) => {
   }
 };
 
+/**
+ * Phân tích ảnh chụp để phát hiện cháy rừng bằng Gemini
+ * @param {string} imageInput - Đường dẫn file cục bộ hoặc chuỗi Base64
+ * @returns {Promise<Object>} JSON { hasFire: boolean, confidence: number, description: string }
+ */
+const analyzeFireImage = async (imageInput) => {
+  if (GEMINI_MODE === 'mock' || !genAI) {
+    console.log('[Gemini AI Fire Image Analyzer] Running in MOCK mode.');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return {
+      hasFire: true,
+      confidence: 0.95,
+      description: "Phát hiện cột khói lớn và đám cháy bốc lên từ tán rừng phòng hộ."
+    };
+  }
+
+  try {
+    let base64Data = '';
+    let mimeType = 'image/jpeg';
+
+    if (imageInput.startsWith('data:')) {
+      const match = imageInput.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        mimeType = match[1];
+        base64Data = match[2];
+      } else {
+        base64Data = imageInput;
+      }
+    } else {
+      // imageInput is a file path
+      const fs = require('fs');
+      const path = require('path');
+      const ext = path.extname(imageInput).toLowerCase();
+      if (ext === '.png') mimeType = 'image/png';
+      else if (ext === '.webp') mimeType = 'image/webp';
+      else mimeType = 'image/jpeg';
+      
+      const fileBuffer = fs.readFileSync(imageInput);
+      base64Data = fileBuffer.toString('base64');
+    }
+
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+    const prompt = `Bạn là chuyên gia phân tích ảnh cháy rừng của kiểm lâm.
+Hãy phân tích hình ảnh này để xem có dấu hiệu cháy rừng (khói, lửa, than hồng) hay không.
+Trả về định dạng JSON chính xác duy nhất (không kèm markdown \`\`\`json):
+{
+  "hasFire": true hoặc false (boolean),
+  "confidence": độ tin cậy từ 0.0 đến 1.0 (float),
+  "description": "mô tả ngắn gọn tiếng Việt về những gì thấy được trong ảnh liên quan tới cháy rừng"
+}`;
+
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          data: base64Data,
+          mimeType: mimeType
+        }
+      },
+      prompt
+    ]);
+
+    const responseText = result.response.text().trim();
+    try {
+      const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      return JSON.parse(cleanJson);
+    } catch (e) {
+      console.error('Failed to parse Gemini Fire Image JSON:', responseText, e);
+      return {
+        hasFire: true,
+        confidence: 0.5,
+        description: "Có dấu hiệu nghi ngờ cháy rừng dựa trên hình ảnh."
+      };
+    }
+  } catch (error) {
+    console.error('[Gemini analyzeFireImage Error]', error.message);
+    return {
+      hasFire: true,
+      confidence: 0.5,
+      description: "Có dấu hiệu nghi ngờ cháy rừng dựa trên hình ảnh."
+    };
+  }
+};
+
 module.exports = {
   processSmsMessage,
   transcribeAudio,
-  generateResponse
+  generateResponse,
+  analyzeFireImage
 };

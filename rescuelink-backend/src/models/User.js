@@ -23,9 +23,7 @@ const userSchema = new mongoose.Schema({
     // user: trekker cá nhân
     // admin: quản trị viên hệ thống cứu hộ HQ
     // rescuer: nhân viên cứu hộ thực địa
-    // guide: hướng dẫn viên dẫn đoàn
-    // operator: tài khoản công ty tour / nhóm dẫn đoàn
-    enum: ['user', 'admin', 'rescuer', 'guide', 'operator'],
+    enum: ['user', 'admin', 'rescuer'],
     default: 'user'
   },
   // ID công ty tour (dành cho role: guide, user thuộc operator)
