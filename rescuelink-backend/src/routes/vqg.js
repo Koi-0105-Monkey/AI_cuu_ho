@@ -204,69 +204,23 @@ router.get('/search', protect, async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Từ khóa tìm kiếm tối thiểu 2 ký tự' });
     }
 
-    let searchResults = [];
-
-    // 1. Primary Engine (OSM): Nominatim OpenStreetMap Official API
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&countrycodes=vn&format=json&addressdetails=1&limit=15`;
-      const nomResp = await fetch(nomUrl, {
-        headers: { 'User-Agent': 'RescueLinkSafetyTech/1.0 (Vietnam Search Engine)' },
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      const nomData = await nomResp.json();
-
-      if (Array.isArray(nomData) && nomData.length > 0) {
-        searchResults = nomData.map(item => ({
-          display_name: item.display_name,
-          lat: item.lat,
-          lon: item.lon,
-          type: item.type || item.class || 'poi'
-        }));
-      }
-    } catch (nomErr) {
-      console.warn('Nominatim Search API fetch failed, trying Photon:', nomErr.message);
+    const googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!googleApiKey || googleApiKey.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'Google Maps API Key chưa được cấu hình ở file .env' });
     }
 
-    // 2. Secondary Engine: Local Docker Photon / Komoot Photon API
-    if (searchResults.length < 5) {
-      const localPhotonUrl = process.env.PHOTON_URL || 'http://localhost:2322';
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-        const url = `${localPhotonUrl.replace(/\/$/, '')}/api?q=${encodeURIComponent(query)}&limit=10&lang=vi`;
-        const response = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        const data = await response.json();
-        
-        if (data && data.features && data.features.length > 0) {
-          const photonResults = data.features.map(feat => {
-            const props = feat.properties;
-            const name = props.name || '';
-            const addressParts = [
-              props.street,
-              props.district,
-              props.city || props.state || props.county,
-              props.country
-            ].filter(Boolean);
-            const display_name = name + (addressParts.length > 0 ? `, ${addressParts.join(', ')}` : '');
-            
-            return {
-              display_name,
-              lat: String(feat.geometry.coordinates[1]),
-              lon: String(feat.geometry.coordinates[0]),
-              type: props.osm_value || 'address'
-            };
-          });
-          searchResults = [...searchResults, ...photonResults];
-        }
-      } catch (photonErr) {
-        console.warn('Photon Search API fetch failed:', photonErr.message);
-      }
+    const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${googleApiKey}&language=vi&region=vn`;
+    const resp = await fetch(googleUrl);
+    const data = await resp.json();
+    
+    let searchResults = [];
+    if (data && data.results && Array.isArray(data.results)) {
+      searchResults = data.results.map(item => ({
+        display_name: item.formatted_address || item.name,
+        lat: String(item.geometry?.location?.lat || 0),
+        lon: String(item.geometry?.location?.lng || 0),
+        type: (item.types && item.types[0]) || 'poi'
+      }));
     }
 
     res.json({
@@ -289,95 +243,32 @@ router.get('/reverse', async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Thiếu tham số lat/lng' });
     }
 
-    // Try local Photon first, fallback to public komoot
-    const localPhotonUrl = (process.env.PHOTON_URL || 'http://localhost:2322').replace(/\/$/, '');
-    let display_name = `Tọa độ: ${lat}, ${lng}`;
-    let address = {};
-    let success = false;
-
-    // 1. Try local Photon or public Komoot Photon
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
-      
-      // Local Photon reverse URL format: /reverse?lat=...&lon=...
-      const url = `${localPhotonUrl}/reverse?lat=${lat}&lon=${lng}`;
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      const data = await response.json();
-      
-      if (data && data.features && data.features.length > 0) {
-        const feat = data.features[0];
-        const props = feat.properties;
-        const name = props.name || '';
-        const addressParts = [
-          props.street,
-          props.district,
-          props.city || props.state || props.county,
-          props.country
-        ].filter(Boolean);
-        display_name = name + (addressParts.length > 0 ? `, ${addressParts.join(', ')}` : '');
-        address = props;
-        success = true;
-      }
-    } catch (localErr) {
-      console.warn('Local Photon reverse failed, trying public Komoot Photon:', localErr.message);
-      
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        const publicUrl = `https://photon.komoot.io/reverse?lat=${lat}&lon=${lng}&lang=vi`;
-        const response = await fetch(publicUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        const data = await response.json();
-        
-        if (data && data.features && data.features.length > 0) {
-          const feat = data.features[0];
-          const props = feat.properties;
-          const name = props.name || '';
-          const addressParts = [
-            props.street,
-            props.district,
-            props.city || props.state || props.county,
-            props.country
-          ].filter(Boolean);
-          display_name = name + (addressParts.length > 0 ? `, ${addressParts.join(', ')}` : '');
-          address = props;
-          success = true;
-        }
-      } catch (pubErr) {
-        console.warn('Public Photon reverse failed:', pubErr.message);
-      }
+    const googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!googleApiKey || googleApiKey.trim().length === 0) {
+      return res.json({
+        success: false,
+        display_name: `Tọa độ: ${lat}, ${lng} (Chưa cấu hình Google Maps Key)`,
+        address: {}
+      });
     }
 
-    // 2. If Photon failed completely, fallback to OSM Nominatim
-    if (!success) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        const nomUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`;
-        const response = await fetch(nomUrl, {
-          headers: { 'User-Agent': 'RescueLinkSafetyTech/1.0' },
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        if (response.ok) {
-          const data = await response.json();
-          display_name = data.display_name;
-          address = data.address;
-          success = true;
-        }
-      } catch (nomErr) {
-        console.error('All reverse geocoding APIs failed:', nomErr.message);
-      }
+    const googleUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${googleApiKey}&language=vi`;
+    const resp = await fetch(googleUrl);
+    const data = await resp.json();
+    
+    if (data && data.results && data.results.length > 0) {
+      res.json({
+        success: true,
+        display_name: data.results[0].formatted_address,
+        address: {}
+      });
+    } else {
+      res.json({
+        success: false,
+        display_name: `Tọa độ: ${lat}, ${lng}`,
+        address: {}
+      });
     }
-
-    res.json({
-      success,
-      display_name,
-      address
-    });
-
   } catch (error) {
     console.error('[Reverse Geocode Error]:', error.message);
     res.json({
