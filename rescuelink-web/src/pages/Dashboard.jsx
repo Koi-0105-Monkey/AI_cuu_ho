@@ -699,40 +699,42 @@ export default function Dashboard() {
                   <MarkerF
                     position={selectedPos}
                     onClick={() => setOpenSelectedPosInfo(true)}
-                  >
-                    {openSelectedPosInfo && (
-                      <InfoWindowF position={selectedPos} onCloseClick={() => setOpenSelectedPosInfo(false)}>
-                        <div className="text-slate-800 p-2 space-y-1.5 min-w-[220px]">
-                          <span className="font-bold text-sky-600 text-xs flex items-center gap-1">📍 Vị trí ghim chọn trực tiếp</span>
-                          <p className="text-[11px] font-semibold text-slate-700 leading-tight border-b pb-1">{address}</p>
-                          <div className="font-mono text-[11px] text-slate-600 space-y-0.5">
-                            <p>Vĩ độ (Lat): <strong>{selectedPos.lat.toFixed(5)}</strong></p>
-                            <p>Kinh độ (Lng): <strong>{selectedPos.lng.toFixed(5)}</strong></p>
-                          </div>
-                          <div className="flex gap-1.5 pt-1">
-                            <button
-                              onClick={handleCopyCoords}
-                              className="flex-1 text-center text-[10px] bg-sky-500 hover:bg-sky-600 text-white font-bold py-1 px-2 rounded transition-colors"
-                            >
-                              📋 Sao chép
-                            </button>
-                            <button
-                              onClick={() => setSelectedPos(null)}
-                              className="text-center text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-1 px-2 rounded transition-colors"
-                            >
-                              Bỏ chọn ❌
-                            </button>
-                          </div>
-                        </div>
-                      </InfoWindowF>
-                    )}
-                  </MarkerF>
+                  />
+                )}
+                {selectedPos && openSelectedPosInfo && (
+                  <InfoWindowF position={selectedPos} onCloseClick={() => setOpenSelectedPosInfo(false)}>
+                    <div className="text-slate-800 p-2 space-y-1.5 min-w-[220px]">
+                      <span className="font-bold text-sky-600 text-xs flex items-center gap-1">📍 Vị trí ghim chọn trực tiếp</span>
+                      <p className="text-[11px] font-semibold text-slate-700 leading-tight border-b pb-1">{address}</p>
+                      <div className="font-mono text-[11px] text-slate-600 space-y-0.5">
+                        <p>Vĩ độ (Lat): <strong>{selectedPos.lat.toFixed(5)}</strong></p>
+                        <p>Kinh độ (Lng): <strong>{selectedPos.lng.toFixed(5)}</strong></p>
+                      </div>
+                      <div className="flex gap-1.5 pt-1">
+                        <button
+                          onClick={handleCopyCoords}
+                          className="flex-1 text-center text-[10px] bg-sky-500 hover:bg-sky-600 text-white font-bold py-1 px-2 rounded transition-colors"
+                        >
+                          📋 Sao chép
+                        </button>
+                        <button
+                          onClick={() => setSelectedPos(null)}
+                          className="text-center text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-1 px-2 rounded transition-colors"
+                        >
+                          Bỏ chọn ❌
+                        </button>
+                      </div>
+                    </div>
+                  </InfoWindowF>
                 )}
 
                 {/* Incident Markers + Rescue Radius Circles */}
                 {activeIncidentsForMap.map((inc) => {
                   const lat = inc.location.coordinates[1];
                   const lng = inc.location.coordinates[0];
+                  if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
+                    return null;
+                  }
                   const isSelected = selectedIncident?._id === inc._id;
                   return (
                     <React.Fragment key={inc._id}>
@@ -740,29 +742,28 @@ export default function Dashboard() {
                         position={{ lat, lng }}
                         icon={getGoogleIncidentIcon()}
                         onClick={() => setSelectedIncident(isSelected ? null : inc)}
-                      >
-                        {isSelected && (
-                          <InfoWindowF position={{ lat, lng }} onCloseClick={() => setSelectedIncident(null)}>
-                            <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold text-red-600 text-sm">🚨 {inc.type}</span>
-                                <span className="text-xs bg-red-100 text-red-800 font-bold px-1.5 py-0.5 rounded">Cấp {inc.severity}</span>
-                              </div>
-                              <p className="text-xs font-semibold">Thành viên: {inc.userId?.name || 'Ẩn danh'}</p>
-                              <p className="text-xs font-mono">{inc.userId?.phone}</p>
-                              <p className="text-xs italic bg-slate-100 p-1.5 rounded border-l-2 border-red-500 text-slate-700">
-                                "{inc.message || 'Không có tin nhắn đính kèm'}"
-                              </p>
-                              <button
-                                onClick={() => setSelectedIncident(inc)}
-                                className="block w-full text-center text-xs bg-red-600 hover:bg-red-700 text-white font-semibold py-1.5 rounded transition-colors mt-1"
-                              >
-                                📋 Mở hồ sơ SAR cứu hộ
-                              </button>
+                      />
+                      {isSelected && (
+                        <InfoWindowF position={{ lat, lng }} onCloseClick={() => setSelectedIncident(null)}>
+                          <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-red-600 text-sm">🚨 {inc.type}</span>
+                              <span className="text-xs bg-red-100 text-red-800 font-bold px-1.5 py-0.5 rounded">Cấp {inc.severity}</span>
                             </div>
-                          </InfoWindowF>
-                        )}
-                      </MarkerF>
+                            <p className="text-xs font-semibold">Thành viên: {inc.userId?.name || 'Ẩn danh'}</p>
+                            <p className="text-xs font-mono">{inc.userId?.phone}</p>
+                            <p className="text-xs italic bg-slate-100 p-1.5 rounded border-l-2 border-red-500 text-slate-700">
+                              "{inc.message || 'Không có tin nhắn đính kèm'}"
+                            </p>
+                            <button
+                              onClick={() => setSelectedIncident(inc)}
+                              className="block w-full text-center text-xs bg-red-600 hover:bg-red-700 text-white font-semibold py-1.5 rounded transition-colors mt-1"
+                            >
+                              📋 Mở hồ sơ SAR cứu hộ
+                            </button>
+                          </div>
+                        </InfoWindowF>
+                      )}
                       {/* Rescue Radius Circles — only shown for selected incident */}
                       {isSelected && (
                         <>
@@ -785,6 +786,9 @@ export default function Dashboard() {
                   
                   const lat = trip.lastKnownLocation.coordinates[1];
                   const lng = trip.lastKnownLocation.coordinates[0];
+                  if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
+                    return null;
+                  }
                   
                   // Simplified geofencing check
                   const inForbiddenZone = lat >= 22.32 && lat <= 22.36 && 
@@ -793,12 +797,12 @@ export default function Dashboard() {
                   const isSelected = selectedTripId === trip._id;
 
                   return (
-                    <MarkerF
-                      key={trip._id}
-                      position={{ lat, lng }}
-                      icon={getGoogleTripIcon()}
-                      onClick={() => setSelectedTripId(isSelected ? null : trip._id)}
-                    >
+                    <React.Fragment key={trip._id}>
+                      <MarkerF
+                        position={{ lat, lng }}
+                        icon={getGoogleTripIcon()}
+                        onClick={() => setSelectedTripId(isSelected ? null : trip._id)}
+                      />
                       {isSelected && (
                         <InfoWindowF position={{ lat, lng }} onCloseClick={() => setSelectedTripId(null)}>
                           <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
@@ -823,7 +827,7 @@ export default function Dashboard() {
                           </div>
                         </InfoWindowF>
                       )}
-                    </MarkerF>
+                    </React.Fragment>
                   );
                 })}
 
