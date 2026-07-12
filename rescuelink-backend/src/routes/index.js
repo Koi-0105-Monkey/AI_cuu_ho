@@ -19,7 +19,9 @@ router.use('/gps', gpsRoutes);
 router.use('/incidents', incidentsRoutes);
 router.use('/sms', smsRoutes);
 router.use('/admin', adminRoutes);
-router.use('/operators', operatorsRoutes);
+if (process.env.ENABLE_OPERATOR_MODULE === 'true') {
+  router.use('/operators', operatorsRoutes);
+}
 router.use('/family', familyRoutes);
 router.use('/weather', weatherRoutes);
 router.use('/notifications', notificationsRoutes);
