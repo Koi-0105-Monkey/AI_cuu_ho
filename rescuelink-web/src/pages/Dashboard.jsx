@@ -2,7 +2,9 @@ import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { GoogleMap, useJsApiLoader, MarkerF, InfoWindowF, CircleF } from '@react-google-maps/api';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMapEvents, LayersControl, Circle } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import toast from 'react-hot-toast';
 import Header from '../components/layout/Header';
 import IncidentCard from '../components/incidents/IncidentCard';
@@ -12,148 +14,60 @@ import {
   Warning, Users, CheckCircle, BellRinging, MapPin, Compass,
   BatteryHigh, BatteryLow, BatteryWarning, X, Robot, FirstAid, Clock, NavigationArrow, ShieldCheck
 } from '@phosphor-icons/react';
+import { setupLeafletIcons, incidentIcon, tripIcon, islandIcon } from '../utils/leafletIcons';
 
-const mapOptions = {
-  styles: [
-    { elementType: 'geometry', stylers: [{ color: '#0b0f19' }] },
-    { elementType: 'labels.text.stroke', stylers: [{ color: '#0b0f19' }] },
-    { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
-    {
-      featureType: 'administrative.locality',
-      elementType: 'labels.text.fill',
-      stylers: [{ color: '#d59563' }]
-    },
-    {
-      featureType: 'poi',
-      elementType: 'labels.text.fill',
-      stylers: [{ color: '#d59563' }]
-    },
-    {
-      featureType: 'poi.park',
-      elementType: 'geometry',
-      stylers: [{ color: '#111827' }]
-    },
-    {
-      featureType: 'poi.park',
-      elementType: 'labels.text.fill',
-      stylers: [{ color: '#6b7280' }]
-    },
-    {
-      featureType: 'road',
-      elementType: 'geometry',
-      stylers: [{ color: '#1f2937' }]
-    },
-    {
-      featureType: 'road',
-      elementType: 'geometry.stroke',
-      stylers: [{ color: '#111827' }]
-    },
-    {
-      featureType: 'road',
-      elementType: 'labels.text.fill',
-      stylers: [{ color: '#9ca3af' }]
-    },
-    {
-      featureType: 'road.highway',
-      elementType: 'geometry',
-      stylers: [{ color: '#374151' }]
-    },
-    {
-      featureType: 'road.highway',
-      elementType: 'geometry.stroke',
-      stylers: [{ color: '#1f2937' }]
-    },
-    {
-      featureType: 'road.highway',
-      elementType: 'labels.text.fill',
-      stylers: [{ color: '#f3f4f6' }]
-    },
-    {
-      featureType: 'water',
-      elementType: 'geometry',
-      stylers: [{ color: '#1e3a8a' }]
-    },
-    {
-      featureType: 'water',
-      elementType: 'labels.text.fill',
-      stylers: [{ color: '#3b82f6' }]
-    },
-    {
-      featureType: 'water',
-      elementType: 'labels.text.stroke',
-      stylers: [{ color: '#1e3a8a' }]
-    }
-  ],
-  disableDefaultUI: false,
-  mapTypeControl: true,
-  streetViewControl: false
-};
+setupLeafletIcons();
 
-const getGoogleIncidentIcon = () => ({
-  url: 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-    <circle cx="12" cy="12" r="10" fill="#f43f5e" opacity="0.4" />
-    <circle cx="12" cy="12" r="6" fill="#e11d48" stroke="#ffffff" stroke-width="1.5" />
-    <text x="12" y="15" fill="#ffffff" font-size="9" font-weight="bold" text-anchor="middle">!</text>
-  </svg>`),
-  scaledSize: { width: 32, height: 32 },
-  anchor: { x: 16, y: 16 }
-});
+// Custom click listener component for Leaflet Map with Reverse Geocoding
+function LocationPickerMarker({ selectedPos, setSelectedPos }) {
+  const [address, setAddress] = useState('Đang tìm tên địa điểm...');
 
-const getGoogleTripIcon = () => ({
-  url: 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-    <circle cx="12" cy="12" r="10" fill="#0ea5e9" opacity="0.4" />
-    <circle cx="12" cy="12" r="6" fill="#0284c7" stroke="#ffffff" stroke-width="1.5" />
-  </svg>`),
-  scaledSize: { width: 32, height: 32 },
-  anchor: { x: 16, y: 16 }
-});
-
-const getGoogleIslandIcon = (name) => ({
-  url: 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40" width="100" height="40">
-    <circle cx="50" cy="10" r="5" fill="#eab308" stroke="#dc2626" stroke-width="1.5" />
-    <rect x="5" y="18" width="90" height="18" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1" />
-    <text x="50" y="30" fill="#ffffff" font-size="8" font-weight="bold" text-anchor="middle">${name}</text>
-  </svg>`),
-  scaledSize: { width: 100, height: 40 },
-  anchor: { x: 50, y: 10 }
-});
-
-function GoogleMapWrapper({ googleMapsKey, center, zoom, onClick, children }) {
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: googleMapsKey
+  useMapEvents({
+    click(e) {
+      setSelectedPos(e.latlng);
+      setAddress('Đang tra cứu địa chỉ...');
+      api.get(`/search/reverse?lat=${e.latlng.lat}&lng=${e.latlng.lng}`)
+        .then(r => setAddress(r.data.display_name || `Tọa độ: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`))
+        .catch(() => setAddress(`Tọa độ: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`));
+      toast.success(`Đã ghim vị trí: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`);
+    },
   });
 
-  const [map, setMap] = useState(null);
+  const handleCopyCoords = () => {
+    if (selectedPos) {
+      navigator.clipboard.writeText(`${selectedPos.lat.toFixed(5)}, ${selectedPos.lng.toFixed(5)}`);
+      toast.success('Đã sao chép tọa độ GPS vào bộ nhớ tạm!');
+    }
+  };
 
-  const onLoad = React.useCallback(function callback(mapInstance) {
-    setMap(mapInstance);
-  }, []);
-
-  const onUnmount = React.useCallback(function callback(mapInstance) {
-    setMap(null);
-  }, []);
-
-  return isLoaded ? (
-    <GoogleMap
-      mapContainerClassName="w-full h-full min-h-[350px] flex-1"
-      center={center}
-      zoom={zoom}
-      options={mapOptions}
-      onClick={onClick}
-      onLoad={onLoad}
-      onUnmount={onUnmount}
-    >
-      {children}
-    </GoogleMap>
-  ) : (
-    <div className="w-full h-full min-h-[350px] flex-1 flex items-center justify-center bg-[#0b0f18] text-slate-400 text-xs">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
-        <span>Đang tải bản đồ cứu hộ...</span>
-      </div>
-    </div>
-  );
+  return selectedPos ? (
+    <Marker position={selectedPos}>
+      <Popup className="dark-popup">
+        <div className="text-slate-800 p-2 space-y-1.5 min-w-[220px]">
+          <span className="font-bold text-sky-600 text-xs flex items-center gap-1">📍 Vị trí ghim chọn trực tiếp</span>
+          <p className="text-[11px] font-semibold text-slate-700 leading-tight border-b pb-1">{address}</p>
+          <div className="font-mono text-[11px] text-slate-600 space-y-0.5">
+            <p>Vĩ độ (Lat): <strong>{selectedPos.lat.toFixed(5)}</strong></p>
+            <p>Kinh độ (Lng): <strong>{selectedPos.lng.toFixed(5)}</strong></p>
+          </div>
+          <div className="flex gap-1.5 pt-1">
+            <button
+              onClick={handleCopyCoords}
+              className="flex-1 text-center text-[10px] bg-sky-500 hover:bg-sky-600 text-white font-bold py-1 px-2 rounded transition-colors"
+            >
+              📋 Sao chép
+            </button>
+            <button
+              onClick={() => setSelectedPos(null)}
+              className="text-center text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-1 px-2 rounded transition-colors"
+            >
+              Bỏ chọn ❌
+            </button>
+          </div>
+        </div>
+      </Popup>
+    </Marker>
+  ) : null;
 }
 
 
@@ -443,32 +357,6 @@ export default function Dashboard() {
   const feedRef = useRef(null);
   const qc = useQueryClient();
 
-  const googleMapsKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
-  const keyLoading = false;
-  const [selectedTripId, setSelectedTripId] = useState(null);
-  const [openSelectedPosInfo, setOpenSelectedPosInfo] = useState(false);
-  const [address, setAddress] = useState('Đang tìm tên địa điểm...');
-
-  const handleMapClick = (e) => {
-    const lat = e.latLng.lat();
-    const lng = e.latLng.lng();
-    setSelectedPos({ lat, lng });
-    setAddress('Đang tra cứu địa chỉ...');
-    setOpenSelectedPosInfo(true);
-    
-    api.get(`/search/reverse?lat=${lat}&lng=${lng}`)
-      .then(r => setAddress(r.data.display_name || `Tọa độ: ${lat.toFixed(5)}, ${lng.toFixed(5)}`))
-      .catch(() => setAddress(`Tọa độ: ${lat.toFixed(5)}, ${lng.toFixed(5)}`));
-    toast.success(`Đã ghim vị trí: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-  };
-
-  const handleCopyCoords = () => {
-    if (selectedPos) {
-      navigator.clipboard.writeText(`${selectedPos.lat.toFixed(5)}, ${selectedPos.lng.toFixed(5)}`);
-      toast.success('Đã sao chép tọa độ GPS vào bộ nhớ tạm!');
-    }
-  };
-
   // Load satellite hotspots
   const { data: hotspots = [] } = useQuery({
     queryKey: ['satellite-hotspots'],
@@ -667,174 +555,130 @@ export default function Dashboard() {
               </div>
             </div>
             
-            {keyLoading ? (
-              <div className="w-full h-full min-h-[350px] flex-1 flex items-center justify-center bg-[#0b0f18] text-slate-400 text-xs">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
-                  <span>Đang tải thông số cấu hình...</span>
-                </div>
-              </div>
-            ) : (
-              <GoogleMapWrapper
-                googleMapsKey={googleMapsKey}
-                center={{ lat: 16.0, lng: 108.0 }}
-                zoom={6}
-                onClick={handleMapClick}
-              >
-                {/* Tự chọn vị trí trực tiếp trên bản đồ qua Click */}
-                {selectedPos && (
-                  <MarkerF
-                    position={selectedPos}
-                    onClick={() => setOpenSelectedPosInfo(true)}
-                  />
-                )}
-                {selectedPos && openSelectedPosInfo && (
-                  <InfoWindowF position={selectedPos} onCloseClick={() => setOpenSelectedPosInfo(false)}>
-                    <div className="text-slate-800 p-2 space-y-1.5 min-w-[220px]">
-                      <span className="font-bold text-sky-600 text-xs flex items-center gap-1">📍 Vị trí ghim chọn trực tiếp</span>
-                      <p className="text-[11px] font-semibold text-slate-700 leading-tight border-b pb-1">{address}</p>
-                      <div className="font-mono text-[11px] text-slate-600 space-y-0.5">
-                        <p>Vĩ độ (Lat): <strong>{selectedPos.lat.toFixed(5)}</strong></p>
-                        <p>Kinh độ (Lng): <strong>{selectedPos.lng.toFixed(5)}</strong></p>
-                      </div>
-                      <div className="flex gap-1.5 pt-1">
-                        <button
-                          onClick={handleCopyCoords}
-                          className="flex-1 text-center text-[10px] bg-sky-500 hover:bg-sky-600 text-white font-bold py-1 px-2 rounded transition-colors"
-                        >
-                          📋 Sao chép
-                        </button>
-                        <button
-                          onClick={() => setSelectedPos(null)}
-                          className="text-center text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-1 px-2 rounded transition-colors"
-                        >
-                          Bỏ chọn ❌
-                        </button>
-                      </div>
-                    </div>
-                  </InfoWindowF>
-                )}
+            <MapContainer
+              center={[16.0, 108.0]}
+              zoom={6}
+              className="w-full h-full min-h-[350px] flex-1"
+            >
+              <TileLayer
+                url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                attribution='&copy; Google Maps'
+              />
 
-                {/* Incident Markers + Rescue Radius Circles */}
-                {activeIncidentsForMap.map((inc) => {
-                  const lat = inc.location.coordinates[1];
-                  const lng = inc.location.coordinates[0];
-                  if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
-                    return null;
-                  }
-                  const isSelected = selectedIncident?._id === inc._id;
-                  return (
-                    <React.Fragment key={inc._id}>
-                      <MarkerF
-                        position={{ lat, lng }}
-                        icon={getGoogleIncidentIcon()}
-                        onClick={() => setSelectedIncident(isSelected ? null : inc)}
-                      />
-                      {isSelected && (
-                        <InfoWindowF position={{ lat, lng }} onCloseClick={() => setSelectedIncident(null)}>
-                          <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-red-600 text-sm">🚨 {inc.type}</span>
-                              <span className="text-xs bg-red-100 text-red-800 font-bold px-1.5 py-0.5 rounded">Cấp {inc.severity}</span>
-                            </div>
-                            <p className="text-xs font-semibold">Thành viên: {inc.userId?.name || 'Ẩn danh'}</p>
-                            <p className="text-xs font-mono">{inc.userId?.phone}</p>
-                            <p className="text-xs italic bg-slate-100 p-1.5 rounded border-l-2 border-red-500 text-slate-700">
-                              "{inc.message || 'Không có tin nhắn đính kèm'}"
-                            </p>
-                            <button
-                              onClick={() => setSelectedIncident(inc)}
-                              className="block w-full text-center text-xs bg-red-600 hover:bg-red-700 text-white font-semibold py-1.5 rounded transition-colors mt-1"
-                            >
-                              📋 Mở hồ sơ SAR cứu hộ
-                            </button>
+
+
+              {/* Tự chọn vị trí trực tiếp trên bản đồ qua Click */}
+              <LocationPickerMarker selectedPos={selectedPos} setSelectedPos={setSelectedPos} />
+              
+              {/* Incident Markers + Rescue Radius Circles */}
+              {activeIncidentsForMap.map((inc) => {
+                const lat = inc.location.coordinates[1];
+                const lng = inc.location.coordinates[0];
+                const isSelected = selectedIncident?._id === inc._id;
+                return (
+                  <React.Fragment key={inc._id}>
+                    <Marker
+                      position={[lat, lng]}
+                      icon={incidentIcon}
+                      eventHandlers={{ click: () => setSelectedIncident(isSelected ? null : inc) }}
+                    >
+                      <Popup className="dark-popup">
+                        <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-red-600 text-sm">🚨 {inc.type}</span>
+                            <span className="text-xs bg-red-100 text-red-800 font-bold px-1.5 py-0.5 rounded">Cấp {inc.severity}</span>
                           </div>
-                        </InfoWindowF>
-                      )}
-                      {/* Rescue Radius Circles — only shown for selected incident */}
-                      {isSelected && (
-                        <>
-                          <CircleF center={{ lat, lng }} radius={1000}
-                            options={{ strokeColor: '#ef4444', strokeOpacity: 0.8, strokeWeight: 1.5, fillColor: '#ef4444', fillOpacity: 0.04 }} />
-                          <CircleF center={{ lat, lng }} radius={2000}
-                            options={{ strokeColor: '#f97316', strokeOpacity: 0.8, strokeWeight: 1.5, fillColor: '#f97316', fillOpacity: 0.03 }} />
-                          <CircleF center={{ lat, lng }} radius={5000}
-                            options={{ strokeColor: '#eab308', strokeOpacity: 0.6, strokeWeight: 1, fillColor: '#eab308', fillOpacity: 0.02 }} />
-                        </>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
+                          <p className="text-xs font-semibold">Thành viên: {inc.userId?.name || 'Ẩn danh'}</p>
+                          <p className="text-xs font-mono">{inc.userId?.phone}</p>
+                          <p className="text-xs italic bg-slate-100 p-1.5 rounded border-l-2 border-red-500 text-slate-700">
+                            "{inc.message || 'Không có tin nhắn đính kèm'}"
+                          </p>
+                          <button
+                            onClick={() => setSelectedIncident(inc)}
+                            className="block w-full text-center text-xs bg-red-600 hover:bg-red-700 text-white font-semibold py-1.5 rounded transition-colors mt-1"
+                          >
+                            📋 Mở hồ sơ SAR cứu hộ
+                          </button>
+                        </div>
+                      </Popup>
+                    </Marker>
+                    {/* Rescue Radius Circles — only shown for selected incident */}
+                    {isSelected && (
+                      <>
+                        <Circle center={[lat, lng]} radius={1000}
+                          pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.04, weight: 1.5, dashArray: '6 4' }} />
+                        <Circle center={[lat, lng]} radius={2000}
+                          pathOptions={{ color: '#f97316', fillColor: '#f97316', fillOpacity: 0.03, weight: 1.5, dashArray: '6 4' }} />
+                        <Circle center={[lat, lng]} radius={5000}
+                          pathOptions={{ color: '#eab308', fillColor: '#eab308', fillOpacity: 0.02, weight: 1, dashArray: '6 4' }} />
+                      </>
+                    )}
+                  </React.Fragment>
+                );
+              })}
 
-                {/* Trekking Trip Markers */}
-                {activeTripsForMap.map((trip) => {
-                  const isRanger = trip.userId?.isRanger || trip.userId?.role === 'authority';
-                  if (isRanger) return null; // Ẩn kiểm lâm khỏi bản đồ theo scope rút gọn
-                  
-                  const lat = trip.lastKnownLocation.coordinates[1];
-                  const lng = trip.lastKnownLocation.coordinates[0];
-                  if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
-                    return null;
-                  }
-                  
-                  // Simplified geofencing check
-                  const inForbiddenZone = lat >= 22.32 && lat <= 22.36 && 
-                    lng >= 103.76 && lng <= 103.82;
+              {/* Trekking Trip Markers */}
+              {activeTripsForMap.map((trip) => {
+                const isRanger = trip.userId?.isRanger || trip.userId?.role === 'authority';
+                if (isRanger) return null; // Ẩn kiểm lâm khỏi bản đồ theo scope rút gọn
+                
+                const lat = trip.lastKnownLocation.coordinates[1];
+                const lng = trip.lastKnownLocation.coordinates[0];
+                
+                // Simplified geofencing check
+                const inForbiddenZone = lat >= 22.32 && lat <= 22.36 && 
+                  lng >= 103.76 && lng <= 103.82;
 
-                  const isSelected = selectedTripId === trip._id;
+                const markerIcon = tripIcon;
 
-                  return (
-                    <React.Fragment key={trip._id}>
-                      <MarkerF
-                        position={{ lat, lng }}
-                        icon={getGoogleTripIcon()}
-                        onClick={() => setSelectedTripId(isSelected ? null : trip._id)}
-                      />
-                      {isSelected && (
-                        <InfoWindowF position={{ lat, lng }} onCloseClick={() => setSelectedTripId(null)}>
-                          <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-sm text-emerald-600">
-                                🏃 Trekking
-                              </span>
-                              <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
-                                Pin: {trip.lastBattery}%
-                              </span>
-                            </div>
-                            {inForbiddenZone && (
-                              <div className="bg-red-100 border border-red-300 text-red-700 text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse mt-1">
-                                ⚠️ CẢNH BÁO: Xâm nhập phân khu cấm
-                              </div>
-                            )}
-                            <p className="text-xs font-semibold">Tên: {trip.userId?.name || 'Ẩn danh'}</p>
-                            <p className="text-xs text-slate-600">Cung đường: <span className="font-medium text-slate-800">{trip.routeName || 'Chưa đặt tên'}</span></p>
-                            <p className="text-[10px] text-slate-500">
-                              Cập nhật: {new Date(trip.lastSeen).toLocaleTimeString()}
-                            </p>
+                return (
+                  <Marker
+                    key={trip._id}
+                    position={[lat, lng]}
+                    icon={markerIcon}
+                  >
+                    <Popup className="dark-popup">
+                      <div className="text-slate-800 p-1 space-y-1.5 min-w-[200px]">
+                        <div className="flex items-center justify-between">
+                          <span className={`font-bold text-sm ${isRanger ? 'text-emerald-700' : 'text-emerald-600'}`}>
+                            {isRanger ? '👮 Kiểm lâm tuần tra' : '🏃 Trekking'}
+                          </span>
+                          <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
+                            Pin: {trip.lastBattery}%
+                          </span>
+                        </div>
+                        {inForbiddenZone && (
+                          <div className="bg-red-100 border border-red-300 text-red-700 text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse mt-1">
+                            ⚠️ CẢNH BÁO: Xâm nhập phân khu cấm
                           </div>
-                        </InfoWindowF>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
+                        )}
+                        <p className="text-xs font-semibold">Tên: {trip.userId?.name || 'Ẩn danh'}</p>
+                        <p className="text-xs text-slate-600">Cung đường: <span className="font-medium text-slate-800">{trip.routeName || 'Chưa đặt tên'}</span></p>
+                        <p className="text-[10px] text-slate-500">
+                          Cập nhật: {new Date(trip.lastSeen).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
 
-                {/* Quần đảo Hoàng Sa & Trường Sa thuộc chủ quyền Việt Nam */}
-                <MarkerF position={{ lat: 16.5, lng: 112.0 }} icon={getGoogleIslandIcon('Quần đảo Hoàng Sa')}>
-                  <InfoWindowF position={{ lat: 16.5, lng: 112.0 }}>
-                    <div className="text-xs font-bold text-slate-800 text-center p-1">
-                       Quần đảo Hoàng Sa<br/>(Việt Nam)
-                    </div>
-                  </InfoWindowF>
-                </MarkerF>
-                <MarkerF position={{ lat: 9.5, lng: 112.5 }} icon={getGoogleIslandIcon('Quần đảo Trường Sa')}>
-                  <InfoWindowF position={{ lat: 9.5, lng: 112.5 }}>
-                    <div className="text-xs font-bold text-slate-800 text-center p-1">
-                       Quần đảo Trường Sa<br/>(Việt Nam)
-                    </div>
-                  </InfoWindowF>
-                </MarkerF>
-              </GoogleMapWrapper>
-            )}
+              {/* Quần đảo Hoàng Sa & Trường Sa thuộc chủ quyền Việt Nam */}
+              <Marker position={[16.5, 112.0]} icon={islandIcon('Quần đảo Hoàng Sa')}>
+                <Popup>
+                  <div className="text-xs font-bold text-slate-800 text-center p-1">
+                     Quần đảo Hoàng Sa<br/>(Việt Nam)
+                  </div>
+                </Popup>
+              </Marker>
+              <Marker position={[9.5, 112.5]} icon={islandIcon('Quần đảo Trường Sa')}>
+                <Popup>
+                  <div className="text-xs font-bold text-slate-800 text-center p-1">
+                     Quần đảo Trường Sa<br/>(Việt Nam)
+                  </div>
+                </Popup>
+              </Marker>
+            </MapContainer>
           </div>
           
         </div>
