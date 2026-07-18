@@ -63,6 +63,9 @@ export default function TrackingActiveScreen() {
   const [pendingSms, setPendingSms] = useState<any>(null);
   const [checkinWarning, setCheckinWarning] = useState<boolean>(false);
   const [ending, setEnding] = useState<boolean>(false);
+  // 'confirmed' | 'pending' | null (null = chưa check-in lần nào)
+  const [lastCheckinStatus, setLastCheckinStatus] = useState<'confirmed' | 'pending' | null>(null);
+  const [lastCheckinTime, setLastCheckinTime] = useState<Date | null>(null);
 
   // Destination Search and Offline Caching states
   const [searchQuery, setSearchQuery] = useState('');
@@ -578,6 +581,49 @@ export default function TrackingActiveScreen() {
     } catch (e) {
       setIsOnline(false);
     }
+  };
+
+  const [checkingIn, setCheckingIn] = useState(false);
+
+  const handleActiveCheckin = async () => {
+    const tripId = activeTrip?.id || activeTrip?._id;
+    if (!tripId) return;
+    setCheckingIn(true);
+    try {
+      await api.patch(`/trips/${tripId}/checkin`);
+      const now = new Date();
+      setLastCheckinStatus('confirmed');
+      setLastCheckinTime(now);
+      const nowTime = Date.now().toString();
+      await AsyncStorage.setItem('last_movement_time', nowTime);
+      await AsyncStorage.removeItem('checkin_warning_sent');
+      await AsyncStorage.removeItem('checkin_warning_time');
+      await AsyncStorage.removeItem('checkin_failed_triggered');
+      await AsyncStorage.removeItem('checkin_lost_incident_created');
+      setCheckinWarning(false);
+      Alert.alert('✅ Báo an toàn thành công', 'RescueLink đã ghi nhận trạng thái an toàn của bạn.');
+    } catch (err) {
+      // HƯỚNG B: Alert đúng sự thật — KHÔNG hứa tự động đồng bộ khi chưa thực sự làm được
+      setLastCheckinStatus('pending');
+      setLastCheckinTime(new Date());
+      Alert.alert(
+        '⚠️ Không thể check-in — mất kết nối',
+        'Không thể check-in — mất kết nối mạng. Vui lòng thử lại khi có sóng, hoặc dùng Panic SOS nếu đang gặp nguy hiểm thật sự.'
+      );
+    } finally {
+      setCheckingIn(false);
+    }
+  };
+
+  const handleEndTripConfirm = () => {
+    Alert.alert(
+      'Xác nhận kết thúc',
+      `Bạn có chắc chắn muốn kết thúc hành trình "${activeTrip?.routeName}" ngay bây giờ không?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        { text: 'Kết thúc', style: 'destructive', onPress: handleEndTrip }
+      ]
+    );
   };
 
   const handleCheckinOk = async () => {
@@ -1313,10 +1359,25 @@ export default function TrackingActiveScreen() {
 
         {/* Network & Queue Indicator */}
         <View className="items-end gap-1.5">
-          <View className={`px-2.5 py-1 rounded-full border ${isOnline ? 'bg-safe-500/10 border-safe-500/30' : 'bg-warn-500/10 border-warn-500/30'}`}>
-            <Text className={`text-[9px] font-bold tracking-wide ${isOnline ? 'text-safe-400' : 'text-warn-400'}`}>
-              {isOnline ? 'ONLINE' : 'OFFLINE'}
-            </Text>
+          <View className="flex-row gap-1.5 items-center">
+            <View className={`px-2 py-0.5 rounded-full border ${isOnline ? 'bg-safe-500/10 border-safe-500/30' : 'bg-warn-500/10 border-warn-500/30'}`}>
+              <Text className={`text-[8px] font-bold tracking-wide ${isOnline ? 'text-safe-400' : 'text-warn-400'}`}>
+                {isOnline ? 'ONLINE' : 'OFFLINE'}
+              </Text>
+            </View>
+            <Pressable
+              className="bg-emergency-500/10 border border-emergency-500/30 px-2 py-0.5 rounded-md active:bg-emergency-500/25"
+              onPress={handleEndTripConfirm}
+              disabled={ending}
+            >
+              {ending ? (
+                <ActivityIndicator size="small" color="#ef4444" />
+              ) : (
+                <Text className="text-emergency-400 font-bold text-[8px] uppercase tracking-wider">
+                  {activeTrip?.isExploration ? 'Thoát' : 'Kết thúc'}
+                </Text>
+              )}
+            </Pressable>
           </View>
           {queueCount > 0 && (
             <Text className="text-[8px] text-muted font-mono">
@@ -1468,13 +1529,40 @@ export default function TrackingActiveScreen() {
 
           {/* Quick info row */}
           {activeTrip && (
-            <View className="border-t border-surface-3 pt-3 flex-row justify-between items-center">
-              <Text className="text-[10px] text-muted">
-                SOS: {activeTrip.emergencyContact}
-              </Text>
-              <Text className="text-[10px] text-muted">
-                Về: {new Date(activeTrip.expectedReturn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
+            <View className="border-t border-surface-3 pt-3 gap-2">
+              <View className="flex-row justify-between items-center">
+                <Text className="text-[10px] text-muted">
+                  SOS: {activeTrip.emergencyContact}
+                </Text>
+                <Text className="text-[10px] text-muted">
+                  Về: {new Date(activeTrip.expectedReturn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
+              {/* Trạng thái check-in gần nhất */}
+              <View className={`flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-xl border ${
+                lastCheckinStatus === 'confirmed'
+                  ? 'bg-sky-600/15 border-sky-500/30'
+                  : lastCheckinStatus === 'pending'
+                  ? 'bg-warn-500/15 border-warn-500/30'
+                  : 'bg-surface-2 border-surface-3'
+              }`}>
+                <Text className="text-[9px]">
+                  {lastCheckinStatus === 'confirmed' ? '✅' : lastCheckinStatus === 'pending' ? '⚠️' : '🔵'}
+                </Text>
+                <Text className={`text-[9px] font-bold ${
+                  lastCheckinStatus === 'confirmed'
+                    ? 'text-sky-400'
+                    : lastCheckinStatus === 'pending'
+                    ? 'text-warn-400'
+                    : 'text-muted'
+                }`}>
+                  {lastCheckinStatus === 'confirmed'
+                    ? `Check-in: ${lastCheckinTime?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                    : lastCheckinStatus === 'pending'
+                    ? 'Check-in: CHƯA XÁC NHẬN (mất mạng)'
+                    : 'Check-in: Chưa thực hiện'}
+                </Text>
+              </View>
             </View>
           )}
         </View>
@@ -1515,6 +1603,19 @@ export default function TrackingActiveScreen() {
           </Pressable>
         </View>
 
+        {/* Active Check-in Button */}
+        <Pressable
+          className="w-full py-3.5 rounded-2xl bg-sky-600 active:bg-sky-700 items-center justify-center flex-row gap-2 border border-sky-500/30"
+          onPress={handleActiveCheckin}
+          disabled={checkingIn}
+        >
+          {checkingIn ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text className="text-white text-xs font-bold">✅ BÁO AN TOÀN (CHECK-IN CHỦ ĐỘNG)</Text>
+          )}
+        </Pressable>
+
         {/* Control Buttons Bar */}
         <View className="flex-row gap-3">
           {/* Recenter Button */}
@@ -1539,21 +1640,6 @@ export default function TrackingActiveScreen() {
             onPress={handleShareTrip}
           >
             <Text className="text-white text-base">📤</Text>
-          </Pressable>
-
-          {/* End Trek Button */}
-          <Pressable
-            className="flex-1 h-12 rounded-2xl bg-surface-2 border border-surface-3 items-center justify-center active:bg-surface-3"
-            onPress={handleEndTrip}
-            disabled={ending}
-          >
-            {ending ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-emergency-400 font-bold text-xs uppercase tracking-wide">
-                {activeTrip?.isExploration ? 'Thoát' : 'Kết thúc'}
-              </Text>
-            )}
           </Pressable>
 
           {/* Big Panic SOS Button */}

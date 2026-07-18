@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, ScrollView } from '@/tw';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import api from '@/services/api';
-import { Alert, ActivityIndicator } from 'react-native';
+import { Alert, ActivityIndicator, Modal } from 'react-native';
 import { useGPS } from '@/hooks/useGPS';
 import * as Location from 'expo-location';
 import * as Battery from 'expo-battery';
@@ -24,6 +24,12 @@ export default function TrekkingSetupScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [userName, setUserName] = useState('');
   const [emergencyContacts, setEmergencyContacts] = useState<any[]>([]);
+
+  // Quick contact Modal States
+  const [showAddContactModal, setShowAddContactModal] = useState(false);
+  const [quickContactName, setQuickContactName] = useState('');
+  const [quickContactPhone, setQuickContactPhone] = useState('');
+  const [quickContactRelation, setQuickContactRelation] = useState('');
 
   useEffect(() => {
     loadUserInfo();
@@ -52,10 +58,8 @@ export default function TrekkingSetupScreen() {
       return;
     }
     if (emergencyContacts.length === 0) {
-      Alert.alert(
-        'Chưa cài đặt người thân',
-        'Vui lòng cấu hình người thân khẩn cấp trong tab Cá nhân trước khi bắt đầu hành trình.'
-      );
+      // Thay vì chặn cứng, hiển thị modal nhập khẩn cấp nhanh tại chỗ
+      setShowAddContactModal(true);
       return;
     }
     
@@ -65,9 +69,60 @@ export default function TrekkingSetupScreen() {
       return;
     }
 
+    await handleStartTrekAfterSave(emergencyContacts);
+  };
+
+  const handleSaveQuickContact = async () => {
+    if (!quickContactName.trim() || !quickContactPhone.trim() || !quickContactRelation.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin người thân.');
+      return;
+    }
+    const cleanPhone = quickContactPhone.trim();
+    if (cleanPhone.length < 9) {
+      Alert.alert('Lỗi', 'Số điện thoại không hợp lệ.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const newContact = {
+        name: quickContactName.trim(),
+        phone: cleanPhone,
+        relation: quickContactRelation.trim()
+      };
+
+      const res = await api.patch('/auth/profile', { emergencyContacts: [newContact] });
+
+      if (res.data.success) {
+        // Cập nhật state cục bộ
+        setEmergencyContacts([newContact]);
+
+        // Cập nhật AsyncStorage user_info
+        const userInfoStr = await AsyncStorage.getItem('user_info');
+        if (userInfoStr) {
+          const parsed = JSON.parse(userInfoStr);
+          parsed.emergencyContacts = [newContact];
+          await AsyncStorage.setItem('user_info', JSON.stringify(parsed));
+        }
+
+        setShowAddContactModal(false);
+
+        // Gọi bắt đầu hành trình trekking trực tiếp sau khi lưu thành công
+        await handleStartTrekAfterSave([newContact]);
+      }
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert('Lỗi lưu liên hệ', 'Không thể kết nối máy chủ để lưu liên hệ.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleStartTrekAfterSave = async (contacts: any[]) => {
     setSubmitting(true);
 
     try {
+      const cleanPhone = contacts[0].phone.trim();
       // Get current location and fallback if it fails
       let lat = 21.0285;
       let lng = 105.8542;
@@ -290,6 +345,79 @@ export default function TrekkingSetupScreen() {
 
 
       </View>
+
+      {/* Modal nhập nhanh liên hệ khẩn cấp */}
+      <Modal
+        visible={showAddContactModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAddContactModal(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/80 px-6">
+          <View className="bg-surface-1 border border-surface-3 p-6 rounded-3xl w-full gap-5">
+            <Text className="text-lg font-bold text-emergency-500 text-center tracking-wide uppercase">🚨 Thêm Liên Hệ Khẩn Cấp</Text>
+            <Text className="text-xs text-muted text-center leading-normal">
+              Định vị ngầm cứu hộ bắt buộc phải cấu hình tối thiểu 1 người thân để hệ thống tự gửi SMS khẩn cấp khi xảy ra sự cố hoặc pin yếu.
+            </Text>
+
+            <View className="gap-1.5">
+              <Text className="text-xs text-muted-light font-medium">Tên người thân</Text>
+              <TextInput
+                className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-sm"
+                placeholder="Nguyễn Văn B"
+                placeholderTextColor="#6b6b6b"
+                value={quickContactName}
+                onChangeText={setQuickContactName}
+              />
+            </View>
+
+            <View className="gap-1.5">
+              <Text className="text-xs text-muted-light font-medium">SĐT người thân</Text>
+              <TextInput
+                className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-sm"
+                placeholder="0987654321"
+                placeholderTextColor="#6b6b6b"
+                keyboardType="phone-pad"
+                value={quickContactPhone}
+                onChangeText={setQuickContactPhone}
+              />
+            </View>
+
+            <View className="gap-1.5">
+              <Text className="text-xs text-muted-light font-medium">Mối quan hệ</Text>
+              <TextInput
+                className="bg-surface-2 text-white rounded-2xl px-4 py-3 text-sm"
+                placeholder="Bố / Mẹ / Vợ / Bạn"
+                placeholderTextColor="#6b6b6b"
+                value={quickContactRelation}
+                onChangeText={setQuickContactRelation}
+              />
+            </View>
+
+            <View className="flex-row gap-3 mt-2">
+              <Pressable
+                className="flex-1 bg-emergency-500 active:bg-emergency-600 py-3.5 rounded-2xl items-center justify-center"
+                onPress={handleSaveQuickContact}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text className="text-white font-bold text-xs uppercase">Lưu & Đi Tiếp</Text>
+                )}
+              </Pressable>
+              
+              <Pressable
+                className="bg-surface-2 border border-surface-3 px-5 py-3.5 rounded-2xl items-center justify-center"
+                onPress={() => setShowAddContactModal(false)}
+                disabled={submitting}
+              >
+                <Text className="text-white font-bold text-xs">HỦY</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }

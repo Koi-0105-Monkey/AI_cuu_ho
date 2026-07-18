@@ -36,6 +36,7 @@ export default function QRScannerScreen() {
     plannedEndDate?: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [soloGroupInfo, setSoloGroupInfo] = useState<any>(null);
 
   const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
@@ -84,8 +85,8 @@ export default function QRScannerScreen() {
     if (!parsedCode) return;
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('authToken');
-      const res = await fetch(`${API_BASE}/api/operators/groups/join`, {
+      const token = await AsyncStorage.getItem('user_token');
+      const res = await fetch(`${API_BASE}/api/v1/trip-groups/join`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,18 +108,62 @@ export default function QRScannerScreen() {
         return;
       }
 
-      if (json.group?.id) {
-        await AsyncStorage.setItem('currentGroupId', json.group.id);
+      if (json.group?.id || json.group?._id) {
+        const groupId = json.group.id || json.group._id;
+        await AsyncStorage.setItem('currentGroupId', groupId);
         await AsyncStorage.setItem('currentGroupName', json.group.groupName || '');
       }
 
       Alert.alert(
         '🎉 Gia nhập thành công!',
-        `Bạn đã tham gia đoàn:\n📍 ${json.group?.groupName}\n🗺 ${json.group?.routeName}\n\n👤 HDV: ${json.group?.leaderName || 'Chưa gán'}\n📞 ${json.group?.leaderPhone || ''}`,
+        `Bạn đã tham gia đoàn:\n📍 ${json.group?.groupName}\n🗺 ${json.group?.routeName}\n\n👤 Trưởng nhóm: ${json.group?.leaderName || 'Chưa gán'}\n📞 ${json.group?.leaderPhone || ''}`,
         [{ text: 'Bắt đầu hành trình', onPress: () => router.replace('/(tabs)') }]
       );
     } catch (err) {
       Alert.alert('Lỗi kết nối', 'Không thể kết nối tới máy chủ. Kiểm tra Internet.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Gọi API tạo nhóm đi lẻ cá nhân ──────────────────────────────────────────
+  const handleCreateSoloGroup = async () => {
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('user_token');
+      const userInfoStr = await AsyncStorage.getItem('user_info');
+      let name = 'Trekker';
+      if (userInfoStr) {
+        try {
+          name = JSON.parse(userInfoStr).name || 'Trekker';
+        } catch {}
+      }
+
+      const res = await fetch(`${API_BASE}/api/v1/trip-groups`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          groupName: `Nhóm đi lẻ của ${name}`,
+          routeName: 'Cung đường tự do',
+          description: 'Đoàn đi lẻ tự phát của trekker'
+        })
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        Alert.alert('Lỗi', json.message || 'Không thể tạo nhóm đi lẻ trên máy chủ.');
+        return;
+      }
+
+      setSoloGroupInfo(json.group);
+      setMySoloGroupPin(json.group.joinCode);
+      setMode('my_qr');
+    } catch (err) {
+      Alert.alert('Lỗi kết nối', 'Không thể kết nối tới máy chủ để tạo nhóm. Kiểm tra Internet.');
     } finally {
       setLoading(false);
     }
@@ -176,7 +221,7 @@ export default function QRScannerScreen() {
 
           <TouchableOpacity
             style={[styles.choiceBtn, { backgroundColor: '#312e81', borderColor: '#4338ca' }]}
-            onPress={() => setMode('my_qr')}
+            onPress={handleCreateSoloGroup}
           >
             <Ionicons name="share-social-outline" size={22} color="#a5b4fc" />
             <View style={styles.choiceBtnText}>
@@ -212,7 +257,11 @@ export default function QRScannerScreen() {
 
           <TouchableOpacity
             style={[styles.confirmBtn, { backgroundColor: '#4f46e5', width: '100%' }]}
-            onPress={() => {
+            onPress={async () => {
+              if (soloGroupInfo) {
+                await AsyncStorage.setItem('currentGroupId', soloGroupInfo._id || soloGroupInfo.id);
+                await AsyncStorage.setItem('currentGroupName', soloGroupInfo.groupName || '');
+              }
               Alert.alert('Đã tạo nhóm', `Đã kích hoạt nhóm Trekker đi lẻ PIN ${mySoloGroupPin}! Đồng đội đã ghép nhóm sẽ nhận được vị trí & cảnh báo khẩn cấp của bạn.`);
               setMode('choice');
             }}

@@ -6,6 +6,7 @@ import * as Location from 'expo-location';
 import api from '@/services/api';
 import { Alert, ActivityIndicator, Image, StyleSheet, Dimensions } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { enqueueFireReport } from '@/services/queueService';
 
 const { width } = Dimensions.get('window');
 
@@ -185,10 +186,28 @@ export default function IncidentsScreen() {
       }
     } catch (err: any) {
       console.error(err);
-      Alert.alert(
-        'Lỗi gửi báo cháy',
-        err.response?.data?.message || 'Không thể tải ảnh báo cháy. Vui lòng kiểm tra lại mạng.'
-      );
+      try {
+        await enqueueFireReport({
+          lat,
+          lng,
+          message: message.trim() || 'Báo cháy rừng qua camera (Offline)',
+          battery: batteryLevel,
+          imageBase64: photoBase64
+        });
+        
+        setPhotoBase64(null); // Clear photo once queued offline
+        setMessage('');
+        
+        Alert.alert(
+          'Đã lưu báo cáo cháy (Offline)',
+          'Mất mạng. Báo cáo cháy kèm hình ảnh đã được lưu vào hàng đợi trên thiết bị và sẽ tự động gửi lên server ngay khi phát hiện có kết nối Internet trở lại.'
+        );
+      } catch (queueErr) {
+        Alert.alert(
+          'Lỗi gửi báo cháy',
+          err.response?.data?.message || 'Không thể gửi báo cháy. Vui lòng kiểm tra lại mạng.'
+        );
+      }
     } finally {
       setSubmitting(false);
     }

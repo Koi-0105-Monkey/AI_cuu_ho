@@ -10,6 +10,7 @@ const familyRoutes = require('./family');
 const weatherRoutes = require('./weather');
 const notificationsRoutes = require('./notifications');
 const vqgRoutes = require('./vqg');
+const tripGroupsRoutes = require('./tripGroups');
 
 const router = express.Router();
 
@@ -22,6 +23,7 @@ router.use('/admin', adminRoutes);
 if (process.env.ENABLE_OPERATOR_MODULE === 'true') {
   router.use('/operators', operatorsRoutes);
 }
+router.use('/v1/trip-groups', tripGroupsRoutes);
 router.use('/family', familyRoutes);
 router.use('/weather', weatherRoutes);
 router.use('/notifications', notificationsRoutes);

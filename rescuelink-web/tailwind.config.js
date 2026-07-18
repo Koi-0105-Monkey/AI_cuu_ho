@@ -7,9 +7,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Outfit', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
-        display: ['Outfit', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
         // Base surfaces — tinted dark navy
@@ -55,27 +55,15 @@ export default {
       },
       animation: {
         'pulse-red':    'pulse-red 2s cubic-bezier(0.4,0,0.6,1) infinite',
-        'glow-pulse':   'glow-pulse 3s ease-in-out infinite',
-        'slide-in':     'slide-in 0.35s cubic-bezier(0.32,0.72,0,1)',
         'fade-in':      'fade-in 0.4s cubic-bezier(0.32,0.72,0,1)',
         'fade-up':      'fade-up 0.6s cubic-bezier(0.32,0.72,0,1) both',
-        'scan-line':    'scan-line 4s linear infinite',
         'float':        'float 6s ease-in-out infinite',
-        'spin-slow':    'spin 8s linear infinite',
         'menu-open':    'menu-open 0.4s cubic-bezier(0.32,0.72,0,1) both',
       },
       keyframes: {
         'pulse-red': {
           '0%, 100%': { opacity: '1' },
           '50%':      { opacity: '0.4' },
-        },
-        'glow-pulse': {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(225, 29, 72, 0.3)' },
-          '50%':      { boxShadow: '0 0 40px rgba(225, 29, 72, 0.6)' },
-        },
-        'slide-in': {
-          from: { transform: 'translateX(100%)' },
-          to:   { transform: 'translateX(0)' },
         },
         'fade-in': {
           from: { opacity: '0', transform: 'translateY(-8px)' },
@@ -84,10 +72,6 @@ export default {
         'fade-up': {
           from: { opacity: '0', transform: 'translateY(24px)' },
           to:   { opacity: '1', transform: 'translateY(0)' },
-        },
-        'scan-line': {
-          from: { transform: 'translateY(-100%)' },
-          to:   { transform: 'translateY(100vh)' },
         },
         'float': {
           '0%, 100%': { transform: 'translateY(0px)' },
@@ -101,10 +85,9 @@ export default {
       boxShadow: {
         'surface':    '0 4px 32px rgba(0,0,0,0.5)',
         'emergency':  '0 0 24px rgba(225, 29, 72, 0.35)',
-        'safe':       '0 0 16px rgba(16, 185, 129, 0.25)',
+        'safe':       '0 0 16px rgba(14, 165, 233, 0.25)',
         'card':       '0 2px 16px rgba(0,0,0,0.4)',
         'glow-red':   '0 0 32px rgba(225, 29, 72, 0.4), 0 0 64px rgba(225, 29, 72, 0.15)',
-        'glow-green': '0 0 24px rgba(16, 185, 129, 0.35)',
         'glass':      '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.06)',
         'inner-highlight': 'inset 0 1px 0 rgba(255,255,255,0.1)',
         'depth':      '0 24px 64px rgba(0,0,0,0.6)',

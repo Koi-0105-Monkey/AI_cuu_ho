@@ -131,7 +131,7 @@ function batteryEstimate(pct) {
 
 // ─── Severity metadata ─────────────────────────────────────
 const SEVERITY_META = {
-  1: { label: 'Cấp 1 – Nhẹ',          color: 'text-emerald-400', bg: 'bg-emerald-950/60 border-emerald-700/40' },
+  1: { label: 'Cấp 1 – Nhẹ',          color: 'text-sky-400', bg: 'bg-sky-950/60 border-sky-700/40' },
   2: { label: 'Cấp 2 – Thấp',          color: 'text-sky-400',     bg: 'bg-sky-950/60 border-sky-700/40' },
   3: { label: 'Cấp 3 – Trung bình',    color: 'text-amber-400',   bg: 'bg-amber-950/60 border-amber-700/40' },
   4: { label: 'Cấp 4 – Nghiêm trọng', color: 'text-orange-400',  bg: 'bg-orange-950/60 border-orange-700/40' },
@@ -167,7 +167,7 @@ function IncidentDetailPanel({ incident, onClose }) {
   // Build timeline from raw GPS track + incident timestamps
   const events = [];
   const startTime = incident.tripId?.startedAt || incident.createdAt;
-  if (startTime) events.push({ time: new Date(startTime), label: '🟢 Bắt đầu hành trình', dot: 'bg-emerald-500' });
+  if (startTime) events.push({ time: new Date(startTime), label: '🟢 Bắt đầu hành trình', dot: 'bg-sky-500' });
   if (track.length > 2) {
     const mid = track[Math.floor(track.length / 2)];
     if (mid?.recordedAt) events.push({ time: new Date(mid.recordedAt), label: '🔵 Đang di chuyển trên cung đường', dot: 'bg-sky-500' });
@@ -285,7 +285,7 @@ function IncidentDetailPanel({ incident, onClose }) {
               <span className="text-xs text-slate-300">Độ tin cậy của AI:</span>
               <span className={`text-xs font-black px-2 py-0.5 rounded ${
                 incident.severityBreakdown.aiConfidence === 'High' 
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                  ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' 
                   : incident.severityBreakdown.aiConfidence === 'Medium'
                   ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                   : 'bg-red-500/10 text-red-400 border border-red-500/20'

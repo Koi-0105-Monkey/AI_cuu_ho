@@ -151,7 +151,7 @@ export default function IncidentDetail() {
             <ArrowLeft size={16} /> Quay lại
           </button>
           {inc.reviewedBy && (
-            <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg">
+            <span className="text-xs text-sky-400 font-bold bg-sky-500/10 border border-sky-500/20 px-3 py-1 rounded-lg">
               ✓ Đã được phê duyệt thủ công bởi: {inc.reviewedBy.name || 'Admin'}
             </span>
           )}
@@ -215,7 +215,7 @@ export default function IncidentDetail() {
                   {/* Audio SOS Player */}
                   {inc.audioUrl && (
                     <div className="bg-[#1b253b] p-3 rounded-lg border border-slate-700">
-                      <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                      <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-sky-400 uppercase tracking-wider">
                         <span>🎙️ Tệp ghi âm Voice SOS</span>
                       </div>
                       <audio 
@@ -230,7 +230,7 @@ export default function IncidentDetail() {
                   {inc.voiceTranscript && (
                     <div className="bg-[#1b253b] p-3 rounded-lg border border-slate-700">
                       <div className="flex justify-between items-center mb-1">
-                        <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                        <div className="text-xs font-semibold text-sky-400 uppercase tracking-wider">
                           {inc.source === 'sms' ? '✍️ Tin nhắn khôi phục dấu (Gemini NLP)' : '📝 Bản dịch giọng nói (Gemini ASR)'}
                         </div>
                         <button 
@@ -242,7 +242,7 @@ export default function IncidentDetail() {
                               window.speechSynthesis.speak(utterance);
                             }
                           }}
-                          className="text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/25 px-2 py-0.5 rounded flex items-center gap-1 transition-all"
+                          className="text-xs bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/25 px-2 py-0.5 rounded flex items-center gap-1 transition-all"
                           title="Đọc tin nhắn bằng tiếng Việt"
                         >
                           🔊 Nghe đọc
@@ -255,7 +255,7 @@ export default function IncidentDetail() {
                   {/* Extracted Entities */}
                   {inc.extractedEntities && (
                     <div className="bg-[#1b253b] p-3 rounded-lg border border-slate-700">
-                      <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+                      <div className="text-xs font-semibold text-sky-400 uppercase tracking-wider mb-2">
                         🔍 Thực thể cứu nạn trích xuất (NLP NER)
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
@@ -298,7 +298,7 @@ export default function IncidentDetail() {
                         : 'bg-[#1b253b] border-slate-700'
                     }`}>
                       <div className="flex items-center justify-between mb-2">
-                        <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                        <div className="text-xs font-semibold text-sky-400 uppercase tracking-wider">
                           ⚖️ Động cơ Phân tích Độ Nghiêm Trọng (Severity Scoring Engine)
                         </div>
                         {inc.severityBreakdown.needsManualReview && (
@@ -324,9 +324,9 @@ export default function IncidentDetail() {
                           <span className="text-muted block text-[10px]">Thời tiết</span>
                           <span className="font-bold text-sky-400">+{inc.severityBreakdown.weatherAdjustment || 0}</span>
                         </div>
-                        <div className="p-2 rounded bg-emerald-950/40 border border-emerald-500/20">
-                          <span className="text-emerald-400 block text-[10px] font-bold">Tổng điểm</span>
-                          <span className="font-extrabold text-emerald-400 text-sm">{inc.severityBreakdown.finalScore || inc.severity}</span>
+                        <div className="p-2 rounded bg-sky-950/40 border border-sky-500/20">
+                          <span className="text-sky-400 block text-[10px] font-bold">Tổng điểm</span>
+                          <span className="font-extrabold text-sky-400 text-sm">{inc.severityBreakdown.finalScore || inc.severity}</span>
                         </div>
                       </div>
                       
@@ -334,7 +334,7 @@ export default function IncidentDetail() {
                         <span className="text-slate-400 font-semibold uppercase text-[10px]">Độ tin cậy của thuật toán AI:</span>
                         <span className={`px-2.5 py-0.5 rounded text-[11px] font-black border ${
                           inc.severityBreakdown.aiConfidence === 'High' 
-                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' 
+                            ? 'bg-sky-500/15 text-sky-400 border-sky-500/30' 
                             : inc.severityBreakdown.aiConfidence === 'Medium'
                             ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
                             : 'bg-red-500/15 text-red-400 border-red-500/30'
@@ -509,7 +509,7 @@ export default function IncidentDetail() {
               {inc.status === 'resolved' && (
                 <div className="space-y-3 pt-2">
                   <div className="bg-[#10b981]/10 p-3 rounded-xl border border-[#10b981]/20 space-y-2 text-xs">
-                    <p className="font-bold text-emerald-400">✓ ĐÃ HOÀN THÀNH CỨU HỘ</p>
+                    <p className="font-bold text-sky-400">✓ ĐÃ HOÀN THÀNH CỨU HỘ</p>
                     {inc.assignedRescuerId && (
                       <>
                         <Row label="Cứu hộ phụ trách:" value={inc.assignedRescuerId.name} />
@@ -548,7 +548,7 @@ export default function IncidentDetail() {
               <Row label="Vai trò" value={inc.userId?.role} />
               {inc.userId?.medicalProfile && (
                 <div className="mt-2 pt-2 border-t border-surface-4 space-y-1.5 text-xs">
-                  <p className="font-bold text-emerald-400">🩺 Thông tin y tế sơ cứu:</p>
+                  <p className="font-bold text-sky-400">🩺 Thông tin y tế sơ cứu:</p>
                   <Row label="Nhóm máu:" value={inc.userId.medicalProfile.bloodType === 'unknown' ? 'Chưa rõ' : inc.userId.medicalProfile.bloodType} />
                   <Row label="Dị ứng:" value={inc.userId.medicalProfile.allergies || 'Không phát hiện'} />
                   <Row label="Thuốc đang dùng:" value={inc.userId.medicalProfile.medications || 'Không có'} />

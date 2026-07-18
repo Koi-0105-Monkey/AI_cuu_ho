@@ -270,8 +270,8 @@ export default function LandingPage() {
 
               {/* Orbiting ping */}
               <div className="absolute -top-2 -right-2 w-5 h-5">
-                <div className="w-full h-full bg-emerald-500 rounded-full opacity-80 animate-ping" />
-                <div className="absolute inset-0 w-3 h-3 m-auto bg-emerald-400 rounded-full" />
+                <div className="w-full h-full bg-sky-500 rounded-full opacity-80 animate-ping" />
+                <div className="absolute inset-0 w-3 h-3 m-auto bg-sky-400 rounded-full" />
               </div>
             </div>
           </div>
@@ -283,7 +283,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
           <MetricCard value={47} suffix="+" label="Cung đường leo núi phủ sóng" color="stat-number" inView={metricsInView} delay={0} />
           <MetricCard value={15} suffix=" phút" label="Thời gian phản hồi HQ" color="stat-number-red" inView={metricsInView} delay={100} />
-          <MetricCard value={1247} suffix="+" label="Trekker đang sử dụng App" color="stat-number-green" inView={metricsInView} delay={200} />
+          <MetricCard value={1247} suffix="+" label="Trekker đang sử dụng App" color="stat-number-safe" inView={metricsInView} delay={200} />
           <MetricCard value={53} suffix=" ký tự" label="SMS SOS tối thiểu gửi được" color="stat-number-amber" inView={metricsInView} delay={300} />
         </div>
       </section>

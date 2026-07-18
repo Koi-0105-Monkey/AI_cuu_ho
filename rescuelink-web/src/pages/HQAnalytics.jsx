@@ -93,8 +93,8 @@ export default function HQAnalytics() {
         </div>
 
         <div className="card flex items-center gap-4 py-4 bg-[#0d1525] border-slate-800">
-          <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-900/30">
-            <ShieldCheck size={20} className="text-emerald-400" />
+          <div className="p-3 rounded-xl bg-sky-950/60 border border-sky-900/30">
+            <ShieldCheck size={20} className="text-sky-400" />
           </div>
           <div>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Đã giải quyết thành công</p>
@@ -214,10 +214,10 @@ export default function HQAnalytics() {
       <div className="card bg-[#0d1525] border-slate-800 flex flex-col shrink-0">
         <div className="px-5 py-4 border-b border-slate-800 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <ShieldWarning size={16} className="text-emerald-400" />
+            <ShieldWarning size={16} className="text-sky-400" />
             <h2 className="text-sm font-semibold text-white">Nhật Ký Bảo Mật Truy Cập Y Tế (Nghị định 13/2023)</h2>
           </div>
-          <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-bold uppercase tracking-wider">
+          <span className="text-[10px] text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20 font-bold uppercase tracking-wider">
             Mã hóa dữ liệu & Audit Trail Active
           </span>
         </div>
@@ -272,7 +272,7 @@ export default function HQAnalytics() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="flex items-center gap-1 text-emerald-400 font-medium">
+                        <span className="flex items-center gap-1 text-sky-400 font-medium">
                           <Eye size={12} /> {log.action === 'view' ? 'Giải mã & Xem' : 'Cập nhật'}
                         </span>
                       </td>

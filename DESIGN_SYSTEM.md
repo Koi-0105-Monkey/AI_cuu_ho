@@ -1,5 +1,25 @@
 # 🎨 RescueLink — Giải Pháp Thiết Kế UI/UX (Bản Chuẩn Hóa)
 
+---
+## ⚠️ QUY TẮC ƯU TIÊN (đọc trước khi áp dụng bất kỳ skill thiết kế nào)
+
+File này là nguồn sự thật DUY NHẤT cho font, màu sắc, và hướng thẩm mỹ của
+RescueLink. Khi các skill khác (design-taste-frontend, high-end-visual-design,
+minimalist-ui...) đưa ra quy tắc MÂU THUẪN với file này (ví dụ: skill cấm
+dùng Inter nhưng file này yêu cầu Inter/Fira Sans; skill yêu cầu glassmorphism
+nhưng file này không đề cập), LUÔN LUÔN ưu tiên theo file này.
+
+Hướng thẩm mỹ chính thức của dự án: **Tactical Telemetry** (theo skill
+industrial-brutalist-ui, nhánh Dark/CRT Terminal) — KHÔNG áp dụng nhánh
+"Ethereal Glass" hay "Soft Structuralism" từ các skill khác. Cụ thể:
+- KHÔNG glassmorphism, KHÔNG gradient text, KHÔNG double-bezel card
+- KHÔNG animation vô hạn trang trí (pulse/float/glow) trừ khi có ý nghĩa
+  cảnh báo thật (SOS, sự cố khẩn cấp)
+- Border 1px chia vùng rõ ràng thay vì shadow/blur
+- Monospace (JetBrains Mono) ưu tiên cho số liệu, KHÔNG dùng Outfit —
+  dùng Inter cho nội dung chính như đã chốt ở mục 4 bên dưới
+---
+
 Tài liệu này định nghĩa hệ thống thiết kế (Design System) duy nhất của RescueLink, cấu hình trực tiếp vào `tailwind.config.js` và `index.css` để làm **nguồn sự thật duy nhất (Single Source of Truth)**.
 
 ---

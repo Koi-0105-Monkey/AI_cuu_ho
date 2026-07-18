@@ -15,7 +15,7 @@ const TYPE_META = {
 };
 
 const severityClass = (s) => {
-  if (s <= 2) return { badge: 'badge-low',  border: 'border-green-500/40'  };
+  if (s <= 2) return { badge: 'badge-low',  border: 'border-sky-500/40'  };
   if (s === 3) return { badge: 'badge-med',  border: 'border-amber-500/40'  };
   return           { badge: 'badge-high', border: 'border-emergency-500/40' };
 };
@@ -46,7 +46,7 @@ export default function IncidentCard({ incident, onClick }) {
             <span className="text-sm font-medium text-white">{meta.label}</span>
             <span className={`${badge} flex items-center gap-0.5`}>
               {incident.severity <= 2 ? (
-                <CheckCircle size={10} weight="fill" className="text-green-400" />
+                <CheckCircle size={10} weight="fill" className="text-sky-400" />
               ) : incident.severity === 3 ? (
                 <Warning size={10} weight="bold" className="text-amber-400" />
               ) : (

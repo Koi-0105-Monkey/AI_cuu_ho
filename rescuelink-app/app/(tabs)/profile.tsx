@@ -4,6 +4,7 @@ import { Alert, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '@/services/api';
 import * as Location from 'expo-location';
+import SkeletonCard from '@/components/SkeletonCard';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 interface EmergencyContact {
@@ -129,6 +130,32 @@ export default function ProfileScreen() {
       return;
     }
 
+    // Validate nhóm máu
+    const validBloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'unknown'];
+    if (!validBloodTypes.includes(bloodType)) {
+      Alert.alert('Lỗi', 'Nhóm máu không hợp lệ.');
+      return;
+    }
+
+    // Validate các trường y tế tự do
+    const fieldsToValidate = [
+      { name: 'Dị ứng', value: allergies },
+      { name: 'Thuốc đang dùng', value: medications },
+      { name: 'Bệnh nền', value: chronicConditions },
+      { name: 'Ghi chú y tế', value: notes }
+    ];
+
+    for (const field of fieldsToValidate) {
+      if (field.value.length > 500) {
+        Alert.alert('Lỗi', `Trường "${field.name}" không được vượt quá 500 ký tự.`);
+        return;
+      }
+      if (field.value.length > 0 && !field.value.trim()) {
+        Alert.alert('Lỗi', `Trường "${field.name}" không được chỉ chứa khoảng trắng.`);
+        return;
+      }
+    }
+
     setUpdating(true);
     try {
       const res = await api.patch('/auth/profile', { 
@@ -162,8 +189,27 @@ export default function ProfileScreen() {
     }
 
     const cleanPhone = newContactPhone.trim();
-    if (cleanPhone.length < 9) {
-      Alert.alert('Lỗi', 'Số điện thoại không hợp lệ.');
+    const phoneRegex = /^(0|\+84)\d{9,10}$/;
+    if (!phoneRegex.test(cleanPhone)) {
+      Alert.alert('Lỗi', 'Số điện thoại không hợp lệ (phải bắt đầu bằng 0 hoặc +84, theo sau là 9-10 chữ số).');
+      return;
+    }
+
+    if (newContactName.length > 500) {
+      Alert.alert('Lỗi', 'Tên người thân không được vượt quá 500 ký tự.');
+      return;
+    }
+    if (newContactName.length > 0 && !newContactName.trim()) {
+      Alert.alert('Lỗi', 'Tên người thân không được chỉ chứa khoảng trắng.');
+      return;
+    }
+
+    if (newContactRelation.length > 500) {
+      Alert.alert('Lỗi', 'Mối quan hệ không được vượt quá 500 ký tự.');
+      return;
+    }
+    if (newContactRelation.length > 0 && !newContactRelation.trim()) {
+      Alert.alert('Lỗi', 'Mối quan hệ không được chỉ chứa khoảng trắng.');
       return;
     }
 
@@ -269,10 +315,25 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-surface justify-center items-center">
-        <ActivityIndicator size="large" color="#FF4D3D" />
-        <Text className="text-sm text-muted mt-4">Đang tải thông tin...</Text>
-      </View>
+      <ScrollView className="flex-1 bg-surface" contentContainerClassName="px-6 py-14 gap-8">
+        {/* Title Skeleton */}
+        <View className="gap-2">
+          <SkeletonCard className="w-32 h-6 rounded" />
+          <SkeletonCard className="w-48 h-3 rounded" />
+        </View>
+
+        {/* Profile Card Skeleton */}
+        <SkeletonCard className="h-44 rounded-3xl" />
+
+        {/* Medical Profile Skeleton */}
+        <SkeletonCard className="h-56 rounded-3xl" />
+
+        {/* Emergency Contacts Skeleton */}
+        <SkeletonCard className="h-40 rounded-3xl" />
+
+        {/* Family Share Link Skeleton */}
+        <SkeletonCard className="h-32 rounded-3xl" />
+      </ScrollView>
     );
   }
 
@@ -387,6 +448,7 @@ export default function ProfileScreen() {
                 placeholder="Ví dụ: Penicillin, hải sản (để trống nếu không)"
                 placeholderTextColor="#6b6b6b"
               />
+              <Text className="text-[9px] text-muted self-end mr-2">{allergies.length}/500 ký tự</Text>
             </View>
 
             <View className="gap-1.5">
@@ -398,6 +460,7 @@ export default function ProfileScreen() {
                 placeholder="Ví dụ: Insulin, thuốc huyết áp"
                 placeholderTextColor="#6b6b6b"
               />
+              <Text className="text-[9px] text-muted self-end mr-2">{medications.length}/500 ký tự</Text>
             </View>
 
             <View className="gap-1.5">
@@ -409,6 +472,7 @@ export default function ProfileScreen() {
                 placeholder="Ví dụ: Hen suyễn, tim mạch"
                 placeholderTextColor="#6b6b6b"
               />
+              <Text className="text-[9px] text-muted self-end mr-2">{chronicConditions.length}/500 ký tự</Text>
             </View>
 
             <View className="gap-1.5">
@@ -423,6 +487,7 @@ export default function ProfileScreen() {
                 numberOfLines={3}
                 style={{ textAlignVertical: 'top' }}
               />
+              <Text className="text-[9px] text-muted self-end mr-2">{notes.length}/500 ký tự</Text>
             </View>
           </View>
         ) : (
@@ -496,13 +561,16 @@ export default function ProfileScreen() {
           <View className="bg-surface-2 border border-surface-3 p-5 rounded-2xl gap-4">
             <Text className="text-xs font-bold text-white">Thêm Liên Hệ Mới</Text>
             
-            <TextInput
-              className="bg-surface-3 text-white rounded-xl px-4 py-2.5 text-xs"
-              placeholder="Tên người thân"
-              placeholderTextColor="#6b6b6b"
-              value={newContactName}
-              onChangeText={setNewContactName}
-            />
+            <View className="gap-1">
+              <TextInput
+                className="bg-surface-3 text-white rounded-xl px-4 py-2.5 text-xs"
+                placeholder="Tên người thân"
+                placeholderTextColor="#6b6b6b"
+                value={newContactName}
+                onChangeText={setNewContactName}
+              />
+              <Text className="text-[9px] text-muted self-end mr-2">{newContactName.length}/500 ký tự</Text>
+            </View>
 
             <TextInput
               className="bg-surface-3 text-white rounded-xl px-4 py-2.5 text-xs"
@@ -513,13 +581,16 @@ export default function ProfileScreen() {
               onChangeText={setNewContactPhone}
             />
 
-            <TextInput
-              className="bg-surface-3 text-white rounded-xl px-4 py-2.5 text-xs"
-              placeholder="Mối quan hệ (ví dụ: Bố, Mẹ, Vợ)"
-              placeholderTextColor="#6b6b6b"
-              value={newContactRelation}
-              onChangeText={setNewContactRelation}
-            />
+            <View className="gap-1">
+              <TextInput
+                className="bg-surface-3 text-white rounded-xl px-4 py-2.5 text-xs"
+                placeholder="Mối quan hệ (ví dụ: Bố, Mẹ, Vợ)"
+                placeholderTextColor="#6b6b6b"
+                value={newContactRelation}
+                onChangeText={setNewContactRelation}
+              />
+              <Text className="text-[9px] text-muted self-end mr-2">{newContactRelation.length}/500 ký tự</Text>
+            </View>
 
             <View className="flex-row gap-3 justify-end mt-1">
               <Pressable

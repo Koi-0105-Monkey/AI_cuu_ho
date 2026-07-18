@@ -4,8 +4,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { Alert, ActivityIndicator } from 'react-native';
+import SkeletonCard from '@/components/SkeletonCard';
 import * as SMS from 'expo-sms';
 import { flushOfflineQueue } from '@/services/queueService';
+import * as Location from 'expo-location';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -33,10 +35,13 @@ export default function HomeScreen() {
   // Weather State
   const [weather, setWeather] = useState<any>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState<boolean>(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   // Fetch current weather at location
   const fetchWeather = async (lat: number, lng: number) => {
     setWeatherLoading(true);
+    setWeatherError(false);
     try {
       const res = await api.get(`/weather?lat=${lat}&lng=${lng}`);
       if (res.data.success) {
@@ -44,16 +49,35 @@ export default function HomeScreen() {
       }
     } catch (err) {
       console.warn('Failed to fetch weather forecast');
+      setWeatherError(true);
     } finally {
       setWeatherLoading(false);
     }
   };
 
+  const getAndFetchWeather = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+        setUserLocation(coords);
+        await fetchWeather(coords.lat, coords.lng);
+        return;
+      }
+    } catch (e) {
+      console.warn('Failed to get location for weather, fallback to Sapa:', e);
+    }
+    // Fallback if permission denied or failed
+    const fallbackCoords = { lat: 22.33, lng: 103.82 };
+    setUserLocation(fallbackCoords);
+    await fetchWeather(fallbackCoords.lat, fallbackCoords.lng);
+  };
+
   useFocusEffect(
     React.useCallback(() => {
       checkAuth();
-      // Lấy thời tiết tại Sapa làm tọa độ mặc định để test
-      fetchWeather(22.33, 103.82);
+      getAndFetchWeather();
     }, [])
   );
 
@@ -96,6 +120,7 @@ export default function HomeScreen() {
           // Lấy vị trí cuối cùng của trip để tải thời tiết
           if (tripData.lastKnownLocation?.coordinates) {
             const [lng, lat] = tripData.lastKnownLocation.coordinates;
+            setUserLocation({ lat, lng });
             fetchWeather(lat, lng);
           }
         } else {
@@ -318,10 +343,29 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-surface justify-center items-center">
-        <ActivityIndicator size="large" color="#FF4D3D" />
-        <Text className="text-sm text-muted-light mt-4">Đang tải...</Text>
-      </View>
+      <ScrollView className="flex-1 bg-surface" contentContainerClassName="px-6 py-14 gap-8">
+        {/* Greeting Section Skeleton */}
+        <View className="flex-row items-center gap-4">
+          <SkeletonCard className="w-12 h-12 rounded-full" />
+          <View className="flex-1 gap-2">
+            <SkeletonCard className="w-20 h-3 rounded" />
+            <SkeletonCard className="w-32 h-5 rounded-lg" />
+          </View>
+          <SkeletonCard className="w-24 h-9 rounded-2xl" />
+        </View>
+
+        {/* Weather Widget Skeleton */}
+        <SkeletonCard className="h-24 rounded-3xl" />
+
+        {/* Active Trip / Hero Card Skeleton */}
+        <SkeletonCard className="h-56 rounded-3xl" />
+
+        {/* Quick Stats Row Skeleton */}
+        <View className="flex-row gap-4">
+          <SkeletonCard className="flex-1 h-32 rounded-2xl" />
+          <SkeletonCard className="flex-1 h-32 rounded-2xl" />
+        </View>
+      </ScrollView>
     );
   }
 
@@ -508,6 +552,25 @@ export default function HomeScreen() {
         <View className="bg-surface-1 border border-surface-3 p-4 rounded-3xl items-center justify-center py-6">
           <ActivityIndicator size="small" color="#10b981" />
           <Text className="text-[10px] text-slate-500 mt-2 font-medium">Đang đo thời tiết...</Text>
+        </View>
+      ) : weatherError ? (
+        <View className="bg-surface-1 border border-red-500/35 p-5 rounded-3xl flex-row justify-between items-center">
+          <View className="flex-1 mr-3">
+            <Text className="text-[10px] font-bold text-red-500 uppercase tracking-wider">Lỗi kết nối thời tiết</Text>
+            <Text className="text-xs text-white/80 mt-1">Không thể tải thông tin thời tiết thời gian thực.</Text>
+          </View>
+          <Pressable
+            onPress={() => {
+              if (!userLocation) {
+                Alert.alert('Chờ định vị', 'Đang chờ định vị GPS, vui lòng thử lại sau vài giây.');
+                return;
+              }
+              fetchWeather(userLocation.lat, userLocation.lng);
+            }}
+            className="bg-red-500/20 border border-red-500/30 px-3.5 py-2 rounded-2xl active:bg-red-500/35 justify-center items-center"
+          >
+            <Text className="text-red-400 text-xs font-bold font-mono">Thử lại</Text>
+          </Pressable>
         </View>
       ) : weather ? (
         <View className={`p-5 rounded-3xl border ${weather.isDangerous ? 'bg-red-950/20 border-red-900/35' : 'bg-surface-1 border-surface-3'} flex-row justify-between items-center`}>

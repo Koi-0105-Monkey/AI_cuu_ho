@@ -5,12 +5,10 @@ const mongoose = require('mongoose');
  * Dùng bởi Tour Operator để gom nhóm các chuyến đi cá nhân vào 1 đoàn
  */
 
-// Thông tin y tế cá nhân của từng thành viên (khai báo khi quét QR ghép đoàn)
+// Thông tin liên hệ và ghép đoàn của từng thành viên
 const memberMedicalSchema = new mongoose.Schema({
   userId:               { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   tripId:               { type: mongoose.Schema.Types.ObjectId, ref: 'Trip' },
-  bloodType:            { type: String, default: '' },      // VD: "A+", "O-"
-  medicalNotes:         { type: String, default: '' },      // VD: "Dị ứng côn trùng, tiền sử hen"
   emergencyContactPhone:{ type: String, default: '' },      // SĐT người thân khai báo thêm
   joinedAt:             { type: Date, default: Date.now }
 }, { _id: false });
@@ -24,8 +22,7 @@ const tripGroupSchema = new mongoose.Schema({
   // Công ty tour sở hữu đoàn này
   operatorId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Operator',
-    required: true
+    ref: 'Operator'
   },
 
   // Hướng dẫn viên phụ trách (role='guide')

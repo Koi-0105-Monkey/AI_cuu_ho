@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from './api';
+import * as FileSystem from 'expo-file-system';
 
 export async function syncPendingEndTrip() {
   try {
@@ -42,6 +43,9 @@ export async function flushOfflineQueue() {
 
     // Sync any pending offline SOS alerts next
     await flushSOSQueue();
+
+    // Sync any pending offline fire reports next
+    await flushFireQueue();
 
     const queueStr = await AsyncStorage.getItem('gps_queue');
     if (!queueStr) return { success: true, count: 0 };
@@ -157,6 +161,116 @@ export async function flushSOSQueue(): Promise<{ sent: number; remaining: number
     return { sent: 0, remaining: queue.length };
   } catch (err: any) {
     console.error('[Queue Service] Error flushing SOS queue:', err.message);
+    return { sent: 0, remaining: 0 };
+  }
+}
+
+export interface FireQueueItem {
+  id: string;
+  localImageUri: string;
+  lat: number;
+  lng: number;
+  message: string;
+  battery?: number;
+  queuedAt: number;
+}
+
+// Lưu báo cháy xuống hàng đợi offline (lưu ảnh thật vào bộ nhớ thiết bị)
+export async function enqueueFireReport(payload: { lat: number; lng: number; message: string; battery?: number; imageBase64: string }) {
+  try {
+    const fileName = `fire_report_${Date.now()}.jpg`;
+    const localImageUri = `${FileSystem.documentDirectory}${fileName}`;
+    
+    const base64Data = payload.imageBase64.includes('base64,') 
+      ? payload.imageBase64.split('base64,')[1] 
+      : payload.imageBase64;
+
+    await FileSystem.writeAsStringAsync(localImageUri, base64Data, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    console.log('[Queue Service] Saved fire report image to:', localImageUri);
+
+    const queueStr = await AsyncStorage.getItem('fire_queue');
+    const queue: FireQueueItem[] = queueStr ? JSON.parse(queueStr) : [];
+    
+    const newItem: FireQueueItem = {
+      id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+      localImageUri,
+      lat: payload.lat,
+      lng: payload.lng,
+      message: payload.message,
+      battery: payload.battery,
+      queuedAt: Date.now()
+    };
+    
+    queue.push(newItem);
+    await AsyncStorage.setItem('fire_queue', JSON.stringify(queue));
+    console.log('[Queue Service] Fire report queued offline:', newItem.id);
+    return true;
+  } catch (err: any) {
+    console.error('[Queue Service] Failed to queue fire report offline:', err.message);
+    return false;
+  }
+}
+
+// Đồng bộ hàng đợi báo cháy lên server
+export async function flushFireQueue(): Promise<{ sent: number; remaining: number }> {
+  try {
+    const queueStr = await AsyncStorage.getItem('fire_queue');
+    if (!queueStr) return { sent: 0, remaining: 0 };
+    
+    const queue: FireQueueItem[] = JSON.parse(queueStr);
+    if (queue.length === 0) return { sent: 0, remaining: 0 };
+    
+    console.log(`[Queue Service] Found ${queue.length} pending offline fire reports. Flushing...`);
+    
+    const token = await AsyncStorage.getItem('user_token');
+    if (!token) return { sent: 0, remaining: queue.length };
+    
+    const successfulIds: string[] = [];
+    
+    for (const item of queue) {
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(item.localImageUri);
+        if (!fileInfo.exists) {
+          console.warn(`[Queue Service] Image file not found for item ${item.id}. Removing from queue.`);
+          successfulIds.push(item.id);
+          continue;
+        }
+
+        const base64Data = await FileSystem.readAsStringAsync(item.localImageUri, {
+          encoding: FileSystem.EncodingType.Base64
+        });
+
+        const response = await api.post('/incidents/fire', {
+          lat: item.lat,
+          lng: item.lng,
+          message: `${item.message} (Gửi lại từ hàng đợi offline, tạo lúc ${new Date(item.queuedAt).toLocaleTimeString()})`,
+          batteryAtTime: item.battery,
+          imageBase64: `data:image/jpeg;base64,${base64Data}`
+        });
+        
+        if (response.data?.success) {
+          successfulIds.push(item.id);
+          await FileSystem.deleteAsync(item.localImageUri, { idempotent: true });
+        }
+      } catch (err: any) {
+        console.warn(`[Queue Service] Failed to flush fire report ${item.id}:`, err.message);
+        break;
+      }
+    }
+    
+    if (successfulIds.length > 0) {
+      const remainingQueue = queue.filter(item => !successfulIds.includes(item.id));
+      await AsyncStorage.setItem('fire_queue', JSON.stringify(remainingQueue));
+      console.log(`[Queue Service] Successfully flushed ${successfulIds.length} fire reports.`);
+      return { sent: successfulIds.length, remaining: remainingQueue.length };
+    }
+    
+    return { sent: 0, remaining: queue.length };
+  } catch (err: any) {
+    console.error('[Queue Service] Error flushing fire queue:', err.message);
     return { sent: 0, remaining: 0 };
   }
 }

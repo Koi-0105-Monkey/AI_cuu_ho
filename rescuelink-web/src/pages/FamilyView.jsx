@@ -109,7 +109,7 @@ export default function FamilyView() {
       {/* Header */}
       <header className={`px-4 py-3 shrink-0 flex items-center justify-between border-b ${isTripEmergency ? 'bg-red-950/40 border-red-900/40' : 'bg-slate-900/40 border-slate-800'}`}>
         <div className="flex items-center gap-3">
-          <div className={`w-3 h-3 rounded-full ${isTripEmergency ? 'bg-red-500 animate-ping' : 'bg-emerald-500 animate-pulse'}`}></div>
+          <div className={`w-3 h-3 rounded-full ${isTripEmergency ? 'bg-red-500 animate-ping' : 'bg-sky-500 animate-pulse'}`}></div>
           <div>
             <h1 className="text-sm font-bold text-white">Theo dõi: {trip.trekker?.name}</h1>
             <p className="text-[10px] text-slate-400">Cung đường: {trip.routeName}</p>
@@ -162,7 +162,7 @@ export default function FamilyView() {
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 flex flex-col justify-between">
             <span className="text-[10px] text-slate-500 font-medium">TRẠNG THÁI</span>
-            <p className={`text-xs font-bold mt-1 ${isTripEmergency ? 'text-red-400' : 'text-emerald-400'}`}>
+            <p className={`text-xs font-bold mt-1 ${isTripEmergency ? 'text-red-400' : 'text-sky-400'}`}>
               {isTripEmergency ? 'CÓ SỰ CỐ' : 'BÌNH THƯỜNG'}
             </p>
           </div>

@@ -66,11 +66,30 @@ const createIncidentSchema = z.object({
   })
 });
 
+const createTripGroupSchema = z.object({
+  body: z.object({
+    groupName: z.string().min(1, 'Group name is required'),
+    routeName: z.string().min(1, 'Route name is required'),
+    description: z.string().optional(),
+    plannedStartDate: z.string().datetime('Planned start date must be a valid ISO date').optional().nullable(),
+    plannedEndDate: z.string().datetime('Planned end date must be a valid ISO date').optional().nullable()
+  })
+});
+
+const joinTripGroupSchema = z.object({
+  body: z.object({
+    joinCode: z.string().min(6, 'PIN must be at least 6 characters'),
+    emergencyContactPhone: z.string().optional()
+  })
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
   startTripSchema,
   updateBatterySchema,
   gpsBatchSchema,
-  createIncidentSchema
+  createIncidentSchema,
+  createTripGroupSchema,
+  joinTripGroupSchema
 };

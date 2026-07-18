@@ -82,7 +82,7 @@ describe('IncidentList Page', () => {
 
     expect(screen.getByText(/Trang 1 \/ 3/)).toBeTruthy();
     
-    const nextButton = screen.getByRole('button', { name: 'Sau →' });
+    const nextButton = screen.getByRole('button', { name: 'Trang sau' });
     expect(nextButton).toBeTruthy();
     expect(nextButton.disabled).toBeFalsy();
 

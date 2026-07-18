@@ -147,7 +147,7 @@ router.post('/groups', protect, authorize('operator'), async (req, res, next) =>
  */
 router.post('/groups/join', protect, async (req, res, next) => {
   try {
-    const { joinCode, bloodType, medicalNotes, emergencyContactPhone } = req.body;
+    const { joinCode, emergencyContactPhone } = req.body;
 
     if (!joinCode) {
       return res.status(400).json({ success: false, message: 'Vui lòng cung cấp mã PIN 6 số của đoàn.' });
@@ -196,15 +196,13 @@ router.post('/groups/join', protect, async (req, res, next) => {
       group.memberTripIds.push(activeTrip._id);
     }
 
-    // Lưu thông tin y tế khai báo (upsert theo userId)
+    // Lưu thông tin ghép đoàn (upsert theo userId, không lưu plaintext y tế nhạy cảm)
     const existingMedIdx = group.memberMedicalInfo.findIndex(
       m => m.userId && m.userId.toString() === req.user._id.toString()
     );
     const medRecord = {
       userId: req.user._id,
       tripId: activeTrip._id,
-      bloodType: bloodType || '',
-      medicalNotes: medicalNotes || '',
       emergencyContactPhone: emergencyContactPhone || '',
       joinedAt: new Date()
     };
@@ -275,7 +273,7 @@ router.post('/groups/:id/members', protect, authorize('operator'), async (req, r
  * @route   GET /api/operators/groups/:id/manifest
  * @access  Private (Operator Admin hoặc Authority/Ranger)
  */
-router.get('/groups/:id/manifest', protect, authorize('operator', 'admin', 'authority'), async (req, res, next) => {
+router.get('/groups/:id/manifest', protect, authorize('admin', 'rescuer'), async (req, res, next) => {
   try {
     const group = await TripGroup.findById(req.params.id)
       .populate('operatorId', 'companyName phone email address')
@@ -285,25 +283,51 @@ router.get('/groups/:id/manifest', protect, authorize('operator', 'admin', 'auth
       return res.status(404).json({ success: false, message: 'Không tìm thấy đoàn.' });
     }
 
-    // Lấy thông tin chi tiết các thành viên
+    // Lấy thông tin chi tiết các thành viên và thông tin y tế đã được giải mã của họ
     const trips = await Trip.find({ _id: { $in: group.memberTripIds } })
-      .populate('userId', 'name phone isRanger');
+      .populate('userId', 'name phone isRanger medicalProfile');
+
+    const MedicalAuditLog = require('../models/MedicalAuditLog');
 
     // Gộp thông tin y tế vào từng thành viên
-    const members = trips.map(trip => {
+    const members = [];
+    for (const trip of trips) {
       const med = group.memberMedicalInfo.find(
         m => m.userId && m.userId.toString() === trip.userId?._id?.toString()
       );
-      return {
-        name: trip.userId?.name || 'Chưa rõ',
-        phone: trip.userId?.phone || '',
-        isLeader: group.leaderId?._id?.toString() === trip.userId?._id?.toString(),
-        bloodType: med?.bloodType || 'Chưa khai báo',
-        medicalNotes: med?.medicalNotes || 'Không có',
-        emergencyContactPhone: med?.emergencyContactPhone || trip.userId?.phone || '',
+      const user = trip.userId || {};
+      const medProfile = user.medicalProfile || {};
+
+      // Xây dựng medicalNotes từ profile đã giải mã của User
+      const medicalNotesParts = [];
+      if (medProfile.allergies) medicalNotesParts.push(`Dị ứng: ${medProfile.allergies}`);
+      if (medProfile.medications) medicalNotesParts.push(`Thuốc: ${medProfile.medications}`);
+      if (medProfile.chronicConditions) medicalNotesParts.push(`Bệnh nền: ${medProfile.chronicConditions}`);
+      if (medProfile.notes) medicalNotesParts.push(`Ghi chú: ${medProfile.notes}`);
+
+      // Ghi nhật ký truy cập thông tin y tế nếu người xem không phải chủ sở hữu
+      if (user._id && user._id.toString() !== req.user._id.toString()) {
+        try {
+          await MedicalAuditLog.create({
+            viewerId: req.user._id,
+            targetUserId: user._id,
+            action: 'view'
+          });
+        } catch (auditErr) {
+          console.error('[AuditLog] Failed to create access log for manifest member:', auditErr.message);
+        }
+      }
+
+      members.push({
+        name: user.name || 'Chưa rõ',
+        phone: user.phone || '',
+        isLeader: group.leaderId?._id?.toString() === user._id?.toString(),
+        bloodType: medProfile.bloodType || 'Chưa khai báo',
+        medicalNotes: medicalNotesParts.join('. ') || 'Không có',
+        emergencyContactPhone: med?.emergencyContactPhone || user.phone || '',
         joinedAt: med?.joinedAt || trip.startedAt
-      };
-    });
+      });
+    }
 
     res.json({
       success: true,

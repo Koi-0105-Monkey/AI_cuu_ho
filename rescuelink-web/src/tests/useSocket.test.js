@@ -9,7 +9,9 @@ vi.mock('socket.io-client', () => {
     on: vi.fn(),
     off: vi.fn(),
     emit: vi.fn(),
+    connect: vi.fn(),
     id: 'mock-socket-id',
+    connected: false,
   };
   return {
     io: vi.fn(() => mockSocket),

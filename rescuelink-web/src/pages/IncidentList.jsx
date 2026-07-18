@@ -151,7 +151,7 @@ export default function IncidentList() {
                       <td className="px-4 py-3">
                         <span className={`${severityBadge(inc.severity)} flex items-center gap-0.5 w-fit`}>
                           {inc.severity <= 2 ? (
-                            <CheckCircle size={10} weight="fill" className="text-green-400" />
+                            <CheckCircle size={10} weight="fill" className="text-sky-400" />
                           ) : inc.severity === 3 ? (
                             <Warning size={10} weight="bold" className="text-amber-400" />
                           ) : (
@@ -167,7 +167,7 @@ export default function IncidentList() {
                           ) : inc.status === 'assigned' ? (
                             <Clock size={10} className="text-amber-400" />
                           ) : (
-                            <CheckCircle size={10} weight="fill" className="text-green-400" />
+                            <CheckCircle size={10} weight="fill" className="text-sky-400" />
                           )}
                           {statusLabel(inc.status)}
                         </span>
