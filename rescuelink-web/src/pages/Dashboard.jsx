@@ -87,18 +87,18 @@ const FORBIDDEN_ZONE = [
 
 
 
-// ─── Stat Card ────────────────────────────────────────────
+// ─── Stat Card — Tactical Telemetry ──────────────────────
 function StatCard({ label, value, icon: Icon, color = 'text-muted-light', loading }) {
   return (
-    <div className="stat-card">
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted uppercase tracking-wider">{label}</span>
-        <Icon size={18} className={color} />
+    <div className="bg-surface-1 border border-slate-700 p-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[9px] text-muted font-mono uppercase tracking-widest">{label}</span>
+        <Icon size={16} className={color} />
       </div>
       {loading ? (
-        <div className="h-8 w-16 bg-surface-3 animate-pulse rounded" />
+        <div className="h-8 w-16 bg-surface-3 animate-pulse" />
       ) : (
-        <p className="text-3xl font-bold text-white tabular-nums">{value ?? '—'}</p>
+        <p className="text-3xl font-mono font-black text-white tabular-nums">{value ?? '—'}</p>
       )}
     </div>
   );
@@ -179,134 +179,132 @@ function IncidentDetailPanel({ incident, onClose }) {
   events.sort((a, b) => a.time - b.time);
 
   return (
-    <div className="fixed top-0 right-0 h-full w-[340px] z-[2000] bg-[#0b0f18] border-l border-slate-800 flex flex-col shadow-2xl overflow-hidden animate-fade-in">
+    <div className="fixed top-0 right-0 h-full w-[340px] z-[2000] bg-[#0b0f18] border-l border-slate-700 flex flex-col overflow-hidden animate-fade-in">
       {/* Panel header */}
-      <div className={`px-4 py-3 flex items-center justify-between border-b border-slate-800 ${sev.bg}`}>
+      <div className={`px-4 py-3 flex items-center justify-between border-b border-slate-700 ${sev.bg}`}>
         <div>
-          <span className={`text-[10px] font-black uppercase tracking-widest ${sev.color}`}>{sev.label}</span>
-          <p className="text-white font-bold text-sm mt-0.5">
-            {incident.userId?.name || 'Ẩn danh'} — {incident.type}
+          <span className={`text-[9px] font-mono font-black uppercase tracking-widest ${sev.color}`}>{sev.label}</span>
+          <p className="text-white font-bold text-xs font-mono mt-0.5 uppercase tracking-wide">
+            {incident.userId?.name || 'ẨNDANH'} / {incident.type}
           </p>
         </div>
-        <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
-          <X size={18} />
+        <button onClick={onClose} className="p-1.5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
+          <X size={16} />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
         {/* Battery card */}
-        <div className="bg-slate-900 border border-slate-700/60 rounded-xl p-3">
+        <div className="bg-surface-2 border border-slate-700 border-l-2 border-l-amber-500 p-3">
           <div className="flex items-center gap-2 mb-2">
-            {bat != null && bat <= 15 ? <BatteryLow size={15} className="text-red-400" />
-              : bat != null && bat <= 30 ? <BatteryWarning size={15} className="text-amber-400" />
-              : <BatteryHigh size={15} className="text-emerald-400" />}
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trạng thái Pin</span>
+            {bat != null && bat <= 15 ? <BatteryLow size={13} className="text-red-400" />
+              : bat != null && bat <= 30 ? <BatteryWarning size={13} className="text-amber-400" />
+              : <BatteryHigh size={13} className="text-sky-400" />}
+            <span className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest">[ TRẠNG THÁI PIN ]</span>
           </div>
           {bat != null ? (
             <>
               <div className="flex items-end gap-3">
-                <span className={`text-3xl font-black tabular-nums ${bat <= 15 ? 'text-red-400' : bat <= 30 ? 'text-amber-400' : 'text-emerald-400'}`}>{bat}%</span>
+                <span className={`text-2xl font-mono font-black tabular-nums ${bat <= 15 ? 'text-red-400' : bat <= 30 ? 'text-amber-400' : 'text-sky-400'}`}>{bat}%</span>
                 {est && (
-                  <div className="pb-1">
-                    <p className="text-[10px] text-slate-500">Ước tính còn</p>
-                    <p className="text-sm font-bold text-slate-200">{est} hoạt động</p>
+                  <div className="pb-0.5">
+                    <p className="text-[9px] text-slate-500 font-mono">Ước tính còn</p>
+                    <p className="text-xs font-mono font-bold text-slate-200">{est} hoạt động</p>
                   </div>
                 )}
               </div>
-              <div className="mt-2 h-1.5 w-full bg-slate-700 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${bat <= 15 ? 'bg-red-500' : bat <= 30 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${bat}%` }} />
+              <div className="mt-2 h-1 w-full bg-slate-700 overflow-hidden">
+                <div className={`h-full ${bat <= 15 ? 'bg-red-500' : bat <= 30 ? 'bg-amber-500' : 'bg-sky-500'}`} style={{ width: `${bat}%` }} />
               </div>
             </>
           ) : (
-            <p className="text-xs text-slate-500 italic">Không có dữ liệu pin</p>
+            <p className="text-[10px] text-slate-500 font-mono italic">Không có dữ liệu pin</p>
           )}
         </div>
 
         {/* AI Triage card */}
-        <div className="bg-slate-900 border border-slate-700/60 rounded-xl p-3">
+        <div className="bg-surface-2 border border-slate-700 border-l-2 border-l-violet-500 p-3">
           <div className="flex items-center gap-2 mb-2">
-            <Robot size={15} className="text-violet-400" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">AI Triage — Sơ cứu nhanh</span>
+            <Robot size={13} className="text-violet-400" />
+            <span className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest">[ AI TRIAGE — SƠ CỨU NHANH ]</span>
           </div>
           {ent?.incidentType && (
             <div className="mb-1.5">
-              <p className="text-[10px] text-slate-500">Phân loại AI</p>
-              <p className="text-sm font-bold text-violet-300">{ent.incidentType}</p>
+              <p className="text-[9px] text-slate-500 font-mono uppercase tracking-widest">PHÂN LOẠI AI</p>
+              <p className="text-xs font-mono font-bold text-violet-300">{ent.incidentType}</p>
             </div>
           )}
           {ent?.victimName && ent.victimName !== 'Chưa rõ' && (
             <div className="mb-1.5">
-              <p className="text-[10px] text-slate-500">Nạn nhân</p>
-              <p className="text-sm font-semibold text-white">{ent.victimName}</p>
+              <p className="text-[9px] text-slate-500 font-mono uppercase tracking-widest">NẠN NHÂN</p>
+              <p className="text-xs font-mono font-semibold text-white">{ent.victimName}</p>
             </div>
           )}
           {ent?.location && ent.location !== 'Chưa rõ' && (
             <div className="mb-1.5">
-              <p className="text-[10px] text-slate-500">Địa điểm mô tả</p>
-              <p className="text-xs text-slate-300">{ent.location}</p>
+              <p className="text-[9px] text-slate-500 font-mono uppercase tracking-widest">ĐỊA ĐIỂM MÔ TẢ</p>
+              <p className="text-[10px] font-mono text-slate-300">{ent.location}</p>
             </div>
           )}
           <div className="mt-2 pt-2 border-t border-slate-700/60">
             <div className="flex items-center gap-1.5 mb-1">
-              <FirstAid size={12} className="text-amber-400" weight="fill" />
-              <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Hướng dẫn sơ cứu</span>
+              <FirstAid size={11} className="text-amber-400" weight="fill" />
+              <span className="text-[9px] text-amber-400 font-mono font-bold uppercase tracking-widest">// HƯỚNG DẪN SƠ CỨU</span>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">{tip}</p>
+            <p className="text-[10px] font-mono text-slate-300 leading-relaxed">{tip}</p>
           </div>
           {incident.voiceTranscript && (
             <div className="mt-2 pt-2 border-t border-slate-700/60">
-              <p className="text-[10px] text-slate-500 mb-0.5">Transcript giọng nói</p>
-              <p className="text-xs text-slate-400 italic">"{incident.voiceTranscript.slice(0, 130)}{incident.voiceTranscript.length > 130 ? '...' : ''}"</p>
+              <p className="text-[9px] text-slate-500 font-mono uppercase tracking-widest mb-0.5">TRANSCRIPT GIỌNG NÓI</p>
+              <p className="text-[10px] font-mono text-slate-400 italic">"{incident.voiceTranscript.slice(0, 130)}{incident.voiceTranscript.length > 130 ? '...' : ''}"</p>
             </div>
           )}
           {!ent && !incident.voiceTranscript && (
-            <p className="text-xs text-slate-500 italic mt-2">SOS thủ công — chưa có phân tích AI</p>
+            <p className="text-[10px] font-mono text-slate-500 italic mt-2">// SOS thủ công — chưa có phân tích AI</p>
           )}
         </div>
 
         {/* AI Confidence & Review Card */}
         {incident.severityBreakdown && (
-          <div className={`border rounded-xl p-3 ${
-            incident.severityBreakdown.needsManualReview 
-              ? 'bg-amber-500/10 border-amber-500/30' 
-              : 'bg-slate-900 border-slate-700/60'
+          <div className={`border p-3 ${
+            incident.severityBreakdown.needsManualReview
+              ? 'bg-amber-500/5 border-amber-500/40 border-l-4 border-l-amber-500'
+              : 'bg-surface-2 border-slate-700'
           }`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trạng thái AI Evaluation</span>
+              <span className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest">[ AI EVALUATION ]</span>
               {incident.severityBreakdown.needsManualReview && (
-                <span className="text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded font-black uppercase animate-pulse">
-                  ⚠️ Cần duyệt lại
+                <span className="text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/40 px-1.5 py-0.5 font-mono font-black uppercase animate-pulse">
+                  ! REVIEW REQUIRED
                 </span>
               )}
             </div>
-            
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-300">Độ tin cậy của AI:</span>
-              <span className={`text-xs font-black px-2 py-0.5 rounded ${
-                incident.severityBreakdown.aiConfidence === 'High' 
-                  ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' 
+              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wide">AI CONFIDENCE:</span>
+              <span className={`text-[9px] font-mono font-black px-2 py-0.5 border rounded-none ${
+                incident.severityBreakdown.aiConfidence === 'High'
+                  ? 'bg-sky-500/10 text-sky-400 border-sky-500/30'
                   : incident.severityBreakdown.aiConfidence === 'Medium'
-                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                  : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                  : 'bg-red-500/10 text-red-400 border-red-500/30'
               }`}>
-                {incident.severityBreakdown.aiConfidence === 'High' ? 'CAO' : incident.severityBreakdown.aiConfidence === 'Medium' ? 'TRUNG BÌNH' : 'THẤP'}
+                {incident.severityBreakdown.aiConfidence === 'High' ? '▲ CAO' : incident.severityBreakdown.aiConfidence === 'Medium' ? '─ TRUNG BÌNH' : '▼ THẤP'}
               </span>
             </div>
-            
             {incident.severityBreakdown.needsManualReview && (
-              <p className="text-[10px] text-amber-300 italic mt-2 border-t border-amber-500/10 pt-1.5 leading-tight">
-                * Có tín hiệu mâu thuẫn giữa mức khẩn cấp tự khai báo và thông số y tế/thiết bị thực tế. Trực ban cần ưu tiên kiểm tra.
+              <p className="text-[10px] font-mono text-amber-300 italic mt-2 border-t border-amber-500/10 pt-1.5 leading-tight">
+                * Có tín hiệu mâu thuẫn. Trực ban cần ưu tiên kiểm tra.
               </p>
             )}
           </div>
         )}
 
         {/* Timeline */}
-        <div className="bg-slate-900 border border-slate-700/60 rounded-xl p-3">
+        <div className="bg-surface-2 border border-slate-700 border-l-2 border-l-sky-500 p-3">
           <div className="flex items-center gap-2 mb-3">
-            <Clock size={15} className="text-sky-400" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nhật ký Hành trình</span>
+            <Clock size={13} className="text-sky-400" />
+            <span className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest">[ NHẬT KÝ HÀNH TRÌNH ]</span>
           </div>
           <div>
             {events.map((ev, i) => (
@@ -339,9 +337,9 @@ function IncidentDetailPanel({ incident, onClose }) {
         {/* Full detail link */}
         <Link
           to={`/incidents/${incident._id}`}
-          className="block text-center text-sm bg-red-700 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl transition-colors"
+          className="block text-center text-[10px] font-mono font-black uppercase tracking-widest bg-emergency-700 hover:bg-emergency-600 text-white py-2.5 transition-colors"
         >
-          Xem toàn bộ hồ sơ sự cố →
+          [ XEM TOÀN BỘ HỒ SƠ SỰ CỐ → ]
         </Link>
       </div>
     </div>
@@ -487,10 +485,10 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <Header title="RescueLink Dispatch HQ" liveCount={openCount} />
-      <div className="flex-1 overflow-auto p-6 space-y-6 flex flex-col min-h-0">
+      <div className="flex-1 overflow-auto p-4 space-y-3 flex flex-col min-h-0">
         
         {/* ─── Stats Row ─────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-700 shrink-0">
           <StatCard
             label="Sự cố hôm nay" value={stats?.todayCount}
             icon={BellRinging} color="text-emergency-400" loading={statsLoading}
@@ -513,27 +511,27 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 min-h-[400px] overflow-hidden">
           
           {/* Left Column: Alert Feed */}
-          <div className="card flex flex-col gap-0 p-0 overflow-hidden xl:col-span-1 h-full">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-surface-4 shrink-0 bg-surface-2/50">
-              <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+          <div className="bg-surface-1 border border-slate-700 flex flex-col gap-0 p-0 overflow-hidden xl:col-span-1 h-full">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 shrink-0 bg-surface-2">
+              <h2 className="text-[10px] font-mono font-black text-white uppercase tracking-widest flex items-center gap-2">
                 <span className="live-dot" />
-                Alert thời gian thực
+                [ ALERT THỜI GIAN THỰC ]
               </h2>
-              <span className="text-xs text-muted font-mono">{feed.length} sự cố</span>
+              <span className="text-[9px] text-muted font-mono uppercase tracking-widest">{feed.length} SỰ CỐ</span>
             </div>
             <div ref={feedRef} className="overflow-y-auto flex-1">
               {feed.length === 0 ? (
-                <div className="py-16 text-center text-slate-400 text-sm flex flex-col items-center gap-3">
-                  <ShieldCheck size={36} className="text-safe-500" />
+                <div className="py-16 text-center text-slate-400 flex flex-col items-center gap-3">
+                  <ShieldCheck size={32} className="text-safe-500" />
                   <div className="space-y-1">
-                    <p className="font-bold text-white">Hệ thống đang giám sát bình thường</p>
-                    <p className="text-xs text-muted">Không có sự cố khẩn cấp nào đang mở.</p>
+                    <p className="text-xs font-mono font-bold text-white uppercase tracking-widest">HỆ THỐNG ĐANG GIÁM SÁT BÌNH THƯỜNG</p>
+                    <p className="text-[10px] font-mono text-muted tracking-wide">// Không có sự cố khẩn cấp nào đang mở.</p>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col divide-y divide-surface-4">
+                <div className="flex flex-col divide-y divide-slate-800">
                   {sortedFeed.map((inc) => (
-                    <div key={inc._id} className="px-4 py-3 hover:bg-surface-3 transition-colors">
+                    <div key={inc._id} className="px-4 py-3 hover:bg-surface-2 transition-colors">
                       <IncidentCard incident={inc} />
                     </div>
                   ))}
@@ -543,15 +541,16 @@ export default function Dashboard() {
           </div>
 
           {/* Right Column: Monitor Map */}
-          <div className="card p-0 overflow-hidden xl:col-span-2 h-full relative flex flex-col">
-            <div className="absolute top-3 left-12 z-[1000] bg-surface-2/90 border border-surface-4 px-3 py-1.5 rounded-lg shadow-lg flex flex-wrap items-center gap-4 text-xs">
+          <div className="border border-slate-700 p-0 overflow-hidden xl:col-span-2 h-full relative flex flex-col">
+            {/* HUD Legend — vuông, kiểu terminal */}
+            <div className="absolute top-3 left-12 z-[1000] bg-[#0b0f18]/90 border border-slate-700 px-3 py-1.5 flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 bg-red-500 rounded-full inline-block animate-pulse" />
-                <span className="text-white font-medium">Sự cố khẩn cấp</span>
+                <span className="w-2 h-2 bg-red-500 inline-block animate-pulse" />
+                <span className="text-[9px] font-mono font-bold text-white uppercase tracking-widest">SỰ CỐ</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block animate-pulse" />
-                <span className="text-white font-medium">Trekker</span>
+                <span className="w-2 h-2 bg-sky-500 inline-block animate-pulse" />
+                <span className="text-[9px] font-mono font-bold text-white uppercase tracking-widest">TREKKER</span>
               </div>
             </div>
             

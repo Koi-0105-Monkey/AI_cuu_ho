@@ -3,6 +3,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import { ChartLine, Clock, ShieldCheck, Siren, Users, Eye, ShieldWarning } from '@phosphor-icons/react';
 import api from '../services/api';
 
+// Giữ nguyên COLORS cho Recharts — đây là data, không phải UI chrome
 const COLORS = ['#ef4444', '#f97316', '#eab308', '#3b82f6', '#10b981', '#a855f7'];
 
 const INCIDENT_LABELS = {
@@ -28,40 +29,35 @@ export default function HQAnalytics() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full overflow-y-auto space-y-6 p-6 bg-[#080c12]">
-        {/* Skeleton title */}
+      <div className="flex flex-col h-full overflow-y-auto space-y-4 p-4 bg-[#080c12]">
         <div className="shrink-0 space-y-2">
-          <div className="h-6 bg-surface-3 animate-pulse rounded-lg w-72" />
-          <div className="h-3 bg-surface-3 animate-pulse rounded w-80" />
+          <div className="h-5 bg-surface-3 animate-pulse w-72" />
+          <div className="h-3 bg-surface-3 animate-pulse w-80" />
         </div>
-        {/* Skeleton stat cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 shrink-0">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="card flex items-center gap-4 py-4 bg-[#0d1525] border-slate-800">
-              <div className="w-11 h-11 rounded-xl bg-surface-3 animate-pulse" />
+            <div key={i} className="bg-surface-2 border border-slate-700 flex items-center gap-4 p-4">
+              <div className="w-10 h-10 bg-surface-3 animate-pulse" />
               <div className="space-y-2">
-                <div className="h-2.5 bg-surface-3 animate-pulse rounded w-24" />
-                <div className="h-5 bg-surface-3 animate-pulse rounded w-12" />
+                <div className="h-2.5 bg-surface-3 animate-pulse w-24" />
+                <div className="h-5 bg-surface-3 animate-pulse w-12" />
               </div>
             </div>
           ))}
         </div>
-        {/* Skeleton charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="card bg-[#0d1525] border-slate-800 h-[350px] animate-pulse" />
-          <div className="card bg-[#0d1525] border-slate-800 h-[350px] animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="bg-surface-2 border border-slate-700 h-[350px] animate-pulse" />
+          <div className="bg-surface-2 border border-slate-700 h-[350px] animate-pulse" />
         </div>
       </div>
     );
   }
 
-  // Format pie chart data
   const pieData = Object.keys(analytics?.typeDistribution || {}).map(key => ({
     name: INCIDENT_LABELS[key] || key,
     value: analytics.typeDistribution[key]
   })).filter(item => item.value > 0);
 
-  // Flag whether we are using real or sample data for the monthly chart
   const isUsingFallbackData = !analytics?.monthlyMetrics;
   const monthlyData = analytics?.monthlyMetrics || [
     { name: 'Tháng 1', total: 5, resolved: 4, avgResponseTime: 12 },
@@ -73,105 +69,123 @@ export default function HQAnalytics() {
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto space-y-6 p-6 bg-[#080c12]">
-      {/* Title */}
-      <div className="shrink-0">
-        <h1 className="text-xl font-bold text-white uppercase tracking-wider">Phân Tích Hiệu Suất Cứu Hộ HQ</h1>
-        <p className="text-xs text-muted mt-1">Đánh giá thời gian phản ứng (Response Time) và thống kê điều động cứu nạn</p>
+    <div className="flex flex-col h-full overflow-y-auto space-y-4 p-4 bg-[#080c12]">
+
+      {/* ── Title ────────────────────────────────────────── */}
+      <div className="shrink-0 border-b border-slate-700 pb-3">
+        <h1 className="text-sm font-mono font-black text-white uppercase tracking-widest">
+          [ PHÂN TÍCH HIỆU SUẤT CỨU HỘ HQ ]
+        </h1>
+        <p className="text-[10px] text-muted font-mono mt-1 tracking-wide">
+          // Đánh giá thời gian phản ứng (Response Time) và thống kê điều động cứu nạn
+        </p>
       </div>
 
-      {/* Bento Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
-        <div className="card flex items-center gap-4 py-4 bg-[#0d1525] border-slate-800">
-          <div className="p-3 rounded-xl bg-red-950/60 border border-red-900/30">
-            <Siren size={20} className="text-red-400" />
+      {/* ── Stat cards — gap:1px Tactical Compartments ───── */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-slate-700 shrink-0">
+
+        {/* Tổng sự cố */}
+        <div className="bg-surface-1 border-l-2 border-l-emergency-500 p-4 flex items-center gap-3">
+          <div className="p-2 bg-red-950/60 border border-red-900/30">
+            <Siren size={18} className="text-red-400" />
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tổng sự cố tiếp nhận</p>
-            <p className="text-xl font-black text-white mt-0.5">{analytics?.totalCount || 0}</p>
+            <p className="text-[9px] text-slate-500 font-mono font-bold uppercase tracking-widest">TỔNG SỰ CỐ TIẾP NHẬN</p>
+            <p className="text-2xl font-mono font-black text-white mt-0.5 tabular-nums">{analytics?.totalCount || 0}</p>
           </div>
         </div>
 
-        <div className="card flex items-center gap-4 py-4 bg-[#0d1525] border-slate-800">
-          <div className="p-3 rounded-xl bg-sky-950/60 border border-sky-900/30">
-            <ShieldCheck size={20} className="text-sky-400" />
+        {/* Đã giải quyết */}
+        <div className="bg-surface-1 border-l-2 border-l-sky-500 p-4 flex items-center gap-3">
+          <div className="p-2 bg-sky-950/60 border border-sky-900/30">
+            <ShieldCheck size={18} className="text-sky-400" />
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Đã giải quyết thành công</p>
-            <p className="text-xl font-black text-white mt-0.5">{analytics?.resolvedCount || 0}</p>
+            <p className="text-[9px] text-slate-500 font-mono font-bold uppercase tracking-widest">ĐÃ GIẢI QUYẾT THÀNH CÔNG</p>
+            <p className="text-2xl font-mono font-black text-white mt-0.5 tabular-nums">{analytics?.resolvedCount || 0}</p>
           </div>
         </div>
 
-        <div className="card flex items-center gap-4 py-4 bg-[#0d1525] border-slate-800">
-          <div className="p-3 rounded-xl bg-amber-950/60 border border-amber-900/30">
-            <Clock size={20} className="text-amber-400" />
+        {/* Response time */}
+        <div className="bg-surface-1 border-l-2 border-l-amber-500 p-4 flex items-center gap-3">
+          <div className="p-2 bg-amber-950/60 border border-amber-900/30">
+            <Clock size={18} className="text-amber-400" />
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Phản hồi trung bình (Response)</p>
-            <p className="text-xl font-black text-amber-400 mt-0.5">
-              {analytics?.avgResponseTime || 0} <span className="text-xs font-normal">phút</span>
+            <p className="text-[9px] text-slate-500 font-mono font-bold uppercase tracking-widest">PHẢN HỒI TRUNG BÌNH (RESPONSE)</p>
+            <p className="text-2xl font-mono font-black text-amber-400 mt-0.5 tabular-nums">
+              {analytics?.avgResponseTime || 0}<span className="text-xs font-normal text-slate-400 ml-1">phút</span>
             </p>
           </div>
         </div>
 
-        <div className="card flex items-center gap-4 py-4 bg-[#0d1525] border-slate-800">
-          <div className="p-3 rounded-xl bg-blue-950/60 border border-blue-900/30">
-            <Users size={20} className="text-blue-400" />
+        {/* Resolution time */}
+        <div className="bg-surface-1 border-l-2 border-l-blue-500 p-4 flex items-center gap-3">
+          <div className="p-2 bg-blue-950/60 border border-blue-900/30">
+            <Users size={18} className="text-blue-400" />
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Thời gian cứu hộ (Resolution)</p>
-            <p className="text-xl font-black text-blue-400 mt-0.5">
-              {analytics?.avgResolutionTime || 0} <span className="text-xs font-normal">phút</span>
+            <p className="text-[9px] text-slate-500 font-mono font-bold uppercase tracking-widest">THỜI GIAN CỨU HỘ (RESOLUTION)</p>
+            <p className="text-2xl font-mono font-black text-blue-400 mt-0.5 tabular-nums">
+              {analytics?.avgResolutionTime || 0}<span className="text-xs font-normal text-slate-400 ml-1">phút</span>
             </p>
           </div>
         </div>
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Response Time Chart */}
-        <div className="card bg-[#0d1525] border-slate-800 flex flex-col min-h-[350px]">
-          <div className="px-5 py-4 border-b border-slate-800 shrink-0 flex items-center justify-between">
+      {/* ── Charts Section ────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Response Time Bar Chart */}
+        <div className="bg-surface-1 border border-slate-700 flex flex-col min-h-[350px]">
+          <div className="px-4 py-3 border-b border-slate-700 shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ChartLine size={16} className="text-amber-400" />
-              <h2 className="text-sm font-semibold text-white">Thời gian phản ứng cứu hộ theo tháng</h2>
+              <ChartLine size={14} className="text-amber-400" />
+              <h2 className="text-[10px] font-mono font-bold text-white uppercase tracking-widest">
+                [ THỜI GIAN PHẢN ỨNG CỨU HỘ THEO THÁNG ]
+              </h2>
             </div>
             {isUsingFallbackData && (
-              <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-medium">
-                Dữ liệu mẫu
+              <span className="text-[9px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 font-mono uppercase tracking-wide">
+                DỮ LIỆU MẪU
               </span>
             )}
           </div>
-          <div className="flex-1 p-5 min-h-0">
+          <div className="flex-1 p-4 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1b253b" />
-                <XAxis dataKey="name" stroke="#687385" fontSize={11} />
-                <YAxis stroke="#687385" fontSize={11} label={{ value: 'Phút', angle: -90, position: 'insideLeft', fill: '#687385', fontSize: 10 }} />
+                <XAxis dataKey="name" stroke="#687385" fontSize={10} fontFamily="monospace" />
+                <YAxis stroke="#687385" fontSize={10} fontFamily="monospace" label={{ value: 'Phút', angle: -90, position: 'insideLeft', fill: '#687385', fontSize: 10 }} />
                 <Tooltip
                   contentStyle={{
-                    background: '#151922',
-                    border: '1px solid #222731',
-                    borderRadius: '12px',
+                    background: '#0d1525',
+                    border: '1px solid #334155',
+                    borderRadius: 0,
                     color: '#fff',
-                    fontSize: '12px'
+                    fontSize: '11px',
+                    fontFamily: 'monospace'
                   }}
                 />
-                <Bar dataKey="avgResponseTime" name="Thời gian phản hồi (phút)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="avgResponseTime" name="Thời gian phản hồi (phút)" fill="#f59e0b" radius={[0, 0, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Incident Type Distribution Pie Chart */}
-        <div className="card bg-[#0d1525] border-slate-800 flex flex-col min-h-[350px]">
-          <div className="px-5 py-4 border-b border-slate-800 shrink-0 flex items-center gap-2">
-            <Siren size={16} className="text-red-400" />
-            <h2 className="text-sm font-semibold text-white">Phân tích phân bố loại hình tai nạn sự cố</h2>
+        {/* Pie Chart — Incident Type Distribution */}
+        <div className="bg-surface-1 border border-slate-700 flex flex-col min-h-[350px]">
+          <div className="px-4 py-3 border-b border-slate-700 shrink-0 flex items-center gap-2">
+            <Siren size={14} className="text-red-400" />
+            <h2 className="text-[10px] font-mono font-bold text-white uppercase tracking-widest">
+              [ PHÂN BỐ LOẠI HÌNH TAI NẠN SỰ CỐ ]
+            </h2>
           </div>
-          <div className="flex-1 p-5 min-h-0 flex flex-col justify-center items-center">
+          <div className="flex-1 p-4 min-h-0 flex flex-col justify-center items-center">
             {pieData.length === 0 ? (
-              <p className="text-xs text-muted italic">Chưa có sự cố cứu nạn được phân loại</p>
+              <p className="text-[10px] text-muted font-mono italic tracking-wide">
+                // Chưa có sự cố cứu nạn được phân loại
+              </p>
             ) : (
               <div className="w-full h-full flex flex-col md:flex-row justify-center items-center gap-4">
                 <div className="flex-1 h-[220px] w-full">
@@ -194,13 +208,14 @@ export default function HQAnalytics() {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                
-                <div className="flex flex-col gap-2 max-w-[200px] text-xs">
+
+                {/* Legend — dùng ô vuông thay chấm tròn */}
+                <div className="flex flex-col gap-2 max-w-[200px]">
                   {pieData.map((item, idx) => (
                     <div key={item.name} className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                      <span className="text-slate-300 font-medium">{item.name}:</span>
-                      <span className="text-white font-bold">{item.value} vụ</span>
+                      <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                      <span className="text-slate-400 font-mono text-[10px]">{item.name}:</span>
+                      <span className="text-white font-mono font-bold text-[10px]">{item.value} vụ</span>
                     </div>
                   ))}
                 </div>
@@ -210,81 +225,81 @@ export default function HQAnalytics() {
         </div>
       </div>
 
-      {/* Security Audit Logs */}
-      <div className="card bg-[#0d1525] border-slate-800 flex flex-col shrink-0">
-        <div className="px-5 py-4 border-b border-slate-800 flex justify-between items-center">
+      {/* ── Security Audit Log Table ───────────────────────── */}
+      <div className="bg-surface-1 border border-slate-700 flex flex-col shrink-0">
+        <div className="px-4 py-3 border-b border-slate-700 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <ShieldWarning size={16} className="text-sky-400" />
-            <h2 className="text-sm font-semibold text-white">Nhật Ký Bảo Mật Truy Cập Y Tế (Nghị định 13/2023)</h2>
+            <ShieldWarning size={14} className="text-sky-400" />
+            <h2 className="text-[10px] font-mono font-bold text-white uppercase tracking-widest">
+              [ NHẬT KÝ BẢO MẬT TRUY CẬP Y TẾ — NGHỊ ĐỊNH 13/2023 ]
+            </h2>
           </div>
-          <span className="text-[10px] text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20 font-bold uppercase tracking-wider">
-            Mã hóa dữ liệu & Audit Trail Active
+          <span className="text-[9px] text-sky-400 bg-sky-500/10 px-2 py-0.5 border border-sky-500/30 font-mono font-bold uppercase tracking-widest">
+            ✓ AUDIT TRAIL ACTIVE
           </span>
         </div>
-        <div className="p-5">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left text-slate-300">
-              <thead className="bg-[#151d30] text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs text-left text-slate-300">
+            <thead className="bg-surface-2 border-b border-slate-700 text-[9px] font-mono text-slate-500 uppercase tracking-widest font-bold">
+              <tr>
+                <th scope="col" className="px-4 py-3">NGƯỜI TRUY CẬP</th>
+                <th scope="col" className="px-4 py-3">VAI TRÒ</th>
+                <th scope="col" className="px-4 py-3">BỆNH NHÂN (TREKKER)</th>
+                <th scope="col" className="px-4 py-3">SỰ CỐ LIÊN QUAN</th>
+                <th scope="col" className="px-4 py-3">HÀNH ĐỘNG</th>
+                <th scope="col" className="px-4 py-3">THỜI GIAN TRUY CẬP</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {!auditLogs || auditLogs.length === 0 ? (
                 <tr>
-                  <th scope="col" className="px-4 py-3 rounded-l-lg">Người truy cập</th>
-                  <th scope="col" className="px-4 py-3">Vai trò</th>
-                  <th scope="col" className="px-4 py-3">Bệnh nhân (Trekker)</th>
-                  <th scope="col" className="px-4 py-3">Sự cố liên quan</th>
-                  <th scope="col" className="px-4 py-3">Hành động</th>
-                  <th scope="col" className="px-4 py-3 rounded-r-lg">Thời gian truy cập</th>
+                  <td colSpan="6" className="text-center py-8 font-mono text-[10px] text-muted uppercase tracking-widest">
+                    // Chưa có lượt truy cập dữ liệu y tế nhạy cảm nào được ghi nhận.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {!auditLogs || auditLogs.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="text-center py-6 text-muted italic">
-                      Chưa có lượt truy cập dữ liệu y tế nhạy cảm nào được ghi nhận.
+              ) : (
+                auditLogs.map((log) => (
+                  <tr key={log._id} className="hover:bg-surface-2 transition-colors">
+                    <td className="px-4 py-3 font-mono font-bold text-white text-[10px]">
+                      {log.viewerId?.name}
+                      <span className="block text-[9px] text-muted font-normal tracking-wide">{log.viewerId?.phone}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 text-[9px] font-mono font-black uppercase tracking-widest border rounded-none ${
+                        log.viewerId?.role === 'admin'
+                          ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                          : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                      }`}>
+                        {log.viewerId?.role === 'admin' ? 'CHỈ HUY HQ' : 'CỨU HỘ THỰC ĐỊA'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-mono font-medium text-slate-200 text-[10px]">{log.targetUserId?.name}</span>
+                      <span className="block text-[9px] text-muted font-mono">{log.targetUserId?.phone}</span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-300">
+                      {log.incidentId ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="badge badge-med py-0 px-1.5 rounded-none font-mono text-[9px] uppercase">{log.incidentId.type}</span>
+                          <span className="text-[9px] text-muted font-mono">({log.incidentId.status})</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted font-mono text-[10px] italic">Không liên quan sự cố</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="flex items-center gap-1 text-sky-400 font-mono text-[10px] font-bold uppercase tracking-wide">
+                        <Eye size={11} /> {log.action === 'view' ? 'GIẢI MÃ & XEM' : 'CẬP NHẬT'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-400 font-mono text-[10px] tracking-wide">
+                      {new Date(log.accessedAt).toLocaleString('vi-VN')}
                     </td>
                   </tr>
-                ) : (
-                  auditLogs.map((log) => (
-                    <tr key={log._id} className="border-b border-slate-800/60 hover:bg-slate-900/40">
-                      <td className="px-4 py-3 font-semibold text-white">
-                        {log.viewerId?.name}
-                        <span className="block text-[10px] text-muted font-normal">{log.viewerId?.phone}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          log.viewerId?.role === 'admin' 
-                            ? 'bg-red-500/10 text-red-400 border border-red-500/25'
-                            : 'bg-blue-500/10 text-blue-400 border border-blue-500/25'
-                        }`}>
-                          {log.viewerId?.role === 'admin' ? 'CHỈ HUY HQ' : 'CỨU HỘ THỰC ĐỊA'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="font-medium text-slate-200">{log.targetUserId?.name}</span>
-                        <span className="block text-[10px] text-muted">{log.targetUserId?.phone}</span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-300">
-                        {log.incidentId ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="badge badge-med py-0 px-1.5">{log.incidentId.type}</span>
-                            <span className="text-[10px] text-muted">({log.incidentId.status})</span>
-                          </div>
-                        ) : (
-                          <span className="text-muted italic">Không liên quan sự cố</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="flex items-center gap-1 text-sky-400 font-medium">
-                          <Eye size={12} /> {log.action === 'view' ? 'Giải mã & Xem' : 'Cập nhật'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-400 font-mono">
-                        {new Date(log.accessedAt).toLocaleString('vi-VN')}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
